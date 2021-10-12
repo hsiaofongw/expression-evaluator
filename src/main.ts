@@ -20,12 +20,32 @@ const separators: Separator[] = [
     regex: /=/g,
     name: "EqualSign",
   },
+  {
+    regex: /\d+/g,
+    name: "Number"
+  },
+  {
+    regex: /\-\-[a-zA-Z]+/g,
+    name: "Option"
+  },
+  {
+    regex: /(?<!\-)\-[a-z]+/g,
+    name: "Command",
+  },
+  {
+    regex: /node/g,
+    name: "NodeExecutable"
+  },
+  {
+    regex: /\/?(([a-z]+)\/)+([a-z]+)\.js/g,
+    name: "JavaScriptPath"
+  }
 ];
 
 const separatorNames = new Set<string>();
 separators.forEach(sep => separatorNames.add(sep.name));
 
-const testString = "node /src/app.js      --abc --cd=efg --h=ij -j";
+const testString = "node /src/app.js      --abc --cd=efg --h=ij -j --port=8080";
 const initialToken: Token = {
   startIndex: 0,
   content: testString,
@@ -36,7 +56,6 @@ let tokens: Token[] = [initialToken];
 for (const separator of separators) {
   const newTokens = new Array<Token>();
   for (const activeToken of tokens) {
-    console.log(activeToken.name);
 
     if (separatorNames.has(activeToken.name)) {
       newTokens.push(activeToken);
@@ -64,7 +83,6 @@ for (const separator of separators) {
           name: "Token",
         });
 
-        console.log(newTokens);
       }
 
       newTokens.push({
@@ -73,21 +91,21 @@ for (const separator of separators) {
         content: matchResult[0] as string,
         name: separator.name.toString(),
       });
-      console.log(newTokens);
     }
     const lastTokenStartIdx = prevSeparatorIdx + prevSeparatorLen;
     const lastTokenContent = activeToken.content.slice(
       lastTokenStartIdx,
       activeToken.content.length
     );
-    newTokens.push({
-      startIndex: activeToken.startIndex + lastTokenStartIdx,
-      length: lastTokenContent.length,
-      content: lastTokenContent,
-      name: "Token",
-    });
+    if (lastTokenContent.length) {
+      newTokens.push({
+        startIndex: activeToken.startIndex + lastTokenStartIdx,
+        length: lastTokenContent.length,
+        content: lastTokenContent,
+        name: "Token",
+      });
+    }
   }
-  console.log(tokens);
   tokens = newTokens;
 }
 
