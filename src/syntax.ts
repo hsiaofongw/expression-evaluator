@@ -1,3 +1,5 @@
+import * as util from 'util';
+
 export type ISyntaxTerm = {
   isTerminal: boolean;
   name: string;
@@ -23,6 +25,52 @@ export class SyntaxTerm implements ISyntaxTerm {
     } else {
       return `<${this.name}>`;
     }
+  }
+
+  [util.inspect.custom]() {
+    return this.toString();
+  }
+}
+
+export type SyntaxGroup = SyntaxTerm[];
+export type ISyntaxRule = {
+  targetTerm: SyntaxTerm;
+  fromTermGroups: SyntaxGroup[];
+};
+
+export class SyntaxRule implements ISyntaxRule {
+  targetTerm!: SyntaxTerm;
+  fromTermGroups!: SyntaxGroup[];
+
+  constructor(data: ISyntaxRule) {
+    this.targetTerm = data.targetTerm;
+    this.fromTermGroups = data.fromTermGroups;
+  }
+
+  public static create(data: ISyntaxRule): SyntaxRule {
+    return new SyntaxRule(data);
+  }
+
+  public toString(): string {
+    let result = `${this.targetTerm.toString()} ::= `;
+
+    const indent = result.length - 2;
+
+    function spaceByIndent(indentLen: number): string {
+      let result = '';
+      for (let i = 0; i < indentLen; i++) {
+        result = result + ' ';
+      }
+      return result;
+    }
+
+    result =
+      result +
+      this.fromTermGroups
+        .map((termGroup) => termGroup.map((term) => term.toString()).join(' '))
+        .join('\n' + spaceByIndent(indent) + '| ');
+
+    return result;
   }
 }
 
@@ -88,48 +136,6 @@ export const terms = {
   positiveNumberTerm,
   negativeNumberTerm,
 };
-
-export type SyntaxGroup = SyntaxTerm[];
-export type ISyntaxRule = {
-  targetTerm: SyntaxTerm;
-  fromTermGroups: SyntaxGroup[];
-};
-
-export class SyntaxRule implements ISyntaxRule {
-  targetTerm!: SyntaxTerm;
-  fromTermGroups!: SyntaxGroup[];
-
-  constructor(data: ISyntaxRule) {
-    this.targetTerm = data.targetTerm;
-    this.fromTermGroups = data.fromTermGroups;
-  }
-
-  public static create(data: ISyntaxRule): SyntaxRule {
-    return new SyntaxRule(data);
-  }
-
-  public toString(): string {
-    let result = `${this.targetTerm.toString()} ::= `;
-
-    const indent = result.length - 2;
-
-    function spaceByIndent(indentLen: number): string {
-      let result = '';
-      for (let i = 0; i < indentLen; i++) {
-        result = result + ' ';
-      }
-      return result;
-    }
-
-    result =
-      result +
-      this.fromTermGroups
-        .map((termGroup) => termGroup.map((term) => term.toString()).join(' '))
-        .join('\n' + spaceByIndent(indent) + '| ');
-
-    return result;
-  }
-}
 
 const expressionRule = SyntaxRule.create({
   targetTerm: terms.expressionTerm,

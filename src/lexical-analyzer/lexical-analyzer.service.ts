@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Separator, Token, TokenizeResult } from 'src/types';
+import { Separator, IToken, TokenizeResult } from 'src/types';
 
+/** 词法分析器 */
 @Injectable()
 export class LexicalAnalyzer {
   constructor(@Inject('SEPARATORS') private separators: Separator[]) {}
@@ -10,15 +11,15 @@ export class LexicalAnalyzer {
     const separatorNames = new Set<string>();
     this.separators.forEach((sep) => separatorNames.add(sep.name));
 
-    const initialToken: Token = {
+    const initialToken: IToken = {
       startIndex: 0,
       content: text,
       length: text.length,
       name: 'Token',
     };
-    let tokens: Token[] = [initialToken];
+    let tokens: IToken[] = [initialToken];
     for (const separator of separators) {
-      const newTokens = new Array<Token>();
+      const newTokens = new Array<IToken>();
       for (const activeToken of tokens) {
         if (separatorNames.has(activeToken.name)) {
           newTokens.push(activeToken);

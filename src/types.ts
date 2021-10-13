@@ -5,7 +5,7 @@ export type Separator = {
 };
 
 /** 词素 */
-export type Token = {
+export type IToken = {
   startIndex: number;
   length: number;
   content: string;
@@ -14,7 +14,7 @@ export type Token = {
 
 /** 分析结果 */
 export type TokenizeResult = {
-  tokens: Token[];
+  tokens: IToken[];
 };
 
 export interface IMainService {
