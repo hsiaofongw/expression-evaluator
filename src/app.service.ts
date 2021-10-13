@@ -7,9 +7,12 @@ export class AppService implements IMainService {
   constructor(private lexicalAnalyzer: LexicalAnalyzer) {}
 
   main(): void {
-    const testString =
-      'node /src/app.js      --abc --cd=efg --h=ij -j --port=8080';
-    const result = this.lexicalAnalyzer.tokenize(testString);
+    const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
+
+    const result = this.lexicalAnalyzer
+      .tokenize(testString)
+      .tokens.filter((token) => token.name !== 'Space');
+
     console.log(result);
   }
 }
