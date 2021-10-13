@@ -1,15 +1,17 @@
-import { Module } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
+import { Separator } from 'src/types';
 import { LexicalAnalyzer } from './lexical-analyzer.service';
-import { separators } from './separators';
 
-@Module({
-  providers: [
-    {
-      provide: 'SEPARATORS',
-      useValue: separators,
-    },
-    LexicalAnalyzer,
-  ],
-  exports: [LexicalAnalyzer],
-})
-export class LexicalAnalyzerModule {}
+@Module({})
+export class LexicalAnalyzerModule {
+  static config(separators: Separator[]): DynamicModule {
+    return {
+      module: LexicalAnalyzerModule,
+      providers: [
+        { provide: 'SEPARATORS', useValue: separators },
+        LexicalAnalyzer,
+      ],
+      exports: [LexicalAnalyzer],
+    };
+  }
+}
