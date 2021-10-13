@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { LexicalAnalyzer } from './lexical-analyzer/lexical-analyzer.service';
 import { IMainService } from './types';
-import { syntax, SyntaxTerm, toBCNR } from './syntax';
+import { syntaxDefinition, SyntaxTerm } from './syntax';
 
 type Mark = {
   startIndex: number;
@@ -28,22 +28,24 @@ export class AppService implements IMainService {
 
     console.log(tokenDescriptors);
 
-    console.log(toBCNR(syntax));
+    console.log(syntaxDefinition.toBCNRString());
 
-    const synctaxTreeNodes: SyntaxTreeNode[] = tokenDescriptors.map((desc) => ({
-      marks: [
-        {
-          startIndex: desc.startIndex,
-          length: desc.length,
-          content: desc.content,
-        },
-      ],
-      term: SyntaxTerm.create({
-        isTerminal: true,
-        name: desc.name,
-      }),
-    }));
+    // console.log(toBCNR(rules));
 
-    console.log(synctaxTreeNodes);
+    // const synctaxTreeNodes: SyntaxTreeNode[] = tokenDescriptors.map((desc) => ({
+    //   marks: [
+    //     {
+    //       startIndex: desc.startIndex,
+    //       length: desc.length,
+    //       content: desc.content,
+    //     },
+    //   ],
+    //   term: SyntaxTerm.create({
+    //     isTerminal: true,
+    //     name: desc.name,
+    //   }),
+    // }));
+
+    // console.log(synctaxTreeNodes);
   }
 }
