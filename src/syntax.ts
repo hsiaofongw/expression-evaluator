@@ -90,47 +90,95 @@ export const terms = {
 };
 
 export type SyntaxGroup = SyntaxTerm[];
-export type SyntaxRule = {
+export type ISyntaxRule = {
   targetTerm: SyntaxTerm;
   fromTermGroups: SyntaxGroup[];
 };
 
+export class SyntaxRule implements ISyntaxRule {
+  targetTerm!: SyntaxTerm;
+  fromTermGroups!: SyntaxGroup[];
+
+  constructor(data: ISyntaxRule) {
+    this.targetTerm = data.targetTerm;
+    this.fromTermGroups = data.fromTermGroups;
+  }
+
+  public static create(data: ISyntaxRule): SyntaxRule {
+    return new SyntaxRule(data);
+  }
+
+  public toString(): string {
+    let result = `${this.targetTerm.toString()} ::= `;
+
+    const indent = result.length - 2;
+
+    function spaceByIndent(indentLen: number): string {
+      let result = '';
+      for (let i = 0; i < indentLen; i++) {
+        result = result + ' ';
+      }
+      return result;
+    }
+
+    result =
+      result +
+      this.fromTermGroups
+        .map((termGroup) => termGroup.map((term) => term.toString()).join(' '))
+        .join('\n' + spaceByIndent(indent) + '| ');
+
+    return result;
+  }
+}
+
+const expressionRule = SyntaxRule.create({
+  targetTerm: terms.expressionTerm,
+  fromTermGroups: [
+    [terms.numberTerm],
+    [terms.expressionTerm, terms.operatorTerm, terms.expressionTerm],
+    [
+      terms.leftParenthesisTerm,
+      terms.expressionTerm,
+      terms.rightParenthesisTerm,
+    ],
+  ],
+});
+
+const operatorRule = SyntaxRule.create({
+  targetTerm: terms.operatorTerm,
+  fromTermGroups: [
+    [terms.plusTerm],
+    [terms.minusTerm],
+    [terms.timesTerm],
+    [terms.divideByTerm],
+  ],
+});
+
+const numberRule = SyntaxRule.create({
+  targetTerm: terms.numberTerm,
+  fromTermGroups: [[terms.positiveNumberTerm], [terms.negativeNumberTerm]],
+});
+
+const negativeNumberRule = SyntaxRule.create({
+  targetTerm: terms.negativeNumberTerm,
+  fromTermGroups: [
+    [
+      terms.leftParenthesisTerm,
+      terms.minusTerm,
+      terms.positiveNumberTerm,
+      terms.rightParenthesisTerm,
+    ],
+  ],
+});
+
 /** 语法 */
-export const syntax: SyntaxRule[] = [
-  {
-    targetTerm: terms.expressionTerm,
-    fromTermGroups: [
-      [terms.numberTerm],
-      [terms.expressionTerm, terms.operatorTerm, terms.expressionTerm],
-      [
-        terms.leftParenthesisTerm,
-        terms.expressionTerm,
-        terms.rightParenthesisTerm,
-      ],
-    ],
-  },
-  {
-    targetTerm: terms.operatorTerm,
-    fromTermGroups: [
-      [terms.plusTerm],
-      [terms.minusTerm],
-      [terms.timesTerm],
-      [terms.divideByTerm],
-    ],
-  },
-  {
-    targetTerm: terms.numberTerm,
-    fromTermGroups: [[terms.positiveNumberTerm], [terms.negativeNumberTerm]],
-  },
-  {
-    targetTerm: terms.negativeNumberTerm,
-    fromTermGroups: [
-      [
-        terms.leftParenthesisTerm,
-        terms.minusTerm,
-        terms.positiveNumberTerm,
-        terms.rightParenthesisTerm,
-      ],
-    ],
-  },
+export const syntax = [
+  expressionRule,
+  operatorRule,
+  numberRule,
+  negativeNumberRule,
 ];
+
+export function toBCNR(syntax: SyntaxRule[]): string {
+  return syntax.map((rule) => rule.toString()).join('\n\n');
+}

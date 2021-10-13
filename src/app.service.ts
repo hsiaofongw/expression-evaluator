@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { LexicalAnalyzer } from './lexical-analyzer/lexical-analyzer.service';
 import { IMainService } from './types';
+import { syntax, toBCNR } from './syntax';
 
 @Injectable()
 export class AppService implements IMainService {
@@ -14,5 +15,7 @@ export class AppService implements IMainService {
       .tokens.filter((token) => token.name !== 'Space');
 
     console.log(result);
+
+    console.log(toBCNR(syntax));
   }
 }
