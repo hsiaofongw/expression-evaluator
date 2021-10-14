@@ -1,5 +1,5 @@
 import { SyntaxGeneratingRuleGroup, SyntaxTerm } from './syntax';
-import { IToken, TokenGroup } from './tokens';
+import { IToken, TokenGroup } from './token';
 
 export type IMark = {
   startIndex: number;

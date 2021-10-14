@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppService } from './app.service';
-import { LexicalAnalyzerModule } from './lexical-analyzer/lexical-analyzer.module';
-import { separators } from './separators';
+import { LexicalAnalyzerModule } from './lexer/lexer.module';
+import { separators } from './lexer/separators';
 
 @Module({
   providers: [AppService],

@@ -3,7 +3,7 @@ import {
   SyntaxGroup as SyntaxTermGroup,
   SyntaxGeneratingRuleGroup,
   SyntaxTerm,
-} from './syntax';
+} from '../types/syntax';
 
 /** 表达式 */
 const expressionTerm = SyntaxTerm.create({

@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { LexicalAnalyzer } from './lexical-analyzer/lexical-analyzer.service';
-import { IMainService } from './tokens';
-import { SyntaxGeneratingRuleGroup, SyntaxTerm } from './syntax';
-import { syntaxDefinition } from './definitions';
-import { SyntaxTreeNode, SyntaxTreeNodeGroup } from './tree';
+import { Lexer } from './lexer/lexer.service';
+import { IMainService } from './types/token';
+import { syntaxDefinition } from './data/definitions';
+import { SyntaxTreeNodeGroup } from './types/tree';
 
 @Injectable()
 export class AppService implements IMainService {
-  constructor(private lexicalAnalyzer: LexicalAnalyzer) {}
+  constructor(private lexicalAnalyzer: Lexer) {}
 
   main(): void {
     const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';

@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Separator, IToken, TokenizeResult, TokenGroup } from 'src/tokens';
+import { Separator, IToken, TokenizeResult, TokenGroup } from 'src/types/token';
 
 /** 词法分析器 */
 @Injectable()
-export class LexicalAnalyzer {
+export class Lexer {
   constructor(@Inject('SEPARATORS') private separators: Separator[]) {}
 
   tokenize(text: string): TokenizeResult {
