@@ -19,7 +19,9 @@ export class SyntaxTreeNode implements ISyntaxTreeNode {
   children?: SyntaxTreeNode[];
 
   constructor(data: ISyntaxTreeNode) {
-    this.mark = data.mark;
+    if (data.mark) {
+      this.mark = data.mark;
+    }
     this.term = data.term;
     if (data.children) {
       this.children = data.children;
@@ -57,8 +59,8 @@ export type ISyntaxTreeNodeGroup = {
 export type ISyntaxTreeNodeRewriteOption = {
   startIndex: number;
   sliceLength: number;
-  ruleGroup: SyntaxRule;
-  ruleIndex: number;
+  genRule: SyntaxRule;
+  subRuleIndex: number;
 };
 
 export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
@@ -85,8 +87,8 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
   }
 
   public rewriteThisInPlace(option: ISyntaxTreeNodeRewriteOption): void {
-    const ruleGroup = option.ruleGroup;
-    const rule = ruleGroup.fromTermGroups[option.ruleIndex];
+    const ruleGroup = option.genRule;
+    const rule = ruleGroup.fromTermGroups[option.subRuleIndex];
     const sliceStart = option.startIndex;
     const sliceEnd = sliceStart + option.sliceLength;
     const nodesSlice = this.treeNodes.slice(sliceStart, sliceEnd);
@@ -103,5 +105,33 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
       targetTerm,
     );
     this.treeNodes.splice(sliceStart, option.sliceLength, newSyntaxTreeNode);
+  }
+
+  public isMatch(
+    nodeOffset: number,
+    termGroupOffset: number,
+    rule: SyntaxRule,
+  ): boolean {
+    const termGroup = rule.fromTermGroups[termGroupOffset];
+    const terms = termGroup.terms;
+    const nodeSlice = this.treeNodes.slice(
+      nodeOffset,
+      nodeOffset + terms.length,
+    );
+
+    if (nodeSlice.length !== terms.length) {
+      return false;
+    }
+
+    for (let i = 0; i < nodeSlice.length; i++) {
+      const treeNode = nodeSlice[i];
+      const term = terms[i];
+
+      if (term.toString() !== treeNode.term.toString()) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }
