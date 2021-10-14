@@ -1,7 +1,7 @@
 import {
   SyntaxDefinition,
-  SyntaxGroup as SyntaxTermGroup,
-  SyntaxGeneratingRuleGroup,
+  SyntaxTermGroup as SyntaxTermGroup,
+  SyntaxRule,
   SyntaxTerm,
 } from '../types/syntax';
 
@@ -76,7 +76,7 @@ export const terms = {
 };
 
 /** 表达式生成式 */
-const expressionRule = SyntaxGeneratingRuleGroup.create({
+const expressionRule = SyntaxRule.create({
   targetTerm: terms.expressionTerm,
   fromTermGroups: [
     SyntaxTermGroup.create([terms.numberExpressionTerm]),
@@ -117,7 +117,7 @@ const expressionRule = SyntaxGeneratingRuleGroup.create({
 });
 
 /** 数值表达式生成式 */
-const numberExpressionRule = SyntaxGeneratingRuleGroup.create({
+const numberExpressionRule = SyntaxRule.create({
   targetTerm: terms.numberExpressionTerm,
   fromTermGroups: [
     SyntaxTermGroup.create([terms.numberTerm]),
@@ -140,7 +140,7 @@ const numberExpressionRule = SyntaxGeneratingRuleGroup.create({
 });
 
 /** 运算符生成式 */
-const operatorRule = SyntaxGeneratingRuleGroup.create({
+const operatorRule = SyntaxRule.create({
   targetTerm: terms.operatorTerm,
   fromTermGroups: [
     SyntaxTermGroup.create([terms.plusTerm]),
@@ -151,7 +151,7 @@ const operatorRule = SyntaxGeneratingRuleGroup.create({
 });
 
 /** 数字生成式 */
-const numberRule = SyntaxGeneratingRuleGroup.create({
+const numberRule = SyntaxRule.create({
   targetTerm: terms.numberTerm,
   fromTermGroups: [
     SyntaxTermGroup.create([terms.positiveNumberTerm]),
@@ -160,7 +160,7 @@ const numberRule = SyntaxGeneratingRuleGroup.create({
 });
 
 /** 负数生成式 */
-const negativeNumberRule = SyntaxGeneratingRuleGroup.create({
+const negativeNumberRule = SyntaxRule.create({
   targetTerm: terms.negativeNumberTerm,
   fromTermGroups: [
     SyntaxTermGroup.create([
@@ -181,4 +181,4 @@ const rules = [
   negativeNumberRule,
 ];
 
-export const syntaxDefinition = SyntaxDefinition.create(rules);
+export const syntaxDefinition = SyntaxDefinition.createFromRules(rules);

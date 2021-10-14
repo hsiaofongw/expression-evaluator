@@ -34,11 +34,8 @@ export class SyntaxTerm implements ISyntaxTerm {
   }
 }
 
-/** term 组 */
-export type ISyntaxGroup = SyntaxTerm[];
-
 /** 一个 term 组 */
-export class SyntaxGroup {
+export class SyntaxTermGroup {
   public readonly terms: SyntaxTerm[];
 
   constructor(data: SyntaxTerm[]) {
@@ -46,7 +43,7 @@ export class SyntaxGroup {
   }
 
   public static create(data: SyntaxTerm[]) {
-    return new SyntaxGroup(data);
+    return new SyntaxTermGroup(data);
   }
 
   public toString(): string {
@@ -57,21 +54,21 @@ export class SyntaxGroup {
 /** 生成式 */
 export type ISyntaxGeneratingRule = {
   targetTerm: SyntaxTerm;
-  fromTermGroups: SyntaxGroup[];
+  fromTermGroups: SyntaxTermGroup[];
 };
 
 /** 一条生成式 */
-export class SyntaxGeneratingRuleGroup implements ISyntaxGeneratingRule {
+export class SyntaxRule implements ISyntaxGeneratingRule {
   public readonly targetTerm!: SyntaxTerm;
-  public readonly fromTermGroups!: SyntaxGroup[];
+  public readonly fromTermGroups!: SyntaxTermGroup[];
 
   constructor(data: ISyntaxGeneratingRule) {
     this.targetTerm = data.targetTerm;
     this.fromTermGroups = data.fromTermGroups;
   }
 
-  public static create(data: ISyntaxGeneratingRule): SyntaxGeneratingRuleGroup {
-    return new SyntaxGeneratingRuleGroup(data);
+  public static create(data: ISyntaxGeneratingRule): SyntaxRule {
+    return new SyntaxRule(data);
   }
 
   public toString(): string {
@@ -99,15 +96,13 @@ export class SyntaxGeneratingRuleGroup implements ISyntaxGeneratingRule {
 
 /** 语法定义，由生成式列表创建 */
 export class SyntaxDefinition {
-  public readonly rules!: SyntaxGeneratingRuleGroup[];
+  public readonly rules!: SyntaxRule[];
 
-  constructor(syntaxRules: SyntaxGeneratingRuleGroup[]) {
+  constructor(syntaxRules: SyntaxRule[]) {
     this.rules = syntaxRules;
   }
 
-  public static create(
-    syntaxRules: SyntaxGeneratingRuleGroup[],
-  ): SyntaxDefinition {
+  public static createFromRules(syntaxRules: SyntaxRule[]): SyntaxDefinition {
     return new SyntaxDefinition(syntaxRules);
   }
 

@@ -1,4 +1,4 @@
-import { SyntaxGeneratingRuleGroup, SyntaxTerm } from './syntax';
+import { SyntaxRule, SyntaxTerm } from './syntax';
 import { IToken, TokenGroup } from './token';
 
 export type IMark = {
@@ -57,7 +57,7 @@ export type ISyntaxTreeNodeGroup = {
 export type ISyntaxTreeNodeRewriteOption = {
   startIndex: number;
   sliceLength: number;
-  ruleGroup: SyntaxGeneratingRuleGroup;
+  ruleGroup: SyntaxRule;
   ruleIndex: number;
 };
 
