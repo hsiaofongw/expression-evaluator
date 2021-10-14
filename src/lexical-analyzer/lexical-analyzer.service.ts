@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Separator, IToken, TokenizeResult } from 'src/types';
+import { Separator, IToken, TokenizeResult, TokenGroup } from 'src/tokens';
 
 /** 词法分析器 */
 @Injectable()
@@ -72,6 +72,8 @@ export class LexicalAnalyzer {
       tokens = newTokens;
     }
 
-    return { tokens };
+    const tokenGroup = TokenGroup.createFromTokens(tokens);
+
+    return { tokenGroup };
   }
 }

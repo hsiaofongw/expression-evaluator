@@ -1,4 +1,4 @@
-import { Separator } from 'src/types';
+import { Separator } from 'src/tokens';
 
 export const separators: Separator[] = [
   {

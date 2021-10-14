@@ -1,7 +1,7 @@
 import {
   SyntaxDefinition,
-  SyntaxGroup,
-  SyntaxRule,
+  SyntaxGroup as SyntaxTermGroup,
+  SyntaxGeneratingRuleGroup,
   SyntaxTerm,
 } from './syntax';
 
@@ -9,6 +9,12 @@ import {
 const expressionTerm = SyntaxTerm.create({
   isTerminal: false,
   name: 'Expression',
+});
+
+/** 数值表达式 */
+const numberExpressionTerm = SyntaxTerm.create({
+  isTerminal: false,
+  name: 'NumberExpression',
 });
 
 /** 数字 */
@@ -56,6 +62,7 @@ const negativeNumberTerm = SyntaxTerm.create({
 /** 所有 term */
 export const terms = {
   expressionTerm,
+  numberExpressionTerm,
   numberTerm,
   operatorTerm,
   leftParenthesisTerm,
@@ -69,16 +76,39 @@ export const terms = {
 };
 
 /** 表达式生成式 */
-const expressionRule = SyntaxRule.create({
+const expressionRule = SyntaxGeneratingRuleGroup.create({
   targetTerm: terms.expressionTerm,
   fromTermGroups: [
-    SyntaxGroup.create([terms.numberTerm]),
-    SyntaxGroup.create([
+    SyntaxTermGroup.create([terms.numberExpressionTerm]),
+    SyntaxTermGroup.create([
+      terms.leftParenthesisTerm,
       terms.expressionTerm,
-      terms.operatorTerm,
+      terms.rightParenthesisTerm,
+    ]),
+    SyntaxTermGroup.create([
+      terms.expressionTerm,
+      terms.minusTerm,
       terms.expressionTerm,
     ]),
-    SyntaxGroup.create([
+    SyntaxTermGroup.create([
+      terms.expressionTerm,
+      terms.plusTerm,
+      terms.expressionTerm,
+    ]),
+    SyntaxTermGroup.create([
+      terms.leftParenthesisTerm,
+      terms.expressionTerm,
+      terms.rightParenthesisTerm,
+      terms.timesTerm,
+      terms.leftParenthesisTerm,
+      terms.expressionTerm,
+      terms.rightParenthesisTerm,
+    ]),
+    SyntaxTermGroup.create([
+      terms.leftParenthesisTerm,
+      terms.expressionTerm,
+      terms.rightParenthesisTerm,
+      terms.divideByTerm,
       terms.leftParenthesisTerm,
       terms.expressionTerm,
       terms.rightParenthesisTerm,
@@ -86,31 +116,54 @@ const expressionRule = SyntaxRule.create({
   ],
 });
 
+/** 数值表达式生成式 */
+const numberExpressionRule = SyntaxGeneratingRuleGroup.create({
+  targetTerm: terms.numberExpressionTerm,
+  fromTermGroups: [
+    SyntaxTermGroup.create([terms.numberTerm]),
+    SyntaxTermGroup.create([
+      terms.leftParenthesisTerm,
+      terms.numberExpressionTerm,
+      terms.rightParenthesisTerm,
+    ]),
+    SyntaxTermGroup.create([
+      terms.numberExpressionTerm,
+      terms.timesTerm,
+      terms.numberExpressionTerm,
+    ]),
+    SyntaxTermGroup.create([
+      terms.numberExpressionTerm,
+      terms.divideByTerm,
+      terms.numberExpressionTerm,
+    ]),
+  ],
+});
+
 /** 运算符生成式 */
-const operatorRule = SyntaxRule.create({
+const operatorRule = SyntaxGeneratingRuleGroup.create({
   targetTerm: terms.operatorTerm,
   fromTermGroups: [
-    SyntaxGroup.create([terms.plusTerm]),
-    SyntaxGroup.create([terms.minusTerm]),
-    SyntaxGroup.create([terms.timesTerm]),
-    SyntaxGroup.create([terms.divideByTerm]),
+    SyntaxTermGroup.create([terms.plusTerm]),
+    SyntaxTermGroup.create([terms.minusTerm]),
+    SyntaxTermGroup.create([terms.timesTerm]),
+    SyntaxTermGroup.create([terms.divideByTerm]),
   ],
 });
 
 /** 数字生成式 */
-const numberRule = SyntaxRule.create({
+const numberRule = SyntaxGeneratingRuleGroup.create({
   targetTerm: terms.numberTerm,
   fromTermGroups: [
-    SyntaxGroup.create([terms.positiveNumberTerm]),
-    SyntaxGroup.create([terms.negativeNumberTerm]),
+    SyntaxTermGroup.create([terms.positiveNumberTerm]),
+    SyntaxTermGroup.create([terms.negativeNumberTerm]),
   ],
 });
 
 /** 负数生成式 */
-const negativeNumberRule = SyntaxRule.create({
+const negativeNumberRule = SyntaxGeneratingRuleGroup.create({
   targetTerm: terms.negativeNumberTerm,
   fromTermGroups: [
-    SyntaxGroup.create([
+    SyntaxTermGroup.create([
       terms.leftParenthesisTerm,
       terms.minusTerm,
       terms.positiveNumberTerm,
@@ -120,6 +173,12 @@ const negativeNumberRule = SyntaxRule.create({
 });
 
 /** 语法 */
-const rules = [expressionRule, operatorRule, numberRule, negativeNumberRule];
+const rules = [
+  expressionRule,
+  numberExpressionRule,
+  operatorRule,
+  numberRule,
+  negativeNumberRule,
+];
 
 export const syntaxDefinition = SyntaxDefinition.create(rules);

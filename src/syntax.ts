@@ -9,8 +9,8 @@ export type ISyntaxTerm = {
 
 /** 一个 term */
 export class SyntaxTerm implements ISyntaxTerm {
-  isTerminal!: boolean;
-  name!: string;
+  public readonly isTerminal!: boolean;
+  public readonly name!: string;
 
   constructor(data: ISyntaxTerm) {
     this.isTerminal = data.isTerminal;
@@ -39,7 +39,7 @@ export type ISyntaxGroup = SyntaxTerm[];
 
 /** 一个 term 组 */
 export class SyntaxGroup {
-  terms: SyntaxTerm[];
+  public readonly terms: SyntaxTerm[];
 
   constructor(data: SyntaxTerm[]) {
     this.terms = data;
@@ -55,23 +55,23 @@ export class SyntaxGroup {
 }
 
 /** 生成式 */
-export type ISyntaxRule = {
+export type ISyntaxGeneratingRule = {
   targetTerm: SyntaxTerm;
   fromTermGroups: SyntaxGroup[];
 };
 
 /** 一条生成式 */
-export class SyntaxRule implements ISyntaxRule {
-  targetTerm!: SyntaxTerm;
-  fromTermGroups!: SyntaxGroup[];
+export class SyntaxGeneratingRuleGroup implements ISyntaxGeneratingRule {
+  public readonly targetTerm!: SyntaxTerm;
+  public readonly fromTermGroups!: SyntaxGroup[];
 
-  constructor(data: ISyntaxRule) {
+  constructor(data: ISyntaxGeneratingRule) {
     this.targetTerm = data.targetTerm;
     this.fromTermGroups = data.fromTermGroups;
   }
 
-  public static create(data: ISyntaxRule): SyntaxRule {
-    return new SyntaxRule(data);
+  public static create(data: ISyntaxGeneratingRule): SyntaxGeneratingRuleGroup {
+    return new SyntaxGeneratingRuleGroup(data);
   }
 
   public toString(): string {
@@ -99,13 +99,15 @@ export class SyntaxRule implements ISyntaxRule {
 
 /** 语法定义，由生成式列表创建 */
 export class SyntaxDefinition {
-  rules!: SyntaxRule[];
+  public readonly rules!: SyntaxGeneratingRuleGroup[];
 
-  constructor(syntaxRules: SyntaxRule[]) {
+  constructor(syntaxRules: SyntaxGeneratingRuleGroup[]) {
     this.rules = syntaxRules;
   }
 
-  public static create(syntaxRules: SyntaxRule[]): SyntaxDefinition {
+  public static create(
+    syntaxRules: SyntaxGeneratingRuleGroup[],
+  ): SyntaxDefinition {
     return new SyntaxDefinition(syntaxRules);
   }
 

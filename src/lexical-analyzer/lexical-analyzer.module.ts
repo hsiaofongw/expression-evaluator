@@ -1,5 +1,5 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { Separator } from 'src/types';
+import { Separator } from 'src/tokens';
 import { LexicalAnalyzer } from './lexical-analyzer.service';
 
 @Module({})
