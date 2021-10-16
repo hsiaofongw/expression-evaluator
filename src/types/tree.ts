@@ -1,3 +1,4 @@
+import { Lexer } from 'src/lexer/lexer.service';
 import {
   IRuleSelectorMap,
   SyntaxRule,
@@ -94,6 +95,14 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
         SyntaxTreeNode.createFromTokenDescriptor(token),
       ),
     });
+  }
+
+  public static createFromStringAndLexer(s: string, lexer: Lexer) {
+    const tokenGroup = lexer
+      .tokenize(s)
+      .tokenGroup.selectSubGroup((token) => token.name !== 'Space');
+
+    return SyntaxTreeNodeGroup.createFromTokenGroup(tokenGroup);
   }
 
   public findRewriteOption(

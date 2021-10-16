@@ -4,7 +4,6 @@ import { IMainService } from './types/token';
 import { syntaxDefinition } from './data/definitions';
 import { SyntaxTreeNodeGroup } from './types/tree';
 import { stdin } from 'process';
-import { SyntaxRule } from './types/syntax';
 import { SyntaxRewriteContext } from './types/context';
 
 @Injectable()
@@ -12,28 +11,27 @@ export class AppService implements IMainService {
   constructor(private lexicalAnalyzer: Lexer) {}
 
   main(): void {
-    const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
+    // const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
+    const testString = '(-10) - 1 * 2 * 3 / 4 - 5';
 
-    const tokenGroup = this.lexicalAnalyzer
-      .tokenize(testString)
-      .tokenGroup.selectSubGroup((token) => token.name !== 'Space');
+    const treeNodesGroup = SyntaxTreeNodeGroup.createFromStringAndLexer(
+      testString,
+      this.lexicalAnalyzer,
+    );
 
-    const syntaxTreeNodeGroup =
-      SyntaxTreeNodeGroup.createFromTokenGroup(tokenGroup);
+    const ruleSelectorMap = syntaxDefinition.makeIndex();
 
-    const selectorMap = syntaxDefinition.makeIndex();
-
-    const context = SyntaxRewriteContext.create({
-      treeNodesGroup: syntaxTreeNodeGroup,
-      ruleSelectorMap: selectorMap,
-    });
+    const context = SyntaxRewriteContext.createFromTokenNodes(treeNodesGroup);
 
     console.log({
       syntaxDefinition,
-      syntaxTreeNodeGroup,
-      selectorMap,
+      treeNodesGroup,
+      ruleSelectorMap,
       context,
     });
+
+    context.stepUntilConverge(ruleSelectorMap);
+    console.log(context.treeNodesGroup);
 
     stdin.on('data', (data) => console.log(data.toString('utf-8')));
   }

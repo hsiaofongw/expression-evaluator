@@ -3,26 +3,24 @@ import { ISyntaxTreeNodeRewriteOption, SyntaxTreeNodeGroup } from './tree';
 
 export type ISyntaxRewriteContext = {
   treeNodesGroup: SyntaxTreeNodeGroup;
-  ruleSelectorMap: IRuleSelectorMap;
 };
 
 export class SyntaxRewriteContext implements ISyntaxRewriteContext {
   public readonly treeNodesGroup!: SyntaxTreeNodeGroup;
-  public readonly ruleSelectorMap!: IRuleSelectorMap;
 
-  constructor(data: ISyntaxRewriteContext) {
-    this.treeNodesGroup = data.treeNodesGroup;
-    this.ruleSelectorMap = data.ruleSelectorMap;
+  constructor(treeNodesGroup: SyntaxTreeNodeGroup) {
+    this.treeNodesGroup = treeNodesGroup;
   }
 
-  public static create(data: ISyntaxRewriteContext) {
-    return new SyntaxRewriteContext(data);
+  public static createFromTokenNodes(treeNodesGroup: SyntaxTreeNodeGroup) {
+    return new SyntaxRewriteContext(treeNodesGroup);
   }
 
-  public step(): ISyntaxTreeNodeRewriteOption | undefined {
-    const rewriteOption = this.treeNodesGroup.findRewriteOption(
-      this.ruleSelectorMap,
-    );
+  public step(
+    ruleSelectorMap: IRuleSelectorMap,
+  ): ISyntaxTreeNodeRewriteOption | undefined {
+    const rewriteOption =
+      this.treeNodesGroup.findRewriteOption(ruleSelectorMap);
 
     if (rewriteOption) {
       this.treeNodesGroup.rewriteThisInPlace(rewriteOption);
@@ -32,14 +30,16 @@ export class SyntaxRewriteContext implements ISyntaxRewriteContext {
     return undefined;
   }
 
-  public stepUntilConverge(): ISyntaxTreeNodeRewriteOption[] {
+  public stepUntilConverge(
+    ruleSelectorMap: IRuleSelectorMap,
+  ): ISyntaxTreeNodeRewriteOption[] {
     const options: ISyntaxTreeNodeRewriteOption[] =
       new Array<ISyntaxTreeNodeRewriteOption>();
 
-    let option = this.step();
+    let option = this.step(ruleSelectorMap);
     while (option !== undefined) {
       options.push(option);
-      option = this.step();
+      option = this.step(ruleSelectorMap);
     }
 
     return options;
