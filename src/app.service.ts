@@ -11,8 +11,8 @@ export class AppService implements IMainService {
   constructor(private lexicalAnalyzer: Lexer) {}
 
   main(): void {
-    // const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
-    const testString = '(-10) - 1 * 2 * 3 / 4 - 5';
+    const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
+    // const testString = '(-10) - 1 * 2 * 3 / 4 - 5';
     console.log(testString);
 
     const treeNodesGroup = SyntaxTreeNodeGroup.createFromStringAndLexer(
