@@ -68,6 +68,11 @@ export type ISyntaxTreeNodeRewriteOption = {
   subRuleIndex: number;
 };
 
+export type ISyntaxTreeNodeRewriteOptionCandidate = {
+  option: ISyntaxTreeNodeRewriteOption;
+  bonus: number;
+};
+
 export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
   get length(): number {
     return this.treeNodes.length;
@@ -94,17 +99,17 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
   public findRewriteOption(
     selectorMap: IRuleSelectorMap,
   ): ISyntaxTreeNodeRewriteOption | undefined {
+    const candidates: ISyntaxTreeNodeRewriteOptionCandidate[] =
+      new Array<ISyntaxTreeNodeRewriteOptionCandidate>();
+
     for (let windowStart = 0; windowStart < this.length; windowStart++) {
       for (
         let windowSize = 1;
-        windowSize <= this.length - (windowStart + 1);
+        windowSize <= this.length - windowStart;
         windowSize++
       ) {
-        console.log({ windowStart, windowSize });
-
         const windowSizeKey = windowSize.toString();
         if (!selectorMap[windowSizeKey]) {
-          console.log('windowSizeKey miss');
           continue;
         }
 
@@ -116,7 +121,6 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
         const termGroupKey = termGroup.toString();
 
         if (!subMapper[termGroupKey]) {
-          console.log('termGroupKey miss');
           continue;
         }
 
@@ -130,8 +134,13 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
           subRuleIndex: subIndex,
         };
 
-        return rewriteOption;
+        candidates.push({ option: rewriteOption, bonus: windowSize });
       }
+    }
+
+    if (candidates.length) {
+      candidates.sort((a, b) => b.bonus - a.bonus);
+      return candidates[0].option;
     }
 
     return undefined;

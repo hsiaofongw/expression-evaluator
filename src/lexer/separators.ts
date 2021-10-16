@@ -23,11 +23,11 @@ export const separators: Separator[] = [
   },
   {
     regex: /\(/g,
-    name: 'LeftParentheses',
+    name: 'LeftParenthesis',
   },
   {
     regex: /\)/g,
-    name: 'RightParentheses',
+    name: 'RightParenthesis',
   },
   {
     regex: /\s+/g,

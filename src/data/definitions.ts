@@ -79,7 +79,16 @@ export const terms = {
 const expressionRule = SyntaxRule.create({
   targetTerm: terms.expressionTerm,
   fromTermGroups: [
-    SyntaxTermGroup.createFromTerms([terms.numberExpressionTerm]),
+    SyntaxTermGroup.createFromTerms([
+      terms.numberExpressionTerm,
+      terms.plusTerm,
+      terms.numberExpressionTerm,
+    ]),
+    SyntaxTermGroup.createFromTerms([
+      terms.numberExpressionTerm,
+      terms.minusTerm,
+      terms.numberExpressionTerm,
+    ]),
     SyntaxTermGroup.createFromTerms([
       terms.leftParenthesisTerm,
       terms.expressionTerm,
@@ -136,49 +145,33 @@ const numberExpressionRule = SyntaxRule.create({
       terms.divideByTerm,
       terms.numberExpressionTerm,
     ]),
-  ],
-});
-
-/** 运算符生成式 */
-const operatorRule = SyntaxRule.create({
-  targetTerm: terms.operatorTerm,
-  fromTermGroups: [
-    SyntaxTermGroup.createFromTerms([terms.plusTerm]),
-    SyntaxTermGroup.createFromTerms([terms.minusTerm]),
-    SyntaxTermGroup.createFromTerms([terms.timesTerm]),
-    SyntaxTermGroup.createFromTerms([terms.divideByTerm]),
-  ],
-});
-
-/** 数字生成式 */
-const numberRule = SyntaxRule.create({
-  targetTerm: terms.numberTerm,
-  fromTermGroups: [
-    SyntaxTermGroup.createFromTerms([terms.positiveNumberTerm]),
-    SyntaxTermGroup.createFromTerms([terms.negativeNumberTerm]),
-  ],
-});
-
-/** 负数生成式 */
-const negativeNumberRule = SyntaxRule.create({
-  targetTerm: terms.negativeNumberTerm,
-  fromTermGroups: [
     SyntaxTermGroup.createFromTerms([
       terms.leftParenthesisTerm,
       terms.minusTerm,
-      terms.positiveNumberTerm,
+      terms.numberExpressionTerm,
       terms.rightParenthesisTerm,
     ]),
   ],
 });
 
+// /** 运算符生成式 */
+// const operatorRule = SyntaxRule.create({
+//   targetTerm: terms.operatorTerm,
+//   fromTermGroups: [
+//     SyntaxTermGroup.createFromTerms([terms.plusTerm]),
+//     SyntaxTermGroup.createFromTerms([terms.minusTerm]),
+//     SyntaxTermGroup.createFromTerms([terms.timesTerm]),
+//     SyntaxTermGroup.createFromTerms([terms.divideByTerm]),
+//   ],
+// });
+
+/** 数字生成式 */
+const numberRule = SyntaxRule.create({
+  targetTerm: terms.numberTerm,
+  fromTermGroups: [SyntaxTermGroup.createFromTerms([terms.positiveNumberTerm])],
+});
+
 /** 语法 */
-const rules = [
-  expressionRule,
-  numberExpressionRule,
-  operatorRule,
-  numberRule,
-  negativeNumberRule,
-];
+const rules = [expressionRule, numberExpressionRule, numberRule];
 
 export const syntaxDefinition = SyntaxDefinition.createFromRules(rules);
