@@ -4,6 +4,7 @@ import { IMainService } from './types/token';
 import { syntaxDefinition } from './data/definitions';
 import { SyntaxTreeNodeGroup } from './types/tree';
 import { stdin } from 'process';
+import { SyntaxRule } from './types/syntax';
 
 @Injectable()
 export class AppService implements IMainService {
@@ -22,6 +23,9 @@ export class AppService implements IMainService {
       SyntaxTreeNodeGroup.createFromTokenGroup(tokenGroup);
 
     console.log({ syntaxTreeNodeGroup });
+
+    const selectorMap = syntaxDefinition.makeIndex();
+    console.log(selectorMap);
 
     stdin.on('data', (data) => console.log(data.toString('utf-8')));
   }

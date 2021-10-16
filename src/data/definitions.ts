@@ -79,23 +79,23 @@ export const terms = {
 const expressionRule = SyntaxRule.create({
   targetTerm: terms.expressionTerm,
   fromTermGroups: [
-    SyntaxTermGroup.create([terms.numberExpressionTerm]),
-    SyntaxTermGroup.create([
+    SyntaxTermGroup.createFromTerms([terms.numberExpressionTerm]),
+    SyntaxTermGroup.createFromTerms([
       terms.leftParenthesisTerm,
       terms.expressionTerm,
       terms.rightParenthesisTerm,
     ]),
-    SyntaxTermGroup.create([
+    SyntaxTermGroup.createFromTerms([
       terms.expressionTerm,
       terms.minusTerm,
       terms.expressionTerm,
     ]),
-    SyntaxTermGroup.create([
+    SyntaxTermGroup.createFromTerms([
       terms.expressionTerm,
       terms.plusTerm,
       terms.expressionTerm,
     ]),
-    SyntaxTermGroup.create([
+    SyntaxTermGroup.createFromTerms([
       terms.leftParenthesisTerm,
       terms.expressionTerm,
       terms.rightParenthesisTerm,
@@ -104,7 +104,7 @@ const expressionRule = SyntaxRule.create({
       terms.expressionTerm,
       terms.rightParenthesisTerm,
     ]),
-    SyntaxTermGroup.create([
+    SyntaxTermGroup.createFromTerms([
       terms.leftParenthesisTerm,
       terms.expressionTerm,
       terms.rightParenthesisTerm,
@@ -120,18 +120,18 @@ const expressionRule = SyntaxRule.create({
 const numberExpressionRule = SyntaxRule.create({
   targetTerm: terms.numberExpressionTerm,
   fromTermGroups: [
-    SyntaxTermGroup.create([terms.numberTerm]),
-    SyntaxTermGroup.create([
+    SyntaxTermGroup.createFromTerms([terms.numberTerm]),
+    SyntaxTermGroup.createFromTerms([
       terms.leftParenthesisTerm,
       terms.numberExpressionTerm,
       terms.rightParenthesisTerm,
     ]),
-    SyntaxTermGroup.create([
+    SyntaxTermGroup.createFromTerms([
       terms.numberExpressionTerm,
       terms.timesTerm,
       terms.numberExpressionTerm,
     ]),
-    SyntaxTermGroup.create([
+    SyntaxTermGroup.createFromTerms([
       terms.numberExpressionTerm,
       terms.divideByTerm,
       terms.numberExpressionTerm,
@@ -143,10 +143,10 @@ const numberExpressionRule = SyntaxRule.create({
 const operatorRule = SyntaxRule.create({
   targetTerm: terms.operatorTerm,
   fromTermGroups: [
-    SyntaxTermGroup.create([terms.plusTerm]),
-    SyntaxTermGroup.create([terms.minusTerm]),
-    SyntaxTermGroup.create([terms.timesTerm]),
-    SyntaxTermGroup.create([terms.divideByTerm]),
+    SyntaxTermGroup.createFromTerms([terms.plusTerm]),
+    SyntaxTermGroup.createFromTerms([terms.minusTerm]),
+    SyntaxTermGroup.createFromTerms([terms.timesTerm]),
+    SyntaxTermGroup.createFromTerms([terms.divideByTerm]),
   ],
 });
 
@@ -154,8 +154,8 @@ const operatorRule = SyntaxRule.create({
 const numberRule = SyntaxRule.create({
   targetTerm: terms.numberTerm,
   fromTermGroups: [
-    SyntaxTermGroup.create([terms.positiveNumberTerm]),
-    SyntaxTermGroup.create([terms.negativeNumberTerm]),
+    SyntaxTermGroup.createFromTerms([terms.positiveNumberTerm]),
+    SyntaxTermGroup.createFromTerms([terms.negativeNumberTerm]),
   ],
 });
 
@@ -163,7 +163,7 @@ const numberRule = SyntaxRule.create({
 const negativeNumberRule = SyntaxRule.create({
   targetTerm: terms.negativeNumberTerm,
   fromTermGroups: [
-    SyntaxTermGroup.create([
+    SyntaxTermGroup.createFromTerms([
       terms.leftParenthesisTerm,
       terms.minusTerm,
       terms.positiveNumberTerm,

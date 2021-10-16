@@ -1,4 +1,9 @@
-import { SyntaxRule, SyntaxTerm } from './syntax';
+import {
+  IRuleSelectorMap,
+  SyntaxRule,
+  SyntaxTerm,
+  SyntaxTermGroup,
+} from './syntax';
 import { IToken, TokenGroup } from './token';
 
 export type IMark = {
@@ -86,6 +91,48 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
     });
   }
 
+  public findRewriteOption(
+    selectorMap: IRuleSelectorMap,
+  ): ISyntaxTreeNodeRewriteOption | undefined {
+    for (let windowStart = 0; windowStart < this.length; windowStart++) {
+      for (
+        let windowSize = 1;
+        windowSize <= this.length - (windowStart + 1);
+        windowSize++
+      ) {
+        const windowSizeKey = windowSize.toString();
+        if (!selectorMap[windowSizeKey]) {
+          continue;
+        }
+
+        const subMapper = selectorMap[windowSizeKey];
+        const termsInWindow = this.treeNodes
+          .slice(windowStart, windowStart + windowSize)
+          .map((node) => node.term);
+        const termGroup = SyntaxTermGroup.createFromTerms(termsInWindow);
+        const termGroupKey = termGroup.toString();
+
+        if (!subMapper[termGroupKey]) {
+          continue;
+        }
+
+        const ruleSelector = subMapper[termGroupKey];
+        const rule = ruleSelector.rule;
+        const subIndex = ruleSelector.subIndex;
+        const rewriteOption: ISyntaxTreeNodeRewriteOption = {
+          startIndex: windowStart,
+          sliceLength: windowSize,
+          genRule: rule,
+          subRuleIndex: subIndex,
+        };
+
+        return rewriteOption;
+      }
+    }
+
+    return undefined;
+  }
+
   public rewriteThisInPlace(option: ISyntaxTreeNodeRewriteOption): void {
     const ruleGroup = option.genRule;
     const rule = ruleGroup.fromTermGroups[option.subRuleIndex];
@@ -105,33 +152,5 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
       targetTerm,
     );
     this.treeNodes.splice(sliceStart, option.sliceLength, newSyntaxTreeNode);
-  }
-
-  public isMatch(
-    nodeOffset: number,
-    termGroupOffset: number,
-    rule: SyntaxRule,
-  ): boolean {
-    const termGroup = rule.fromTermGroups[termGroupOffset];
-    const terms = termGroup.terms;
-    const nodeSlice = this.treeNodes.slice(
-      nodeOffset,
-      nodeOffset + terms.length,
-    );
-
-    if (nodeSlice.length !== terms.length) {
-      return false;
-    }
-
-    for (let i = 0; i < nodeSlice.length; i++) {
-      const treeNode = nodeSlice[i];
-      const term = terms[i];
-
-      if (term.toString() !== treeNode.term.toString()) {
-        return false;
-      }
-    }
-
-    return true;
   }
 }
