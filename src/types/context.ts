@@ -1,9 +1,5 @@
 import { IRuleSelectorMap } from './syntax';
-import {
-  ISyntaxTreeNodeGroup,
-  ISyntaxTreeNodeRewriteOption,
-  SyntaxTreeNodeGroup,
-} from './tree';
+import { ISyntaxTreeNodeRewriteOption, SyntaxTreeNodeGroup } from './tree';
 
 export type ISyntaxRewriteContext = {
   treeNodesGroup: SyntaxTreeNodeGroup;
@@ -34,5 +30,18 @@ export class SyntaxRewriteContext implements ISyntaxRewriteContext {
     }
 
     return undefined;
+  }
+
+  public stepUntilConverge(): ISyntaxTreeNodeRewriteOption[] {
+    const options: ISyntaxTreeNodeRewriteOption[] =
+      new Array<ISyntaxTreeNodeRewriteOption>();
+
+    let option = this.step();
+    while (option !== undefined) {
+      options.push(option);
+      option = this.step();
+    }
+
+    return options;
   }
 }
