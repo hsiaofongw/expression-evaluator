@@ -9,6 +9,7 @@ export class VirtualMachineSpecification {
   instructionSet: InstructionSet;
 }
 
+@Injectable()
 export class DefaultVirtualMachineSpecification
   implements VirtualMachineSpecification
 {

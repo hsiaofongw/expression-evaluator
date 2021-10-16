@@ -1,20 +1,47 @@
-import { Register } from './register';
-import { Stack } from './stack';
+import { Register, RegisterFactory } from './register';
+import { Stack, StackFactory } from './stack';
 
 import { Injectable } from '@nestjs/common';
 import { Instruction, InstructionSet } from '../instructionSet';
 import { VirtualMachineSpecification } from '../specifications';
-
-@Injectable()
-export class VirtualMachineFactory {
-  constructor(private spec: VirtualMachineSpecification) {}
-}
 
 export type IVirtualMachineComponents = {
   registers: Register[];
   stack: Stack;
   instructionSet: InstructionSet;
 };
+
+@Injectable()
+export class VirtualMachineFactory {
+  constructor(
+    private spec: VirtualMachineSpecification,
+    private resigerFactory: RegisterFactory,
+    private stackFactory: StackFactory,
+  ) {}
+
+  private _buildRegisters(): Register[] {
+    return this.resigerFactory.createMany({
+      registerCounts: this.spec.registersCount,
+      registerSizeByte: this.spec.registerSizeBytes,
+    });
+  }
+
+  private _buildStack(): Stack {
+    return this.stackFactory.create({
+      stackSizeBytes: this.spec.initialStackSizeBytes,
+    });
+  }
+
+  public create(): VirtualMachine {
+    const components: IVirtualMachineComponents = {
+      registers: this._buildRegisters(),
+      stack: this._buildStack(),
+      instructionSet: this.spec.instructionSet,
+    };
+
+    return new VirtualMachine(components);
+  }
+}
 
 export class VirtualMachine {
   public readonly registers!: Register[];
