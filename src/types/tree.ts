@@ -45,7 +45,7 @@ export class SyntaxTreeNode implements ISyntaxTreeNode {
         content: tokenDesc.content,
       },
 
-      term: SyntaxTerm.create({ isTerminal: false, name: tokenDesc.name }),
+      term: SyntaxTerm.create({ isTerminal: true, name: tokenDesc.name }),
     });
   }
 
@@ -100,8 +100,11 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
         windowSize <= this.length - (windowStart + 1);
         windowSize++
       ) {
+        console.log({ windowStart, windowSize });
+
         const windowSizeKey = windowSize.toString();
         if (!selectorMap[windowSizeKey]) {
+          console.log('windowSizeKey miss');
           continue;
         }
 
@@ -113,6 +116,7 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
         const termGroupKey = termGroup.toString();
 
         if (!subMapper[termGroupKey]) {
+          console.log('termGroupKey miss');
           continue;
         }
 

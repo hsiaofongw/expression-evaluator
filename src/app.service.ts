@@ -25,7 +25,7 @@ export class AppService implements IMainService {
     console.log({ syntaxTreeNodeGroup });
 
     const selectorMap = syntaxDefinition.makeIndex();
-    console.log(selectorMap);
+    console.log({ selectorMap });
 
     stdin.on('data', (data) => console.log(data.toString('utf-8')));
   }
