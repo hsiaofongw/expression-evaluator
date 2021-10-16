@@ -13,6 +13,7 @@ export class AppService implements IMainService {
   main(): void {
     // const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
     const testString = '(-10) - 1 * 2 * 3 / 4 - 5';
+    console.log(testString);
 
     const treeNodesGroup = SyntaxTreeNodeGroup.createFromStringAndLexer(
       testString,
@@ -20,6 +21,7 @@ export class AppService implements IMainService {
     );
 
     const ruleSelectorMap = syntaxDefinition.makeIndex();
+    console.log(syntaxDefinition.toBCNRString());
 
     const context = SyntaxRewriteContext.createFromTokenNodes(treeNodesGroup);
 
