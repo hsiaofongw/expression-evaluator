@@ -5,20 +5,20 @@ import { IEvaluatorBuilder } from './expression.evaluator';
 import { IEvaluator } from './types';
 
 @Injectable()
-export class PlusEvaluatorBuilder implements IEvaluatorBuilder {
+export class DivideByEvaluatorBuilder implements IEvaluatorBuilder {
   constructor(private moduleRef: ModuleRef) {}
   build(context: GlobalContext) {
-    return new PlusEvaluator(context, this.moduleRef);
+    return new DivideByEvaluator(context, this.moduleRef);
   }
 }
 
-export class PlusEvaluator implements IEvaluator {
+export class DivideByEvaluator implements IEvaluator {
   constructor(private context: GlobalContext, private moduleRef: ModuleRef) {}
   evaluate(): IEvaluator[] {
     console.log(this.context);
-    this.context.push('POP R1');
     this.context.push('POP R2');
-    this.context.push('ADD');
+    this.context.push('POP R1');
+    this.context.push('DIVIDE');
     return [];
   }
   getContext() {

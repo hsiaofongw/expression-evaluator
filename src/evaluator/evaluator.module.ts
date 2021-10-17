@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { allTerms } from 'src/data/definitions';
+import { DivideByEvaluatorBuilder } from './divide-by.evaluator';
 import { ExpressionEvaluatorBuilder } from './expression.evaluator';
 import { MinusEvaluatorBuilder } from './minus.evaluator';
 import { NumberExpressionEvaluatorBuilder } from './number-expression.evaluator';
 import { NumberEvaluatorBuilder } from './number.evaluator';
 import { PlusEvaluatorBuilder } from './plus.evaluator';
 import { RootEvaluatorBuilder } from './root.evaluator';
+import { TimesEvaluatorBuilder } from './times.evaluator';
 
 @Module({
   providers: [
@@ -29,6 +31,14 @@ import { RootEvaluatorBuilder } from './root.evaluator';
     {
       provide: allTerms.numberExpressionTerm.toString(),
       useClass: NumberExpressionEvaluatorBuilder,
+    },
+    {
+      provide: allTerms.timesTerm.toString(),
+      useClass: TimesEvaluatorBuilder,
+    },
+    {
+      provide: allTerms.divideByTerm.toString(),
+      useClass: DivideByEvaluatorBuilder,
     },
   ],
   exports: [RootEvaluatorBuilder],

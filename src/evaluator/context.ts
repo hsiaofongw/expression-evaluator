@@ -6,9 +6,12 @@ export class GlobalContext implements IContext {
   private _treeNode: SyntaxTreeNode;
   private _instructionHistory!: string[];
 
-  constructor(treeNode: SyntaxTreeNode) {
-    this._treeNode = treeNode;
+  constructor(treeNode: SyntaxTreeNode, history?: string[]) {
     this.reset();
+    this._treeNode = treeNode;
+    if (history) {
+      this._instructionHistory = history;
+    }
   }
 
   public static createFromRootNode(treeNode: SyntaxTreeNode): GlobalContext {
@@ -16,7 +19,7 @@ export class GlobalContext implements IContext {
   }
 
   fork(treeNode: SyntaxTreeNode): GlobalContext {
-    return new GlobalContext(treeNode);
+    return new GlobalContext(treeNode, this._instructionHistory);
   }
 
   getTreeNode(): SyntaxTreeNode {
