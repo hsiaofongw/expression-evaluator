@@ -94,10 +94,6 @@ export class SyntaxRule implements ISyntaxGeneratingRule {
   }
 }
 
-/** 语法替换规则选择器及其索引 */
-export type IRuleSelector = { rule: SyntaxRule; subIndex: number };
-export type IRuleSelectorMap = Record<string, Record<string, IRuleSelector>>;
-
 /** 语法定义，由生成式列表创建 */
 export class SyntaxDefinition {
   public readonly rules!: SyntaxRule[];
@@ -110,38 +106,11 @@ export class SyntaxDefinition {
     return new SyntaxDefinition(syntaxRules);
   }
 
-  public toBCNRString(): string {
+  public toBackusNormalFormString(): string {
     return this.rules.map((rule) => rule.toString()).join('\n\n');
   }
 
   public toString(): string {
-    return this.toBCNRString();
-  }
-
-  public makeIndex(): IRuleSelectorMap {
-    const selectorMap: IRuleSelectorMap = {};
-
-    for (const rule of this.rules) {
-      for (
-        let subIndex = 0;
-        subIndex < rule.fromTermGroups.length;
-        subIndex++
-      ) {
-        const termGroup = rule.fromTermGroups[subIndex];
-
-        const groupLen = termGroup.terms.length;
-        const groupLenKey = groupLen.toString();
-        if (!selectorMap[groupLenKey]) {
-          selectorMap[groupLenKey] = {};
-        }
-
-        const subSelectorMap = selectorMap[groupLenKey];
-        const groupTermsKey = termGroup.toString();
-
-        subSelectorMap[groupTermsKey] = { rule, subIndex };
-      }
-    }
-
-    return selectorMap;
+    return this.toBackusNormalFormString();
   }
 }

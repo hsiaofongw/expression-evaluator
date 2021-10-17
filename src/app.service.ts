@@ -6,8 +6,6 @@ import { SyntaxTreeNodeGroup } from './types/tree';
 import { stdin } from 'process';
 import { SyntaxRewriteContext } from './types/context';
 import { RootEvaluatorBuilder } from './evaluator/root.evaluator';
-import { GlobalContext } from './evaluator/context';
-import { IEvaluator } from './evaluator/types';
 
 @Injectable()
 export class AppService implements IMainService {
@@ -17,54 +15,51 @@ export class AppService implements IMainService {
   ) {}
 
   main(): void {
-    const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
+    console.log(syntaxDefinition.toBackusNormalFormString());
+
+    console.log({ parse: (x) => this.parse(x) });
+
+    stdin.on('data', (data) => {
+      const expression = data.toString('utf8');
+      this.parse(expression);
+    });
+  }
+
+  parse(expression: string) {
+    // const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
     // const testString = '(-10) - 1 * 2 * 3 / 4 - 5';
-    console.log(testString);
+    // console.log(expression);
 
     const treeNodesGroup = SyntaxTreeNodeGroup.createFromStringAndLexer(
-      testString,
+      expression,
       this.lexicalAnalyzer,
     );
 
-    const ruleSelectorMap = syntaxDefinition.makeIndex();
-    console.log(syntaxDefinition.toBCNRString());
-
-    const context = SyntaxRewriteContext.createFromTokenNodes(treeNodesGroup);
-
-    console.log({
+    const context = SyntaxRewriteContext.create({
       syntaxDefinition,
       treeNodesGroup,
-      ruleSelectorMap,
-      context,
     });
 
-    context.stepUntilConverge(ruleSelectorMap);
-    console.log(context.treeNodesGroup);
+    // console.log({
+    //   syntaxDefinition,
+    //   treeNodesGroup,
+    //   ruleSelectorMap,
+    //   context,
 
-    const rootEvaluator = this.rootEvaluatorBuilder.build(
-      GlobalContext.createFromRootNode(treeNodesGroup.treeNodes[0]),
-    );
+    // const rootEvaluator = this.rootEvaluatorBuilder.build(
+    //   GlobalContext.createFromRootNode(treeNodesGroup.treeNodes[0]),
+    // );
 
-    function start() {
-      const evaluators: IEvaluator[] = [rootEvaluator];
-      while (evaluators.length) {
-        const evaluator = evaluators.pop();
-        if (evaluator) {
-          const derivedEvaluators = evaluator.evaluate();
-          derivedEvaluators.reverse();
-          derivedEvaluators.forEach((_derivedEvaluator) =>
-            evaluators.push(_derivedEvaluator),
-          );
-        }
-      }
-
-      console.log({ instructions: rootEvaluator.getContext().dump() });
-    }
-
-    start();
-
-    console.log({ start });
-
-    stdin.on('data', (data) => console.log(data.toString('utf-8')));
+    // const evaluators: IEvaluator[] = [rootEvaluator];
+    // while (evaluators.length) {
+    //   const evaluator = evaluators.pop();
+    //   if (evaluator) {
+    //     const derivedEvaluators = evaluator.evaluate();
+    //     derivedEvaluators.reverse();
+    //     derivedEvaluators.forEach((_derivedEvaluator) =>
+    //       evaluators.push(_derivedEvaluator),
+    //     );
+    //   }
+    // }
   }
 }

@@ -23,7 +23,6 @@ export class ExpressionEvaluator implements IEvaluator {
   constructor(private context: GlobalContext, private moduleRef: ModuleRef) {}
 
   evaluate(): IEvaluator[] {
-
     const childrenNodes = this.context.getTreeNode().children;
 
     if (childrenNodes && childrenNodes.length) {
@@ -38,16 +37,14 @@ export class ExpressionEvaluator implements IEvaluator {
       const nodes: ISyntaxTreeNode[] = [];
 
       switch (childrenToken) {
-        case '<Number> "Plus" <Expression>':
-        case '<NumberExpression> "Minus" <Number>':
-        case '<Number> "Minus" <Expression>':
-        case '<Number> "Plus" <Expression>':
+        case '<NumberExpression>':
           nodes[0] = node0;
-          nodes[1] = node2;
-          nodes[2] = node1;
           break;
 
         default:
+          nodes[0] = node0;
+          nodes[1] = node2;
+          nodes[2] = node1;
           break;
       }
 

@@ -1,10 +1,5 @@
 import { Lexer } from 'src/lexer/lexer.service';
-import {
-  IRuleSelectorMap,
-  SyntaxRule,
-  SyntaxTerm,
-  SyntaxTermGroup,
-} from './syntax';
+import { SyntaxRule, SyntaxTerm } from './syntax';
 import { IToken, TokenGroup } from './token';
 
 export type IMark = {
@@ -103,76 +98,5 @@ export class SyntaxTreeNodeGroup implements ISyntaxTreeNodeGroup {
       .tokenGroup.selectSubGroup((token) => token.name !== 'Space');
 
     return SyntaxTreeNodeGroup.createFromTokenGroup(tokenGroup);
-  }
-
-  public findRewriteOption(
-    selectorMap: IRuleSelectorMap,
-  ): ISyntaxTreeNodeRewriteOption | undefined {
-    const candidates: ISyntaxTreeNodeRewriteOptionCandidate[] =
-      new Array<ISyntaxTreeNodeRewriteOptionCandidate>();
-
-    for (let windowStart = 0; windowStart < this.length; windowStart++) {
-      for (
-        let windowSize = 1;
-        windowSize <= this.length - windowStart;
-        windowSize++
-      ) {
-        const windowSizeKey = windowSize.toString();
-        if (!selectorMap[windowSizeKey]) {
-          continue;
-        }
-
-        const subMapper = selectorMap[windowSizeKey];
-        const termsInWindow = this.treeNodes
-          .slice(windowStart, windowStart + windowSize)
-          .map((node) => node.term);
-        const termGroup = SyntaxTermGroup.createFromTerms(termsInWindow);
-        const termGroupKey = termGroup.toString();
-
-        if (!subMapper[termGroupKey]) {
-          continue;
-        }
-
-        const ruleSelector = subMapper[termGroupKey];
-        const rule = ruleSelector.rule;
-        const subIndex = ruleSelector.subIndex;
-        const rewriteOption: ISyntaxTreeNodeRewriteOption = {
-          startIndex: windowStart,
-          sliceLength: windowSize,
-          genRule: rule,
-          subRuleIndex: subIndex,
-        };
-
-        candidates.push({ option: rewriteOption, bonus: windowSize });
-      }
-    }
-
-    if (candidates.length) {
-      candidates.sort((a, b) => b.bonus - a.bonus);
-      return candidates[0].option;
-    }
-
-    return undefined;
-  }
-
-  public rewriteThisInPlace(option: ISyntaxTreeNodeRewriteOption): void {
-    const ruleGroup = option.genRule;
-    const rule = ruleGroup.fromTermGroups[option.subRuleIndex];
-    const sliceStart = option.startIndex;
-    const sliceEnd = sliceStart + option.sliceLength;
-    const nodesSlice = this.treeNodes.slice(sliceStart, sliceEnd);
-
-    if (rule.terms.length !== nodesSlice.length) {
-      throw new SyntaxError(
-        "Can't rewrite since nodes slice length does not meets rule's specs..",
-      );
-    }
-
-    const targetTerm = ruleGroup.targetTerm;
-    const newSyntaxTreeNode = SyntaxTreeNode.createFromNodes(
-      nodesSlice,
-      targetTerm,
-    );
-    this.treeNodes.splice(sliceStart, option.sliceLength, newSyntaxTreeNode);
   }
 }

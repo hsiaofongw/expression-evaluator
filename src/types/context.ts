@@ -1,47 +1,21 @@
-import { IRuleSelectorMap } from './syntax';
-import { ISyntaxTreeNodeRewriteOption, SyntaxTreeNodeGroup } from './tree';
+import { SyntaxDefinition } from './syntax';
+import { SyntaxTreeNodeGroup } from './tree';
 
 export type ISyntaxRewriteContext = {
   treeNodesGroup: SyntaxTreeNodeGroup;
+  syntaxDefinition: SyntaxDefinition;
 };
 
 export class SyntaxRewriteContext implements ISyntaxRewriteContext {
   public readonly treeNodesGroup!: SyntaxTreeNodeGroup;
+  public readonly syntaxDefinition!: SyntaxDefinition;
 
-  constructor(treeNodesGroup: SyntaxTreeNodeGroup) {
-    this.treeNodesGroup = treeNodesGroup;
+  constructor(data: ISyntaxRewriteContext) {
+    this.treeNodesGroup = data.treeNodesGroup;
+    this.syntaxDefinition = data.syntaxDefinition;
   }
 
-  public static createFromTokenNodes(treeNodesGroup: SyntaxTreeNodeGroup) {
-    return new SyntaxRewriteContext(treeNodesGroup);
-  }
-
-  public step(
-    ruleSelectorMap: IRuleSelectorMap,
-  ): ISyntaxTreeNodeRewriteOption | undefined {
-    const rewriteOption =
-      this.treeNodesGroup.findRewriteOption(ruleSelectorMap);
-
-    if (rewriteOption) {
-      this.treeNodesGroup.rewriteThisInPlace(rewriteOption);
-      return rewriteOption;
-    }
-
-    return undefined;
-  }
-
-  public stepUntilConverge(
-    ruleSelectorMap: IRuleSelectorMap,
-  ): ISyntaxTreeNodeRewriteOption[] {
-    const options: ISyntaxTreeNodeRewriteOption[] =
-      new Array<ISyntaxTreeNodeRewriteOption>();
-
-    let option = this.step(ruleSelectorMap);
-    while (option !== undefined) {
-      options.push(option);
-      option = this.step(ruleSelectorMap);
-    }
-
-    return options;
+  public static create(data: ISyntaxRewriteContext) {
+    return new SyntaxRewriteContext(data);
   }
 }

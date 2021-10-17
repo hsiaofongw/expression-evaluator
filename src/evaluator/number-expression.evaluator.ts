@@ -17,7 +17,6 @@ export class NumberExpressionEvaluatorBuilder implements IEvaluatorBuilder {
 export class NumberExpressionEvaluator implements IEvaluator {
   constructor(private context: GlobalContext, private moduleRef: ModuleRef) {}
   evaluate(): IEvaluator[] {
-
     const children = this.context.getTreeNode().children;
     if (!(children && children.length)) {
       return [];
@@ -35,19 +34,14 @@ export class NumberExpressionEvaluator implements IEvaluator {
 
     const childrenToken = childrenTermGroup.toString();
     switch (childrenToken) {
-      case '"LeftParenthesis" <Expression> "RightParenthesis"':
-        nodes[0] = node1;
-        break;
-      case '<NumberExpression> "Times" <Number>':
-      case '<NumberExpression> "DivideBy" <Number>':
-      case '<Number> "Times" <Number>':
-      case '<Number> "DivideBy" <Number>':
+      case '<Number>':
         nodes[0] = node0;
-        nodes[1] = node2;
-        nodes[2] = node1;
         break;
 
       default:
+        nodes[0] = node0;
+        nodes[1] = node2;
+        nodes[2] = node1;
         break;
     }
 

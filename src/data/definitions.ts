@@ -82,25 +82,16 @@ const expressionRule = SyntaxRule.create({
   targetTerm: terms.expressionTerm,
   fromTermGroups: [
     SyntaxTermGroup.createFromTerms([
-      terms.numberExpressionTerm,
-      terms.plusTerm,
-      terms.numberTerm,
-    ]),
-    SyntaxTermGroup.createFromTerms([
-      terms.numberExpressionTerm,
-      terms.minusTerm,
-      terms.numberTerm,
-    ]),
-    SyntaxTermGroup.createFromTerms([
-      terms.numberTerm,
-      terms.minusTerm,
       terms.expressionTerm,
-    ]),
-    SyntaxTermGroup.createFromTerms([
-      terms.numberTerm,
       terms.plusTerm,
       terms.expressionTerm,
     ]),
+    SyntaxTermGroup.createFromTerms([
+      terms.expressionTerm,
+      terms.minusTerm,
+      terms.expressionTerm,
+    ]),
+    SyntaxTermGroup.createFromTerms([terms.numberExpressionTerm]),
   ],
 });
 
@@ -108,30 +99,16 @@ const expressionRule = SyntaxRule.create({
 const numberExpressionRule = SyntaxRule.create({
   targetTerm: terms.numberExpressionTerm,
   fromTermGroups: [
-    SyntaxTermGroup.createFromTerms([
-      terms.leftParenthesisTerm,
-      terms.expressionTerm,
-      terms.rightParenthesisTerm,
-    ]),
+    SyntaxTermGroup.createFromTerms([terms.numberTerm]),
     SyntaxTermGroup.createFromTerms([
       terms.numberExpressionTerm,
       terms.timesTerm,
-      terms.numberTerm,
+      terms.numberExpressionTerm,
     ]),
     SyntaxTermGroup.createFromTerms([
       terms.numberExpressionTerm,
       terms.divideByTerm,
-      terms.numberTerm,
-    ]),
-    SyntaxTermGroup.createFromTerms([
-      terms.numberTerm,
-      terms.timesTerm,
-      terms.numberTerm,
-    ]),
-    SyntaxTermGroup.createFromTerms([
-      terms.numberTerm,
-      terms.divideByTerm,
-      terms.numberTerm,
+      terms.numberExpressionTerm,
     ]),
   ],
 });
