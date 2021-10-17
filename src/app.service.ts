@@ -45,16 +45,24 @@ export class AppService implements IMainService {
       GlobalContext.createFromRootNode(treeNodesGroup.treeNodes[0]),
     );
 
-    const evaluators: IEvaluator[] = [rootEvaluator];
-    while (evaluators.length) {
-      const evaluator = evaluators.shift();
-      if (evaluator) {
-        const derivedEvaluators = evaluator.evaluate();
-        derivedEvaluators.forEach((_derivedEvaluator) =>
-          evaluators.push(_derivedEvaluator),
-        );
+    function start() {
+      const evaluators: IEvaluator[] = [rootEvaluator];
+      while (evaluators.length) {
+        const evaluator = evaluators.pop();
+        if (evaluator) {
+          const derivedEvaluators = evaluator.evaluate();
+          console.log({ derivedEvaluators });
+          derivedEvaluators.reverse();
+          derivedEvaluators.forEach((_derivedEvaluator) =>
+            evaluators.push(_derivedEvaluator),
+          );
+        }
       }
     }
+
+    start();
+
+    console.log({ start });
 
     stdin.on('data', (data) => console.log(data.toString('utf-8')));
   }
