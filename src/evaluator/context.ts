@@ -27,7 +27,6 @@ export class GlobalContext implements IContext {
   }
 
   push(instruction: string): void {
-    console.log(instruction);
     this._instructionHistory.push(instruction);
   }
 

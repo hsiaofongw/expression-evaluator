@@ -17,7 +17,6 @@ export class NumberEvaluatorBuilder implements IEvaluatorBuilder {
 export class NumberEvaluator implements IEvaluator {
   constructor(private context: GlobalContext, private moduleRef: ModuleRef) {}
   evaluate(): IEvaluator[] {
-    console.log(this.context);
 
     const children = this.context.getTreeNode().children;
     if (!(children && children.length)) {
@@ -39,7 +38,6 @@ export class NumberEvaluator implements IEvaluator {
         break;
       case '"LeftParenthesis" "Minus" "PositiveNumber" "RightParenthesis"':
         content = children[2].mark?.content;
-        console.log({ content });
         if (content) {
           value = 0 - parseInt(content);
           this.context.push(`PUSH ${value}`);

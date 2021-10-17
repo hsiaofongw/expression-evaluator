@@ -15,10 +15,10 @@ export class MinusEvaluatorBuilder implements IEvaluatorBuilder {
 export class MinusEvaluator implements IEvaluator {
   constructor(private context: GlobalContext, private moduleRef: ModuleRef) {}
   evaluate(): IEvaluator[] {
-    console.log(this.context);
     this.context.push('POP R2');
     this.context.push('POP R1');
     this.context.push('SUBTRACT');
+    this.context.push('PUSH R1');
     return [];
   }
   getContext() {

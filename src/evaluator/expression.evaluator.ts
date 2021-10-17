@@ -23,7 +23,6 @@ export class ExpressionEvaluator implements IEvaluator {
   constructor(private context: GlobalContext, private moduleRef: ModuleRef) {}
 
   evaluate(): IEvaluator[] {
-    console.log(this.context);
 
     const childrenNodes = this.context.getTreeNode().children;
 

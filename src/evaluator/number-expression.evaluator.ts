@@ -17,7 +17,6 @@ export class NumberExpressionEvaluatorBuilder implements IEvaluatorBuilder {
 export class NumberExpressionEvaluator implements IEvaluator {
   constructor(private context: GlobalContext, private moduleRef: ModuleRef) {}
   evaluate(): IEvaluator[] {
-    console.log(this.context);
 
     const children = this.context.getTreeNode().children;
     if (!(children && children.length)) {

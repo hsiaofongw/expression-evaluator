@@ -51,13 +51,14 @@ export class AppService implements IMainService {
         const evaluator = evaluators.pop();
         if (evaluator) {
           const derivedEvaluators = evaluator.evaluate();
-          console.log({ derivedEvaluators });
           derivedEvaluators.reverse();
           derivedEvaluators.forEach((_derivedEvaluator) =>
             evaluators.push(_derivedEvaluator),
           );
         }
       }
+
+      console.log({ instructions: rootEvaluator.getContext().dump() });
     }
 
     start();
