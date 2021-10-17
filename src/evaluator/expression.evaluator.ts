@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { allTerms } from 'src/data/definitions';
 import { SyntaxTermGroup } from 'src/types/syntax';
+import { ISyntaxTreeNode } from 'src/types/tree';
 import { GlobalContext } from './context';
 import { IEvaluator } from './types';
 
@@ -31,38 +32,38 @@ export class ExpressionEvaluator implements IEvaluator {
         childrenNodes.map((node) => node.term),
       ).toString();
 
+      const node0 = childrenNodes[0];
+      const node1 = childrenNodes[1];
+      const node2 = childrenNodes[2];
+
+      const nodes: ISyntaxTreeNode[] = [];
+
       switch (childrenToken) {
         case '<Number> "Plus" <Expression>':
-          const numberNode = childrenNodes[0];
-          const plusNode = childrenNodes[1];
-          const expressionNode = childrenNodes[2];
-
-          const numberEvaluatorBuilder = this.moduleRef.get(
-            allTerms.numberTerm.toString(),
-          ) as IEvaluatorBuilder;
-          const numberEvaluator = numberEvaluatorBuilder.build(
-            this.context.fork(numberNode),
-          );
-
-          const expressionEvaluatorBuilder = this.moduleRef.get(
-            allTerms.expressionTerm.toString(),
-          ) as IEvaluatorBuilder;
-          const expressionEvaluator = expressionEvaluatorBuilder.build(
-            this.context.fork(expressionNode),
-          );
-
-          const plusEvaluatorBuilder = this.moduleRef.get(
-            allTerms.plusTerm.toString(),
-          ) as IEvaluatorBuilder;
-          const plusEvaluator = plusEvaluatorBuilder.build(
-            this.context.fork(plusNode),
-          );
-
-          return [numberEvaluator, expressionEvaluator, plusEvaluator];
+        case '<NumberExpression> "Minus" <Number>':
+        case '<Number> "Minus" <Expression>':
+        case '<Number> "Plus" <Expression>':
+          nodes[0] = node0;
+          nodes[1] = node2;
+          nodes[2] = node1;
+          break;
 
         default:
           break;
       }
+
+      const evaluators: IEvaluator[] = [];
+      for (const node of nodes) {
+        const term = node.term;
+        const termToken = term.toString();
+        const evaluatorBuilder = this.moduleRef.get(
+          termToken,
+        ) as IEvaluatorBuilder;
+        const evaluator = evaluatorBuilder.build(this.context.fork(node));
+        evaluators.push(evaluator);
+      }
+
+      return evaluators;
     }
 
     return [];
