@@ -5,10 +5,16 @@ import { syntaxDefinition } from './data/definitions';
 import { SyntaxTreeNodeGroup } from './types/tree';
 import { stdin } from 'process';
 import { SyntaxRewriteContext } from './types/context';
+import { RootEvaluatorBuilder } from './evaluator/root.evaluator';
+import { GlobalContext } from './evaluator/context';
+import { IEvaluator } from './evaluator/types';
 
 @Injectable()
 export class AppService implements IMainService {
-  constructor(private lexicalAnalyzer: Lexer) {}
+  constructor(
+    private lexicalAnalyzer: Lexer,
+    private rootEvaluatorBuilder: RootEvaluatorBuilder,
+  ) {}
 
   main(): void {
     const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
@@ -34,6 +40,21 @@ export class AppService implements IMainService {
 
     context.stepUntilConverge(ruleSelectorMap);
     console.log(context.treeNodesGroup);
+
+    const rootEvaluator = this.rootEvaluatorBuilder.build(
+      GlobalContext.createFromRootNode(treeNodesGroup.treeNodes[0]),
+    );
+
+    const evaluators: IEvaluator[] = [rootEvaluator];
+    while (evaluators.length) {
+      const evaluator = evaluators.shift();
+      if (evaluator) {
+        const derivedEvaluators = evaluator.evaluate();
+        derivedEvaluators.forEach((_derivedEvaluator) =>
+          evaluators.push(_derivedEvaluator),
+        );
+      }
+    }
 
     stdin.on('data', (data) => console.log(data.toString('utf-8')));
   }

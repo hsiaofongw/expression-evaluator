@@ -75,6 +75,8 @@ export const terms = {
   negativeNumberTerm,
 };
 
+export const allTerms = terms;
+
 /** 表达式生成式 */
 const expressionRule = SyntaxRule.create({
   targetTerm: terms.expressionTerm,
