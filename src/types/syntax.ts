@@ -29,6 +29,14 @@ export class SyntaxTerm implements ISyntaxTerm {
     }
   }
 
+  public static createTerminal(name: string): SyntaxTerm {
+    return new SyntaxTerm({ name, isTerminal: true });
+  }
+
+  public static createNonTerminal(name: string): SyntaxTerm {
+    return new SyntaxTerm({ name, isTerminal: false });
+  }
+
   [util.inspect.custom]() {
     return this.toString();
   }
@@ -52,62 +60,92 @@ export class SyntaxTermGroup {
 }
 
 /** 生成式 */
-export type ISyntaxGeneratingRule = {
+export type ISyntaxRule = {
   targetTerm: SyntaxTerm;
-  fromTermGroups: SyntaxTermGroup[];
+  fromTermGroup: SyntaxTermGroup;
 };
 
 /** 一条生成式 */
-export class SyntaxRule implements ISyntaxGeneratingRule {
+export class SyntaxRule implements ISyntaxRule {
   public readonly targetTerm!: SyntaxTerm;
-  public readonly fromTermGroups!: SyntaxTermGroup[];
+  public readonly fromTermGroup!: SyntaxTermGroup;
 
-  constructor(data: ISyntaxGeneratingRule) {
+  constructor(data: ISyntaxRule) {
     this.targetTerm = data.targetTerm;
-    this.fromTermGroups = data.fromTermGroups;
+    this.fromTermGroup = data.fromTermGroup;
   }
 
-  public static create(data: ISyntaxGeneratingRule): SyntaxRule {
+  public static create(data: ISyntaxRule): SyntaxRule {
     return new SyntaxRule(data);
   }
 
   public toString(): string {
     let result = `${this.targetTerm.toString()} ::= `;
 
-    const indent = result.length - 2;
-
-    function spaceByIndent(indentLen: number): string {
-      let result = '';
-      for (let i = 0; i < indentLen; i++) {
-        result = result + ' ';
-      }
-      return result;
-    }
-
-    result =
-      result +
-      this.fromTermGroups
-        .map((termGroup) => termGroup.toString())
-        .join('\n' + spaceByIndent(indent) + '| ');
+    result = result + this.fromTermGroup.toString();
 
     return result;
   }
 }
 
-/** 语法定义，由生成式列表创建 */
-export class SyntaxDefinition {
-  public readonly rules!: SyntaxRule[];
+/** 生成式组 */
+export type ISyntaxRuleGroup = {
+  targetTerm: SyntaxTerm;
+  fromTermGroups: SyntaxTermGroup[];
+};
 
-  constructor(syntaxRules: SyntaxRule[]) {
-    this.rules = syntaxRules;
+export class SyntaxRuleGroup implements ISyntaxRuleGroup {
+  public readonly targetTerm!: SyntaxTerm;
+  public readonly fromTermGroups!: SyntaxTermGroup[];
+
+  constructor(data: ISyntaxRuleGroup) {
+    this.targetTerm = data.targetTerm;
+    this.fromTermGroups = data.fromTermGroups;
   }
 
-  public static createFromRules(syntaxRules: SyntaxRule[]): SyntaxDefinition {
-    return new SyntaxDefinition(syntaxRules);
+  public static create(data: ISyntaxRuleGroup): SyntaxRuleGroup {
+    return new SyntaxRuleGroup(data);
+  }
+
+  public static createFromRules(rules: ISyntaxRule[]): SyntaxRuleGroup {
+    return new SyntaxRuleGroup({
+      targetTerm: rules[0].targetTerm,
+      fromTermGroups: rules.map((rule) => rule.fromTermGroup),
+    });
+  }
+
+  public toString(): string {
+    const headerPart = this.targetTerm.toString();
+    const connectorPart = ' ::= ';
+    const indents = headerPart.length + connectorPart.length - 2;
+    const spaces = ' '.repeat(indents) + '| ';
+    const gap = '\n' + spaces;
+    const bodyPart = this.fromTermGroups
+      .map((group) => group.toString())
+      .join(gap);
+
+    return headerPart + connectorPart + bodyPart;
+  }
+}
+
+/** 语法定义，由生成式列表创建 */
+export class SyntaxDefinition {
+  public readonly ruleGroups!: SyntaxRuleGroup[];
+
+  constructor(ruleGroups: SyntaxRuleGroup[]) {
+    this.ruleGroups = ruleGroups;
+  }
+
+  public static createFromRuleGroups(
+    ruleGroups: SyntaxRuleGroup[],
+  ): SyntaxDefinition {
+    return new SyntaxDefinition(ruleGroups);
   }
 
   public toBackusNormalFormString(): string {
-    return this.rules.map((rule) => rule.toString()).join('\n\n');
+    return this.ruleGroups
+      .map((ruleGroup) => ruleGroup.toString())
+      .join('\n\n');
   }
 
   public toString(): string {

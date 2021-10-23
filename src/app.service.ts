@@ -17,12 +17,12 @@ export class AppService implements IMainService {
   main(): void {
     console.log(syntaxDefinition.toBackusNormalFormString());
 
-    console.log({ parse: (x) => this.parse(x) });
+    // console.log({ parse: (x) => this.parse(x) });
 
-    stdin.on('data', (data) => {
-      const expression = data.toString('utf8');
-      this.parse(expression);
-    });
+    // stdin.on('data', (data) => {
+    //   const expression = data.toString('utf8');
+    //   this.parse(expression);
+    // });
   }
 
   parse(expression: string) {
