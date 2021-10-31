@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { Lexer } from './lexer/lexer.service';
 import { IMainService } from './types/token';
-import { syntaxDefinition } from './data/definitions';
-import { SyntaxTreeNodeGroup } from './types/tree';
-import { stdin } from 'process';
-import { SyntaxRewriteContext } from './types/context';
 import { RootEvaluatorBuilder } from './evaluator/root.evaluator';
+import { stdin, stdout } from 'process';
+import { createReadStream } from 'fs';
+import { TokenizerStream } from './streams/tokenizer';
+import {
+  Characterize,
+  CharacterTyping,
+  defaultCharTypeHierarchy,
+  BreadthFirstTreeIterator,
+} from './streams/characterize';
+import { resolve } from 'path';
 
 @Injectable()
 export class AppService implements IMainService {
@@ -15,51 +21,35 @@ export class AppService implements IMainService {
   ) {}
 
   main(): void {
-    console.log(syntaxDefinition.toBackusNormalFormString());
-
-    // console.log({ parse: (x) => this.parse(x) });
-
-    // stdin.on('data', (data) => {
-    //   const expression = data.toString('utf8');
-    //   this.parse(expression);
-    // });
-  }
-
-  parse(expression: string) {
-    // const testString = '1 + (-10) - 1 * 2 * 3 / 4 - 5';
-    // const testString = '(-10) - 1 * 2 * 3 / 4 - 5';
-    // console.log(expression);
-
-    const treeNodesGroup = SyntaxTreeNodeGroup.createFromStringAndLexer(
-      expression,
-      this.lexicalAnalyzer,
-    );
-
-    const context = SyntaxRewriteContext.create({
-      syntaxDefinition,
-      treeNodesGroup,
+    const treeI = new BreadthFirstTreeIterator({
+      root: defaultCharTypeHierarchy,
+      hasChildren: (_node) => _node.children !== undefined,
+      getChildren: (_node) =>
+        _node.children === undefined ? [] : _node.children,
     });
 
-    // console.log({
-    //   syntaxDefinition,
-    //   treeNodesGroup,
-    //   ruleSelectorMap,
-    //   context,
+    for (const node of treeI) {
+      console.log(node);
+    }
 
-    // const rootEvaluator = this.rootEvaluatorBuilder.build(
-    //   GlobalContext.createFromRootNode(treeNodesGroup.treeNodes[0]),
-    // );
+    return;
 
-    // const evaluators: IEvaluator[] = [rootEvaluator];
-    // while (evaluators.length) {
-    //   const evaluator = evaluators.pop();
-    //   if (evaluator) {
-    //     const derivedEvaluators = evaluator.evaluate();
-    //     derivedEvaluators.reverse();
-    //     derivedEvaluators.forEach((_derivedEvaluator) =>
-    //       evaluators.push(_derivedEvaluator),
-    //     );
-    //   }
-    // }
+    const packageJsonFilePath = resolve('package.json');
+    const readStream = createReadStream(packageJsonFilePath, {
+      encoding: 'utf-8',
+    });
+    const characterize = new Characterize();
+    const typing = new CharacterTyping(
+      new BreadthFirstTreeIterator({
+        root: defaultCharTypeHierarchy,
+        hasChildren: (_node) => _node.children === undefined,
+        getChildren: (_node) =>
+          _node.children === undefined ? [] : _node.children,
+      }),
+    );
+    const chars = readStream.pipe(characterize).pipe(typing);
+    chars.on('data', (data) => console.log(data));
+    chars.on('close', () => console.log('close'));
+    chars.on('end', () => console.log('end'));
   }
 }
