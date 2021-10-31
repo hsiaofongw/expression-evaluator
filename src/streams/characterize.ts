@@ -182,6 +182,50 @@ export class BreadthFirstTreeIterator<T> {
   }
 }
 
+export class DepthFirstTreeIterator<T> {
+  root!: T;
+  hasChildren!: (_node: T) => boolean;
+  getChildren!: (_node: T) => T[];
+  currentIndex!: number;
+  nodesQueue!: T[];
+
+  constructor(treeDescription: TreeDescription<T>) {
+    this.root = treeDescription.root;
+    this.hasChildren = treeDescription.hasChildren;
+    this.getChildren = treeDescription.getChildren;
+    this.currentIndex = 0;
+    this.nodesQueue = new Array<T>();
+    this.nodesQueue.push(this.root);
+  }
+
+  [Symbol.iterator]() {
+    return { next: () => this.next() };
+  }
+
+  next(): IterValue<T> {
+    if (this.nodesQueue.length === 0) {
+      return { done: true };
+    }
+
+    const currentNode = this.nodesQueue.pop();
+    if (this.hasChildren(currentNode)) {
+      const childrenNode = this.getChildren(currentNode).slice().reverse();
+      for (const childNode of childrenNode) {
+        this.nodesQueue.push(childNode);
+      }
+    }
+
+    const iteratorValue = {
+      value: { node: currentNode, index: this.currentIndex },
+      done: false,
+    };
+
+    this.currentIndex = this.currentIndex + 1;
+
+    return iteratorValue;
+  }
+}
+
 export class Characterize extends Transform {
   constructor() {
     super({

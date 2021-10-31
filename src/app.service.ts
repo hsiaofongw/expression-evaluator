@@ -10,6 +10,7 @@ import {
   CharacterTyping,
   defaultCharTypeHierarchy,
   BreadthFirstTreeIterator,
+  DepthFirstTreeIterator,
 } from './streams/characterize';
 import { resolve } from 'path';
 
@@ -21,7 +22,7 @@ export class AppService implements IMainService {
   ) {}
 
   main(): void {
-    const treeI = new BreadthFirstTreeIterator({
+    const treeI = new DepthFirstTreeIterator({
       root: defaultCharTypeHierarchy,
       hasChildren: (_node) => _node.children !== undefined,
       getChildren: (_node) =>
