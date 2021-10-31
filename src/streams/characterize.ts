@@ -246,6 +246,7 @@ export class DepthFirstTreeIterator<T> {
   }
 }
 
+/** 把字符串流转变成基础字符对象流 */
 export class Characterize extends Transform {
   constructor() {
     super({
@@ -276,6 +277,7 @@ export class Characterize extends Transform {
   }
 }
 
+/** 把基础字符对象流转变成带有字符类型标记的字符对象流 */
 export class CharacterTyping extends Transform {
   hierarchy!: ICharTypeHierarchy;
 
