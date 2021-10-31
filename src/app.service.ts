@@ -22,32 +22,25 @@ export class AppService implements IMainService {
   ) {}
 
   main(): void {
-    const treeI = new DepthFirstTreeIterator({
-      root: defaultCharTypeHierarchy,
-      hasChildren: (_node) => _node.children !== undefined,
-      getChildren: (_node) =>
-        _node.children === undefined ? [] : _node.children,
-    });
+    // const treeI = new DepthFirstTreeIterator({
+    //   root: defaultCharTypeHierarchy,
+    //   hasChildren: (_node) => _node.children !== undefined,
+    //   getChildren: (_node) =>
+    //     _node.children === undefined ? [] : _node.children,
+    // });
 
-    for (const node of treeI) {
-      console.log(node);
-    }
+    // for (const node of treeI) {
+    //   console.log(node);
+    // }
 
-    return;
+    // return;
 
     const packageJsonFilePath = resolve('package.json');
     const readStream = createReadStream(packageJsonFilePath, {
       encoding: 'utf-8',
     });
     const characterize = new Characterize();
-    const typing = new CharacterTyping(
-      new BreadthFirstTreeIterator({
-        root: defaultCharTypeHierarchy,
-        hasChildren: (_node) => _node.children === undefined,
-        getChildren: (_node) =>
-          _node.children === undefined ? [] : _node.children,
-      }),
-    );
+    const typing = new CharacterTyping(defaultCharTypeHierarchy);
     const chars = readStream.pipe(characterize).pipe(typing);
     chars.on('data', (data) => console.log(data));
     chars.on('close', () => console.log('close'));

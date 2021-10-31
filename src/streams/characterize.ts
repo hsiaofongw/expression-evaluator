@@ -11,7 +11,7 @@ export interface ICharBasicObject {
 }
 
 export interface ICharObject extends ICharBasicObject {
-  charType: ICharType;
+  charType?: ICharType;
 }
 
 export class Digit implements ICharType {
@@ -103,6 +103,24 @@ export class RightParenthesis implements ICharType {
   }
 }
 
+export class Space implements ICharType {
+  name = 'space';
+
+  test(s: string): boolean {
+    const regex = new RegExp(/\s+/);
+    return regex.test(s);
+  }
+}
+
+export class Letter implements ICharType {
+  name = 'letter';
+
+  test(s: string): boolean {
+    const regex = new RegExp(/[a-zA-Z_]/);
+    return regex.test(s);
+  }
+}
+
 export interface ICharTypeHierarchy {
   charType: ICharType;
   children?: ICharTypeHierarchy[];
@@ -111,6 +129,8 @@ export interface ICharTypeHierarchy {
 export const defaultCharTypeHierarchy: ICharTypeHierarchy = {
   charType: new GenericChar(),
   children: [
+    { charType: new Letter() },
+    { charType: new Space() },
     { charType: new Digit() },
     {
       charType: new GenericOperator(),
@@ -256,14 +276,12 @@ export class Characterize extends Transform {
   }
 }
 
-const charsTypes: ICharType[] = [new Digit(), new GenericChar()];
-
 export class CharacterTyping extends Transform {
-  hierarchyIter!: BreadthFirstTreeIterator<ICharTypeHierarchy>;
+  hierarchy!: ICharTypeHierarchy;
 
-  constructor(hierarchyIterator: BreadthFirstTreeIterator<ICharTypeHierarchy>) {
+  constructor(hierarchy: ICharTypeHierarchy) {
     super({ objectMode: true });
-    this.hierarchyIter = hierarchyIterator;
+    this.hierarchy = hierarchy;
   }
 
   _transform(
@@ -271,15 +289,25 @@ export class CharacterTyping extends Transform {
     encoding: string,
     callback: (error?: any) => void,
   ): void {
-    for (const charType of charsTypes) {
-      const content = chunk.content;
+    const content = chunk.content;
+    const charObj: ICharObject = { ...chunk };
+
+    const hierarchyIter = new BreadthFirstTreeIterator({
+      root: this.hierarchy,
+      hasChildren: (_node) => _node.children !== undefined,
+      getChildren: (_node) =>
+        _node.children === undefined ? [] : _node.children,
+    });
+
+    for (const stage of hierarchyIter) {
+      // console.log({ stage });
+      const charType = stage.node.charType;
       if (charType.test(content)) {
-        const charObj: ICharObject = { ...chunk, charType };
-        this.push(charObj);
-        break;
+        charObj.charType = charType;
       }
     }
 
+    this.push(charObj);
     callback();
   }
 }
