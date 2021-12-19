@@ -115,3 +115,16 @@ export class FiniteAutomata {
     );
   }
 }
+
+export class CharacterClassDetector {
+  constructor(private characterClassTable: ICharacterClassTable) {}
+
+  /** 检测一个字符属于哪一类 */
+  public detect(character: string): ICharacterClassTableEntry | undefined {
+    return (
+      this.characterClassTable.find((ent) =>
+        ent.regularExpression.test(character),
+      ) ?? undefined
+    );
+  }
+}
