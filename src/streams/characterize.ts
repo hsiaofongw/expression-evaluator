@@ -126,24 +126,39 @@ export interface ICharTypeHierarchy {
   children?: ICharTypeHierarchy[];
 }
 
+export const allCharTypes = {
+  genericChar: new GenericChar(),
+  letter: new Letter(),
+  space: new Space(),
+  digit: new Digit(),
+  genericOperator: new GenericOperator(),
+  plusOperator: new PlusOperator(),
+  minusOperator: new MinusOperator(),
+  timesOperator: new TimesOperator(),
+  divideByOperator: new DivideByOperator(),
+  dot: new Dot(),
+  leftParenthesis: new LeftParenthesis(),
+  rightParenthesis: new RightParenthesis(),
+};
+
 export const defaultCharTypeHierarchy: ICharTypeHierarchy = {
-  charType: new GenericChar(),
+  charType: allCharTypes.genericChar,
   children: [
-    { charType: new Letter() },
-    { charType: new Space() },
-    { charType: new Digit() },
+    { charType: allCharTypes.letter },
+    { charType: allCharTypes.space },
+    { charType: allCharTypes.digit },
     {
-      charType: new GenericOperator(),
+      charType: allCharTypes.genericOperator,
       children: [
-        { charType: new PlusOperator() },
-        { charType: new MinusOperator() },
-        { charType: new TimesOperator() },
-        { charType: new DivideByOperator() },
+        { charType: allCharTypes.plusOperator },
+        { charType: allCharTypes.minusOperator },
+        { charType: allCharTypes.timesOperator },
+        { charType: allCharTypes.divideByOperator },
       ],
     },
-    { charType: new Dot() },
-    { charType: new LeftParenthesis() },
-    { charType: new RightParenthesis() },
+    { charType: allCharTypes.dot },
+    { charType: allCharTypes.leftParenthesis },
+    { charType: allCharTypes.rightParenthesis },
   ],
 };
 

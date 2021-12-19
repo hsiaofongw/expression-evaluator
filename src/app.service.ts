@@ -4,7 +4,7 @@ import { IMainService } from './types/token';
 import { RootEvaluatorBuilder } from './evaluator/root.evaluator';
 import { stdin, stdout } from 'process';
 import { createReadStream } from 'fs';
-import { TokenizerStream } from './streams/tokenizer';
+import { TokenizerStream } from './streams/fa';
 import {
   Characterize,
   CharacterTyping,
