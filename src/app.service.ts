@@ -129,7 +129,7 @@ export class AppService implements IMainService {
       {
         currentStateIdentifier: 'float',
         inputCharacterClassIdentifier: 'endOfFile',
-        nextStateIdentifier: 'float',
+        nextStateIdentifier: 'start',
       },
     ];
 
@@ -139,7 +139,7 @@ export class AppService implements IMainService {
 
     // const fa = new FiniteAutomata(configuration);
 
-    const inputString = '1 + 2 * ( 3 - 4 ) - 5 / 3';
+    const inputString = '1 + 2 * ( 3 - 4 ) - 5 / 3 + 2.259';
 
     const characterSequence: string[] = inputString.split('');
 
