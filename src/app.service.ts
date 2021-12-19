@@ -47,6 +47,12 @@ export class AppService implements IMainService {
         description: '点号.',
         example: '.',
       },
+      {
+        characterClassIdentifier: 'endOfFile',
+        regularExpression: /^$/,
+        description: '文件终结符',
+        example: '',
+      },
     ];
 
     const transferTable: IStateTransferTable = [
@@ -71,6 +77,11 @@ export class AppService implements IMainService {
         nextStateIdentifier: 'preFloat',
       },
       {
+        currentStateIdentifier: 'start',
+        inputCharacterClassIdentifier: 'endOfFile',
+        nextStateIdentifier: 'start',
+      },
+      {
         currentStateIdentifier: 'integer',
         inputCharacterClassIdentifier: 'digit',
         nextStateIdentifier: 'integer',
@@ -89,6 +100,11 @@ export class AppService implements IMainService {
         currentStateIdentifier: 'integer',
         inputCharacterClassIdentifier: 'dot',
         nextStateIdentifier: 'preFloat',
+      },
+      {
+        currentStateIdentifier: 'integer',
+        inputCharacterClassIdentifier: 'endOfFile',
+        nextStateIdentifier: 'start',
       },
       {
         currentStateIdentifier: 'preFloat',
@@ -110,6 +126,11 @@ export class AppService implements IMainService {
         inputCharacterClassIdentifier: 'symbol',
         nextStateIdentifier: 'start',
       },
+      {
+        currentStateIdentifier: 'float',
+        inputCharacterClassIdentifier: 'endOfFile',
+        nextStateIdentifier: 'float',
+      },
     ];
 
     const configuration: IFiniteAutomataConfiguration = {
@@ -124,6 +145,11 @@ export class AppService implements IMainService {
 
     const indexedCharacterSequence: { offset: number; character: string }[] =
       characterSequence.map((c, i) => ({ offset: i, character: c }));
+
+    indexedCharacterSequence.push({
+      offset: indexedCharacterSequence.length,
+      character: '',
+    });
 
     const detector = new CharacterClassDetector(characters);
 
