@@ -9,6 +9,8 @@ import {
   IStateTable,
   IStateTransferTable,
 } from './streams/fa';
+import { strict } from 'assert';
+import { zip } from 'rxjs';
 
 @Injectable()
 export class AppService implements IMainService {
@@ -35,7 +37,7 @@ export class AppService implements IMainService {
       },
       {
         characterClassIdentifier: 'symbol',
-        regularExpression: /[^\d\.]/,
+        regularExpression: /[^\d\.\w]/,
         description: '非数字符号',
         example: '+-*/()等',
       },
@@ -114,12 +116,17 @@ export class AppService implements IMainService {
       stateTransferTable: transferTable,
     };
 
-    const fa = new FiniteAutomata(configuration);
+    // const fa = new FiniteAutomata(configuration);
+
     const inputString = '1 + 2 * ( 3 - 4 ) - 5 / 3';
+
     const characterSequence: string[] = inputString.split('');
+
     const indexedCharacterSequence: { offset: number; character: string }[] =
       characterSequence.map((c, i) => ({ offset: i, character: c }));
+
     const detector = new CharacterClassDetector(characters);
+
     const characterObjectWithClass: {
       offset: number;
       character: string;
@@ -130,9 +137,34 @@ export class AppService implements IMainService {
       characterClass: detector.detect(cObject.character),
     }));
 
-    // console.log(ch)
-    for (const obj of characterObjectWithClass) {
-      console.log(obj);
+    // 确保每一个字符都检测出了 class
+    strict.strictEqual(
+      characterObjectWithClass.find(
+        (cObj) => cObj.characterClass === undefined,
+      ),
+      undefined,
+    );
+
+    const charObjects = characterObjectWithClass as any as {
+      offset: number;
+      character: string;
+      characterClass: ICharacterClassTableEntry;
+    }[];
+
+    let fa = new FiniteAutomata(configuration);
+    const faList: FiniteAutomata[] = new Array<FiniteAutomata>();
+    fa = fa.initialize('start');
+    for (const charObject of charObjects) {
+      fa = fa.feed(charObject.characterClass.characterClassIdentifier);
+      faList.push(fa);
     }
+
+    // for (const obj of charObjects) {
+    //   console.log(obj);
+    // }
+
+    zip(charObjects, faList).subscribe((ary) => {
+      console.log(ary);
+    });
   }
 }
