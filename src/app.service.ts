@@ -171,7 +171,7 @@ export class AppService implements IMainService {
 
     // const fa = new FiniteAutomata(configuration);
 
-    const inputString = '1 + 2 * ( 3 - 4 ) - 5 / 3 + 2.259';
+    const inputString = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
 
     const characterSequence: string[] = inputString.split('');
 
