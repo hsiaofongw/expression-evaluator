@@ -51,6 +51,33 @@ export type IFiniteAutomataConfiguration = {
   stateTransferTable: IStateTransferTable;
 };
 
+/** 一个带 offset 的字符对象 */
+export type ICharacterObject = {
+  /** 在原文中的起始地址 */
+  offset: number;
+
+  /** 字符内容 */
+  character: string;
+};
+
+/** 一个可能带 character 类的字符对象 */
+export type IOptionallyTypedCharacterObject = ICharacterObject & {
+  /** 字符类 */
+  characterClass?: ICharacterClassTableEntry;
+};
+
+/** 一个带 character 类的字符对象 */
+export type ITypedCharacterObject = ICharacterObject & {
+  /** 字符类 */
+  characterClass: ICharacterClassTableEntry;
+};
+
+/** 原始 token */
+export type IRawToken = {
+  /** 字符对象列表 */
+  characterObjects: ITypedCharacterObject[];
+};
+
 /** 有限状态机 */
 export class FiniteAutomata {
   constructor(
@@ -125,6 +152,7 @@ export class FiniteAutomata {
   }
 }
 
+/** 字符类型检测器 */
 export class CharacterClassDetector {
   constructor(private characterClassTable: ICharacterClassTable) {}
 
@@ -137,3 +165,75 @@ export class CharacterClassDetector {
     );
   }
 }
+
+/** 词法分析上下文类 */
+export class TokenizeContext {
+  private _bufferIndex = 0;
+  private _tokenBuffer!: IRawToken;
+  private _tokens: IRawToken[] = new Array<IRawToken>();
+  public get tokens(): IRawToken[] {
+    return this._tokens;
+  }
+
+  constructor(private inputSequence: ITypedCharacterObject[]) {}
+
+  /** 从缓冲区取出一个字符对象 */
+  public popCharacterObject(): ITypedCharacterObject {
+    assert.strictEqual(this._bufferIndex < this.inputSequence.length, true);
+    const charObject = this.inputSequence[this._bufferIndex];
+    this._bufferIndex = this._bufferIndex + 1;
+    return charObject;
+  }
+
+  /** 内部创建一个新 token */
+  public createOneNewToken(): void {
+    this._tokenBuffer = {
+      characterObjects: new Array<ITypedCharacterObject>(),
+    };
+  }
+
+  /** 把一个字符对象追加到当前 token */
+  public appendCharacterObjectToCurrentToken(
+    charObject: ITypedCharacterObject,
+  ): void {
+    this._assertCurrentTokenExist();
+    this._tokenBuffer.characterObjects.push(charObject);
+  }
+
+  /** 保存当前 token */
+  public saveCurrentToken(): void {
+    this._assertCurrentTokenExist();
+    this._tokens.push(this._tokenBuffer);
+  }
+
+  /** 断言当前 token 存在 */
+  private _assertCurrentTokenExist(): void {
+    assert.notStrictEqual(this._tokenBuffer, undefined);
+    assert.notStrictEqual(this._tokenBuffer.characterObjects, undefined);
+    assert.strictEqual(Array.isArray(this._tokenBuffer.characterObjects), true);
+  }
+}
+
+/** 状态转移动作条目 */
+export type IStateTransferActionTableEntry = {
+  /** 当前状态标识符 */
+  currentStateIdentifier: IState['stateIdentifier'];
+
+  /** 输入标识符 */
+  inputCharacterClassIdentifier: string;
+
+  /** 动作 */
+  action: (context: TokenizeContext) => void;
+};
+
+/** 状态转移动作条目表 */
+export type IStateTransferActionTable = IStateTransferActionTableEntry[];
+
+/** 状态转移动作表索引 */
+export type IStateTransferActionTableIndex = Record<
+  IStateTransferActionTableEntry['currentStateIdentifier'],
+  Record<
+    IStateTransferActionTableEntry['inputCharacterClassIdentifier'],
+    IStateTransferActionTableEntry['action']
+  >
+>;

@@ -4,13 +4,16 @@ import {
   CharacterClassDetector,
   FiniteAutomata,
   ICharacterClassTable,
-  ICharacterClassTableEntry,
   IFiniteAutomataConfiguration,
   IStateTable,
   IStateTransferTable,
+  IOptionallyTypedCharacterObject,
+  ITypedCharacterObject,
+  TokenizeContext,
+  IStateTransferActionTable,
+  IStateTransferActionTableIndex,
 } from './streams/fa';
 import { strict } from 'assert';
-import { zip } from 'rxjs';
 
 @Injectable()
 export class AppService implements IMainService {
@@ -56,76 +59,105 @@ export class AppService implements IMainService {
     ];
 
     const transferTable: IStateTransferTable = [
+      // 0
       {
         currentStateIdentifier: 'start',
         inputCharacterClassIdentifier: 'whitespace',
         nextStateIdentifier: 'start',
       },
+
+      // 1
       {
         currentStateIdentifier: 'start',
         inputCharacterClassIdentifier: 'symbol',
         nextStateIdentifier: 'start',
       },
+
+      // 2
       {
         currentStateIdentifier: 'start',
         inputCharacterClassIdentifier: 'digit',
         nextStateIdentifier: 'integer',
       },
+
+      // 3
       {
         currentStateIdentifier: 'start',
         inputCharacterClassIdentifier: 'dot',
         nextStateIdentifier: 'preFloat',
       },
+
+      // 4
       {
         currentStateIdentifier: 'start',
         inputCharacterClassIdentifier: 'endOfFile',
         nextStateIdentifier: 'start',
       },
+
+      // 5
       {
         currentStateIdentifier: 'integer',
         inputCharacterClassIdentifier: 'digit',
         nextStateIdentifier: 'integer',
       },
+
+      // 6
       {
         currentStateIdentifier: 'integer',
         inputCharacterClassIdentifier: 'whitespace',
         nextStateIdentifier: 'start',
       },
+
+      // 7
       {
         currentStateIdentifier: 'integer',
         inputCharacterClassIdentifier: 'symbol',
         nextStateIdentifier: 'start',
       },
+
+      // 8
       {
         currentStateIdentifier: 'integer',
         inputCharacterClassIdentifier: 'dot',
         nextStateIdentifier: 'preFloat',
       },
+
+      // 9
       {
         currentStateIdentifier: 'integer',
         inputCharacterClassIdentifier: 'endOfFile',
         nextStateIdentifier: 'start',
       },
+
+      // 10
       {
         currentStateIdentifier: 'preFloat',
         inputCharacterClassIdentifier: 'digit',
         nextStateIdentifier: 'float',
       },
+
+      // 11
       {
         currentStateIdentifier: 'float',
         inputCharacterClassIdentifier: 'digit',
         nextStateIdentifier: 'float',
       },
+
+      // 12
       {
         currentStateIdentifier: 'float',
         inputCharacterClassIdentifier: 'whitespace',
         nextStateIdentifier: 'start',
       },
+
+      // 13
       {
         currentStateIdentifier: 'float',
         inputCharacterClassIdentifier: 'symbol',
         nextStateIdentifier: 'start',
       },
+
+      // 14
       {
         currentStateIdentifier: 'float',
         inputCharacterClassIdentifier: 'endOfFile',
@@ -153,15 +185,12 @@ export class AppService implements IMainService {
 
     const detector = new CharacterClassDetector(characters);
 
-    const characterObjectWithClass: {
-      offset: number;
-      character: string;
-      characterClass?: ICharacterClassTableEntry;
-    }[] = indexedCharacterSequence.map((cObject) => ({
-      offset: cObject.offset,
-      character: cObject.character,
-      characterClass: detector.detect(cObject.character),
-    }));
+    const characterObjectWithClass: IOptionallyTypedCharacterObject[] =
+      indexedCharacterSequence.map((cObject) => ({
+        offset: cObject.offset,
+        character: cObject.character,
+        characterClass: detector.detect(cObject.character),
+      }));
 
     // 确保每一个字符都检测出了 class
     strict.strictEqual(
@@ -171,11 +200,8 @@ export class AppService implements IMainService {
       undefined,
     );
 
-    const charObjects = characterObjectWithClass as any as {
-      offset: number;
-      character: string;
-      characterClass: ICharacterClassTableEntry;
-    }[];
+    const charObjects =
+      characterObjectWithClass as any as ITypedCharacterObject[];
 
     let fa = new FiniteAutomata(configuration);
     const faList: FiniteAutomata[] = new Array<FiniteAutomata>();
@@ -186,14 +212,202 @@ export class AppService implements IMainService {
       faList.push(fa);
     }
 
-    // for (const obj of charObjects) {
-    //   console.log(obj);
-    // }
+    const actionTable: IStateTransferActionTable = [
+      // 0
+      {
+        currentStateIdentifier: transferTable[0].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[0].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.popCharacterObject();
+        },
+      },
 
-    // zip(charObjects, faList).subscribe((ary) => {
-    //   console.log(ary);
-    // });
+      // 1
+      {
+        currentStateIdentifier: transferTable[1].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[1].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.createOneNewToken();
+          const charObject = context.popCharacterObject();
+          context.appendCharacterObjectToCurrentToken(charObject);
+          context.saveCurrentToken();
+        },
+      },
 
+      // 2
+      {
+        currentStateIdentifier: transferTable[2].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[2].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.createOneNewToken();
+          const charObject = context.popCharacterObject();
+          context.appendCharacterObjectToCurrentToken(charObject);
+        },
+      },
+
+      // 3
+      {
+        currentStateIdentifier: transferTable[3].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[3].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.createOneNewToken();
+          const charObject = context.popCharacterObject();
+          context.appendCharacterObjectToCurrentToken(charObject);
+        },
+      },
+
+      // 4
+      {
+        currentStateIdentifier: transferTable[4].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[4].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.popCharacterObject();
+          context.saveCurrentToken();
+        },
+      },
+
+      // 5
+      {
+        currentStateIdentifier: transferTable[5].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[5].inputCharacterClassIdentifier,
+        action: (context) => {
+          const charObject = context.popCharacterObject();
+          context.appendCharacterObjectToCurrentToken(charObject);
+        },
+      },
+
+      // 6
+      {
+        currentStateIdentifier: transferTable[6].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[6].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.popCharacterObject();
+          context.saveCurrentToken();
+        },
+      },
+
+      // 7
+      {
+        currentStateIdentifier: transferTable[7].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[7].inputCharacterClassIdentifier,
+        action: (context) => {
+          // 保存当前 buffer 的数字 token
+          context.saveCurrentToken();
+
+          // 创建一个新 token buffer 用于存放符号
+          context.createOneNewToken();
+
+          // 读取输入缓冲区的符号
+          const charObject = context.popCharacterObject();
+
+          // 将缓冲区的符号存入 token buffer
+          context.appendCharacterObjectToCurrentToken(charObject);
+
+          // 保存当前 token
+          context.saveCurrentToken();
+        },
+      },
+
+      // 8
+      {
+        currentStateIdentifier: transferTable[8].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[8].inputCharacterClassIdentifier,
+        action: (context) => {
+          const charObject = context.popCharacterObject();
+          context.appendCharacterObjectToCurrentToken(charObject);
+        },
+      },
+
+      // 9
+      {
+        currentStateIdentifier: transferTable[9].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[9].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.popCharacterObject();
+          context.saveCurrentToken();
+        },
+      },
+
+      // 10
+      {
+        currentStateIdentifier: transferTable[10].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[10].inputCharacterClassIdentifier,
+        action: (context) => {
+          const charObject = context.popCharacterObject();
+          context.appendCharacterObjectToCurrentToken(charObject);
+        },
+      },
+
+      // 11
+      {
+        currentStateIdentifier: transferTable[11].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[11].inputCharacterClassIdentifier,
+        action: (context) => {
+          const charObject = context.popCharacterObject();
+          context.appendCharacterObjectToCurrentToken(charObject);
+        },
+      },
+
+      // 12
+      {
+        currentStateIdentifier: transferTable[12].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[12].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.popCharacterObject();
+          context.saveCurrentToken();
+        },
+      },
+
+      // 13
+      {
+        currentStateIdentifier: transferTable[13].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[13].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.saveCurrentToken();
+          const charObject = context.popCharacterObject();
+          context.appendCharacterObjectToCurrentToken(charObject);
+          context.saveCurrentToken();
+        },
+      },
+
+      // 14
+      {
+        currentStateIdentifier: transferTable[14].currentStateIdentifier,
+        inputCharacterClassIdentifier:
+          transferTable[14].inputCharacterClassIdentifier,
+        action: (context) => {
+          context.popCharacterObject();
+          context.saveCurrentToken();
+        },
+      },
+    ];
+
+    const actionTableIndex: IStateTransferActionTableIndex = {};
+    for (const ent of actionTable) {
+      if (actionTableIndex[ent.currentStateIdentifier] === undefined) {
+        actionTableIndex[ent.currentStateIdentifier] = {};
+      }
+
+      actionTableIndex[ent.currentStateIdentifier][
+        ent.inputCharacterClassIdentifier
+      ] = ent.action;
+    }
+
+    const tokenizeContext = new TokenizeContext(charObjects);
     for (let i = 0; i < faList.length - 1; i++) {
       const prevFa = faList[i];
       const currFa = faList[i + 1];
@@ -204,6 +418,21 @@ export class AppService implements IMainService {
         inputCharObj.characterClass.characterClassIdentifier
       } -> ${currFa.getStateIdentifier()}`;
       console.log(transition);
+
+      const currentStateIdentifier = prevFa.getStateIdentifier();
+      const inputCharacterClassIdentifier =
+        inputCharObj.characterClass.characterClassIdentifier;
+
+      const actionF =
+        actionTableIndex[currentStateIdentifier][inputCharacterClassIdentifier];
+      strict.notStrictEqual(actionF, undefined);
+
+      actionF(tokenizeContext);
+    }
+
+    // console.log(tokenizeContext.tokens);
+    for (const token of tokenizeContext.tokens) {
+      console.log(token);
     }
   }
 }
