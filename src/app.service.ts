@@ -180,6 +180,7 @@ export class AppService implements IMainService {
     let fa = new FiniteAutomata(configuration);
     const faList: FiniteAutomata[] = new Array<FiniteAutomata>();
     fa = fa.initialize('start');
+    faList.push(fa);
     for (const charObject of charObjects) {
       fa = fa.feed(charObject.characterClass.characterClassIdentifier);
       faList.push(fa);
@@ -189,8 +190,20 @@ export class AppService implements IMainService {
     //   console.log(obj);
     // }
 
-    zip(charObjects, faList).subscribe((ary) => {
-      console.log(ary);
-    });
+    // zip(charObjects, faList).subscribe((ary) => {
+    //   console.log(ary);
+    // });
+
+    for (let i = 0; i < faList.length - 1; i++) {
+      const prevFa = faList[i];
+      const currFa = faList[i + 1];
+      const inputCharObj = charObjects[i];
+      const transition = `${
+        inputCharObj.character
+      }: ${prevFa.getStateIdentifier()} + ${
+        inputCharObj.characterClass.characterClassIdentifier
+      } -> ${currFa.getStateIdentifier()}`;
+      console.log(transition);
+    }
   }
 }

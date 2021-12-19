@@ -114,6 +114,15 @@ export class FiniteAutomata {
       this._stateTranferTableIndex,
     );
   }
+
+  /** 获取当前状态的 Identifier */
+  public getStateIdentifier(): IState['stateIdentifier'] {
+    const currentStateIdentifier = this._state;
+    assert.notStrictEqual(currentStateIdentifier, undefined);
+    assert.notStrictEqual(currentStateIdentifier, null);
+
+    return currentStateIdentifier;
+  }
 }
 
 export class CharacterClassDetector {
