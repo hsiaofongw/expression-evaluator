@@ -78,6 +78,38 @@ export type IRawToken = {
   characterObjects: ITypedCharacterObject[];
 };
 
+/** 原子 Token */
+export type IAtomicToken = {
+  /** 在原文中的起始位置 */
+  offset: number;
+
+  /** 内容 */
+  content: string;
+};
+
+/** token 类别定义 */
+export type ITokenClassDefinition = {
+  /** 类别名称，同时也是类别唯一标识符 */
+  tokenClassName: string;
+
+  /** 描述 */
+  description?: string;
+} & (
+  | {
+      /** 正则表达式定义 */
+      regularExpressionDefinitions: RegExp;
+    }
+  | {
+      /** 正则表达式定义 */
+      regularExpressionDefinitions: RegExp[];
+    }
+);
+
+/** 带类别标注的 token */
+export type ITypedToken = IAtomicToken & {
+  tokenClassName: ITokenClassDefinition['tokenClassName'];
+};
+
 /** 有限状态机 */
 export class FiniteAutomata {
   constructor(

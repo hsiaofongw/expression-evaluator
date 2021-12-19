@@ -12,6 +12,10 @@ import {
   TokenizeContext,
   IStateTransferActionTable,
   IStateTransferActionTableIndex,
+  IRawToken,
+  IAtomicToken,
+  ITokenClassDefinition,
+  ITypedToken,
 } from './streams/fa';
 import { strict } from 'assert';
 
@@ -430,9 +434,108 @@ export class AppService implements IMainService {
       actionF(tokenizeContext);
     }
 
-    // console.log(tokenizeContext.tokens);
-    for (const token of tokenizeContext.tokens) {
-      console.log(token);
+    const tokens: IRawToken[] = tokenizeContext.tokens
+      .filter((token) => token !== undefined)
+      .filter((token) => token.characterObjects !== undefined)
+      .filter((token) => Array.isArray(token.characterObjects))
+      .filter((token) => token.characterObjects.length)
+      .filter((token) =>
+        token.characterObjects.every((charObject) => charObject.character),
+      );
+
+    const atomicTokens: IAtomicToken[] = new Array<IAtomicToken>();
+    for (const token of tokens) {
+      const atomicToken: IAtomicToken = {
+        offset: token.characterObjects[0].offset,
+        content: token.characterObjects
+          .map((charObj) => charObj.character)
+          .join(''),
+      };
+      atomicTokens.push(atomicToken);
+    }
+
+    // token 类别定义
+    const tokenClassDefinitions: ITokenClassDefinition[] = [
+      {
+        tokenClassName: 'number',
+        description: '数',
+        regularExpressionDefinitions: [/^\d+$/, /^\d*\.\d+$/],
+      },
+      {
+        tokenClassName: 'plus',
+        description: '加号',
+        regularExpressionDefinitions: /^\+$/,
+      },
+      {
+        tokenClassName: 'minus',
+        description: '减号或者负号',
+        regularExpressionDefinitions: /^\-$/,
+      },
+      {
+        tokenClassName: 'times',
+        description: '乘号',
+        regularExpressionDefinitions: /^\*$/,
+      },
+      {
+        tokenClassName: 'divideBy',
+        description: '除号',
+        regularExpressionDefinitions: /^\/$/,
+      },
+      {
+        tokenClassName: 'leftParenthesis',
+        description: '左括号',
+        regularExpressionDefinitions: /^\($/,
+      },
+      {
+        tokenClassName: 'rightParenthesis',
+        description: '右括号',
+        regularExpressionDefinitions: /^\)$/,
+      },
+    ];
+
+    const typedToknes: ITypedToken[] = new Array<ITypedToken>();
+    const tokenTypingLogs: string[] = [];
+    for (const atomicToken of atomicTokens) {
+      tokenTypingLogs.push(`testing: ${atomicToken.content}`);
+      let tokenTypeName: string | undefined = undefined;
+      for (const definition of tokenClassDefinitions) {
+        if (Array.isArray(definition.regularExpressionDefinitions)) {
+          for (const regex of definition.regularExpressionDefinitions) {
+            if (regex.test(atomicToken.content)) {
+              tokenTypeName = definition.tokenClassName;
+            }
+          }
+        } else {
+          if (
+            definition.regularExpressionDefinitions.test(atomicToken.content)
+          ) {
+            tokenTypeName = definition.tokenClassName;
+          }
+        }
+      }
+
+      tokenTypingLogs.push(`got: ${tokenTypeName}`);
+
+      try {
+        strict.notStrictEqual(tokenTypeName, undefined);
+      } catch (error) {
+        for (const log of tokenTypingLogs) {
+          console.debug(log);
+        }
+        console.error(error);
+      }
+
+      const typedToken: ITypedToken = {
+        offset: atomicToken.offset,
+        content: atomicToken.content,
+        tokenClassName: tokenTypeName,
+      };
+
+      typedToknes.push(typedToken);
+    }
+
+    for (const typedToken of typedToknes) {
+      console.log(typedToken);
     }
   }
 }
