@@ -16,6 +16,8 @@ import {
   IAtomicToken,
   ITokenClassDefinition,
   ITypedToken,
+  SemanticRule,
+  SemanticUnit,
 } from './streams/fa';
 import { strict } from 'assert';
 
@@ -537,5 +539,172 @@ export class AppService implements IMainService {
     for (const typedToken of typedToknes) {
       console.log(typedToken);
     }
+
+    // 要进行语法分析，先定义语法规则
+
+    // number, 数
+    const numberUnit: SemanticUnit = {
+      type: 'terminal',
+      name: 'number',
+    };
+
+    // plus, 加号
+    const plusUnit: SemanticUnit = {
+      type: 'terminal',
+      name: 'plus',
+    };
+
+    // minus, 减号
+    const minusUnit: SemanticUnit = {
+      type: 'terminal',
+      name: 'minus',
+    };
+
+    // times, 乘号，或者星号
+    const timesUnit: SemanticUnit = {
+      type: 'terminal',
+      name: 'times',
+    };
+
+    // divideBy, 除号
+    const divideByUnit: SemanticUnit = {
+      type: 'terminal',
+      name: 'divideBy',
+    };
+
+    // leftParenthesis, 左括号（半角）
+    const leftParenthesisUnit: SemanticUnit = {
+      type: 'terminal',
+      name: 'leftParenthesis',
+    };
+
+    // rightParenthesis, 右括号（半角）
+    const rightParenthesisUnit: SemanticUnit = {
+      type: 'terminal',
+      name: 'rightParenthesis',
+    };
+
+    // 终结符定义完毕
+
+    // 下面定义非终结符
+
+    // 数表达式，包括正数和负数，以及括号嵌套
+    const numberExpressionUnit: SemanticUnit = {
+      type: 'nonTerminal',
+      name: 'numberExpression',
+    };
+
+    // 倍数表达式，倍数主要是拿来相乘的
+    const factorExpressionUnit: SemanticUnit = {
+      type: 'nonTerminal',
+      name: 'facterExpression',
+    };
+
+    // 一般表达式，加减法之类的
+    const expressionUnit: SemanticUnit = {
+      type: 'nonTerminal',
+      name: 'expression',
+    };
+
+    // 倍数操作符，例如乘号和除以号
+    const factorOperatorUnit: SemanticUnit = {
+      type: 'nonTerminal',
+      name: 'factorOperator',
+    };
+
+    // 加减操作符，例如加号和减号
+    const addOrSubtractOperatorUnit: SemanticUnit = {
+      type: 'nonTerminal',
+      name: 'addOrSubtractOperator',
+    };
+
+    // 非终结符定义完毕
+
+    // 下面定义生成式
+    // 自底向上
+    const semanticRules: SemanticRule[] = [
+      // 规则 0: 一个 number 是一个 numberExpression
+      {
+        head: numberExpressionUnit,
+        body: [numberUnit],
+      },
+
+      // 规则 1: (-numberExpression) 是一个 numberExpression（负数）
+      {
+        head: numberExpressionUnit,
+        body: [
+          leftParenthesisUnit,
+          minusUnit,
+          numberExpressionUnit,
+          rightParenthesisUnit,
+        ],
+      },
+
+      // 规则 2: (numberExpression) 是一个 numberExpression（正、负数的括号嵌套）
+      {
+        head: numberExpressionUnit,
+        body: [leftParenthesisUnit, numberExpressionUnit, rightParenthesisUnit],
+      },
+
+      // 规则 3: 乘号可看做一个倍数操作符
+      {
+        head: factorOperatorUnit,
+        body: [timesUnit],
+      },
+
+      // 规则 4: 除以号可看做一个倍数操作符
+      {
+        head: factorOperatorUnit,
+        body: [divideByUnit],
+      },
+
+      // 规则 5: 加号可看做一个加减操作符
+      {
+        head: addOrSubtractOperatorUnit,
+        body: [plusUnit],
+      },
+
+      // 规则 6: 减号可看作一个加减运算符
+      {
+        head: addOrSubtractOperatorUnit,
+        body: [minusUnit],
+      },
+
+      // 规则 7: 一个 numberExpression 是一个 factorExpression
+      {
+        head: factorExpressionUnit,
+        body: [numberExpressionUnit],
+      },
+
+      // 规则 8: 一个 factorExpression 嵌套括号之后，还是一个 factorExpression,
+      {
+        head: factorExpressionUnit,
+        body: [leftParenthesisUnit, factorExpressionUnit, rightParenthesisUnit],
+      },
+
+      // 规则 9: 一个 factorExpression 和另外一个 factorExpression 的乘除运算得一个 factorExpression
+      {
+        head: factorExpressionUnit,
+        body: [factorExpressionUnit, factorOperatorUnit, factorExpressionUnit],
+      },
+
+      // 规则 10: 一个 factorExpression 可视为一个 expression
+      {
+        head: expressionUnit,
+        body: [factorExpressionUnit],
+      },
+
+      // 规则 11: 一个 expression 允许嵌套在括号中
+      {
+        head: expressionUnit,
+        body: [leftParenthesisUnit, expressionUnit, rightParenthesisUnit],
+      },
+
+      // 规则 12: 一个 expression 加减另外一个 expression 得一个 expression
+      {
+        head: expressionUnit,
+        body: [expressionUnit, addOrSubtractOperatorUnit, expressionUnit],
+      },
+    ];
   }
 }

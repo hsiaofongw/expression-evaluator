@@ -269,3 +269,31 @@ export type IStateTransferActionTableIndex = Record<
     IStateTransferActionTableEntry['action']
   >
 >;
+
+/** 语法单元 */
+export type SemanticUnit = {
+  /**
+   * 'terminal' 表示终结符号，'nonTerminal' 表示非终结符号
+   */
+  type: 'terminal' | 'nonTerminal';
+
+  /**
+   * 语法单元名称
+   */
+  name: string;
+};
+
+/**
+ * 语法规则
+ *
+ * 从 head 到 body 是推导 (infer)
+ *
+ * 从 body 到 head 是规约 (reduce)
+ */
+export type SemanticRule = {
+  /** 产生式的头 */
+  head: SemanticUnit;
+
+  /** 产生式的体 */
+  body: SemanticUnit[];
+};
