@@ -4,12 +4,14 @@ import {
   ToCharacters,
   ToIndexedCharacter,
   Tokenize,
+  TokenTyping,
   ToTypedCharacter,
 } from './lexer/lexer';
 import { createInterface } from 'readline';
 import { Readable } from 'stream';
 import {
   allStates,
+  allTokenClasses,
   charClass as allCharClasses,
   stateTransitions,
 } from './lexer/config';
@@ -30,6 +32,7 @@ export class AppService implements IMainService {
       transitions: stateTransitions,
       startState: allStates.startState,
     });
+    const tokenTyping = new TokenTyping(allTokenClasses);
 
     lineStream.on('line', (line) => {
       toChars.write(line);
@@ -39,9 +42,13 @@ export class AppService implements IMainService {
       toChars.end();
     });
 
-    toChars.pipe(toIndexedChars).pipe(toTypedChars).pipe(tokenize);
+    toChars
+      .pipe(toIndexedChars)
+      .pipe(toTypedChars)
+      .pipe(tokenize)
+      .pipe(tokenTyping);
 
-    tokenize.on('data', (data) => {
+    tokenTyping.on('data', (data) => {
       console.log(data);
     });
   }

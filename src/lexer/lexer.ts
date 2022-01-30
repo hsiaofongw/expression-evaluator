@@ -9,9 +9,43 @@ import {
   Line,
   StateTransition,
   Token,
+  TokenClass,
   TypedChar,
+  TypedToken,
 } from './interfaces';
 
+/** 给 token 标注类型 */
+export class TokenTyping extends Transform {
+  private _tokenClasses!: TokenClass[];
+
+  constructor(allTokenClasses: TokenClass[]) {
+    super({ objectMode: true });
+
+    this._tokenClasses = allTokenClasses;
+  }
+
+  _transform(
+    chunk: Token,
+    encoding: BufferEncoding,
+    callback: TransformCallback,
+  ): void {
+    const type: TokenClass = this._tokenClasses.find((cls) =>
+      cls.definition.regexp.test(chunk.content),
+    );
+
+    if (type) {
+      const typedToken: TypedToken = {
+        ...chunk,
+        type: type,
+      };
+      this.push(typedToken);
+    }
+
+    callback();
+  }
+}
+
+/** 将 typedChar 连成 token */
 export class Tokenize extends Transform implements ITokenizeContext {
   private _chars!: TypedChar[];
 

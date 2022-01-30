@@ -28,6 +28,9 @@ export type TypedChar = IndexedChar & { type: CharClass };
 /** token 类 */
 export type TokenClass = {
   name: string;
+  definition: {
+    regexp: RegExp;
+  };
   description?: string;
 };
 

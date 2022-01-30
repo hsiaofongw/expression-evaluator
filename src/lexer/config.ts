@@ -1,4 +1,4 @@
-import { CharClass, IState, StateTransition } from './interfaces';
+import { CharClass, IState, StateTransition, TokenClass } from './interfaces';
 
 const endOfFileCharClass: CharClass = {
   id: 'endOfFile',
@@ -154,5 +154,64 @@ export const stateTransitions: StateTransition[] = [
     action: (ctx, _) => {
       ctx._popToken();
     },
+  },
+];
+
+export const allTokenClasses: TokenClass[] = [
+  {
+    name: 'leftParenthesis',
+    definition: {
+      regexp: /\(/,
+    },
+    description: '左括号 (',
+  },
+  {
+    name: 'rightParenthesis',
+    definition: {
+      regexp: /\)/,
+    },
+    description: '右括号 (',
+  },
+  {
+    name: 'plus',
+    definition: {
+      regexp: /\+/,
+    },
+    description: '加 +',
+  },
+  {
+    name: 'minus',
+    definition: {
+      regexp: /\-/,
+    },
+    description: '减 -',
+  },
+  {
+    name: 'times',
+    definition: {
+      regexp: /\*/,
+    },
+    description: '乘 *',
+  },
+  {
+    name: 'divideBy',
+    definition: {
+      regexp: /\//,
+    },
+    description: '除 /',
+  },
+  {
+    name: 'dot',
+    definition: {
+      regexp: /\./,
+    },
+    description: '点 .',
+  },
+  {
+    name: 'digits',
+    definition: {
+      regexp: /\d+/,
+    },
+    description: '数字',
   },
 ];
