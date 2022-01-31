@@ -29,14 +29,27 @@ export class TokenTyping extends Transform {
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    const type: TokenClass = this._tokenClasses.find((cls) =>
-      cls.definition.regexp.test(chunk.content),
-    );
+    const matchedTypesAndMatchingLen: {
+      type: TokenClass;
+      matchLength: number;
+    }[] = this._tokenClasses
+      .filter((cls) => {
+        return chunk.content.match(cls.definition.regexp) !== null;
+      })
+      .map((cls) => {
+        return {
+          type: cls,
+          matchLength: chunk.content.match(cls.definition.regexp)[0].length,
+        };
+      });
 
-    if (type) {
+    if (matchedTypesAndMatchingLen.length > 0) {
+      const type = matchedTypesAndMatchingLen.sort(
+        (a, b) => b.matchLength - a.matchLength,
+      )[0];
       const typedToken: TypedToken = {
         ...chunk,
-        type: type,
+        type: type.type,
       };
       this.push(typedToken);
     }

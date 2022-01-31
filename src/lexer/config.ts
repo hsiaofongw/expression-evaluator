@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { CharClass, IState, StateTransition, TokenClass } from './interfaces';
 
 const endOfFileCharClass: CharClass = {
@@ -21,8 +22,14 @@ const digitCharClass: CharClass = {
 
 const symbolCharClass: CharClass = {
   id: 'symbol',
-  regexp: /[()+\-*/.]/,
-  description: '括号、加减乘除、小数点',
+  regexp: /[()+\-*/]/,
+  description: '括号、加减乘除',
+};
+
+const dotCharClass: CharClass = {
+  id: 'dot',
+  regexp: /\./,
+  description: '点',
 };
 
 export const charClass = {
@@ -30,6 +37,7 @@ export const charClass = {
   spaceCharClass,
   digitCharClass,
   symbolCharClass,
+  dotCharClass,
 };
 
 const startState: IState = {
@@ -42,12 +50,22 @@ const numberInputState: IState = {
   stateDescription: '数字输入',
 };
 
+const floatInputState: IState = {
+  stateIdentifier: 'floatInput',
+  stateDescription: '浮点数输入',
+};
+
 const symbolInputState: IState = {
   stateIdentifier: 'symbolInput',
   stateDescription: '符号输入',
 };
 
-export const allStates = { startState, numberInputState, symbolInputState };
+export const allStates = {
+  startState,
+  numberInputState,
+  floatInputState,
+  symbolInputState,
+};
 
 export const stateTransitions: StateTransition[] = [
   // from start state
@@ -84,6 +102,14 @@ export const stateTransitions: StateTransition[] = [
     },
     comment: '支持未来的多个 char symbol',
   },
+  {
+    current: allStates.startState,
+    input: charClass.dotCharClass,
+    next: allStates.floatInputState,
+    action: (ctx, symbol) => {
+      ctx._pushChar(symbol);
+    },
+  },
 
   // from numberInput state
   {
@@ -94,6 +120,14 @@ export const stateTransitions: StateTransition[] = [
       ctx._pushChar(digit);
     },
     comment: '吸收 digit',
+  },
+  {
+    current: allStates.numberInputState,
+    input: charClass.dotCharClass,
+    next: allStates.floatInputState,
+    action: (ctx, dot) => {
+      ctx._pushChar(dot);
+    },
   },
   {
     current: allStates.numberInputState,
@@ -124,6 +158,15 @@ export const stateTransitions: StateTransition[] = [
   // from symbol input state
   {
     current: allStates.symbolInputState,
+    input: charClass.dotCharClass,
+    next: allStates.floatInputState,
+    action: (ctx, dot) => {
+      ctx._popToken();
+      ctx._pushChar(dot);
+    },
+  },
+  {
+    current: allStates.symbolInputState,
     input: charClass.digitCharClass,
     next: allStates.numberInputState,
     action: (ctx, digit) => {
@@ -153,6 +196,47 @@ export const stateTransitions: StateTransition[] = [
     next: allStates.symbolInputState,
     action: (ctx, _) => {
       ctx._popToken();
+    },
+  },
+
+  // from floatInput state
+  {
+    current: allStates.floatInputState,
+    input: charClass.digitCharClass,
+    next: allStates.floatInputState,
+    action: (ctx, digit) => {
+      ctx._pushChar(digit);
+    },
+  },
+  {
+    current: allStates.floatInputState,
+    input: charClass.dotCharClass,
+    next: allStates.floatInputState,
+    action: (_, __) => {},
+  },
+  {
+    current: allStates.floatInputState,
+    input: charClass.endOfFileCharClass,
+    next: allStates.startState,
+    action: (ctx, __) => {
+      ctx._popToken();
+    },
+  },
+  {
+    current: allStates.floatInputState,
+    input: charClass.spaceCharClass,
+    next: allStates.startState,
+    action: (ctx, _) => {
+      ctx._popToken();
+    },
+  },
+  {
+    current: allStates.floatInputState,
+    input: charClass.symbolCharClass,
+    next: allStates.symbolInputState,
+    action: (ctx, symbol) => {
+      ctx._popToken();
+      ctx._pushChar(symbol);
     },
   },
 ];
@@ -210,7 +294,7 @@ export const allTokenClasses: TokenClass[] = [
   {
     name: 'digits',
     definition: {
-      regexp: /\d+/,
+      regexp: /\d+\.?\d*/,
     },
     description: '数字',
   },
