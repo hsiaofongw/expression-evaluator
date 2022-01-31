@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IMainService } from './types/token';
+
 import {
   ToCharacters,
   ToIndexedCharacter,
@@ -17,7 +17,7 @@ import {
 } from './lexer/config';
 
 @Injectable()
-export class AppService implements IMainService {
+export class AppService {
   main(): void {
     const inputString = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
     const inputStream = Readable.from(inputString);
