@@ -23,7 +23,13 @@ export class AppService {
     const symbolHelper = new SyntaxSymbolHelper({
       symbols: allSymbols,
       rules: allRules,
+      specialSymbol: {
+        entrySymbol: allSymbols.expression,
+        epsilonSymbol: allSymbols.epsilon,
+        endOfFileSymbol: allSymbols.endOfFile,
+      },
     });
+
     const symbols = [
       allSymbols.expression,
       allSymbols.expressionExpand,
@@ -39,6 +45,7 @@ export class AppService {
       allSymbols.epsilon,
       allSymbols.number,
     ];
+
     console.log('FIRST:');
     for (const symbol of symbols) {
       const first = symbolHelper.first([symbol]);
@@ -47,6 +54,23 @@ export class AppService {
         .map((_symbol) => _symbol.displayName ?? _symbol.name)
         .join(', ');
       console.log(`${symbolDisplay}: [${firstDisplay}]`);
+    }
+
+    const symbolsToFollow = [
+      allSymbols.expression,
+      allSymbols.expressionExpand,
+      allSymbols.term,
+      allSymbols.termExpand,
+      allSymbols.factor,
+    ];
+    console.log('FOLLOW:');
+    for (const symbol of symbolsToFollow) {
+      const follow = symbolHelper.follow(symbol);
+      const symbolDisplay = symbol.displayName ?? symbol.name;
+      const followDisplay = follow
+        .map((_symbol) => _symbol.displayName ?? _symbol.name)
+        .join(', ');
+      console.log(`${symbolDisplay}: [${followDisplay}]`);
     }
 
     const inputString = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
@@ -64,6 +88,7 @@ export class AppService {
     });
     const tokenTyping = new TokenTyping(allTokenClasses);
 
+    console.log('TOKENS:');
     lineStream.on('line', (line) => {
       toChars.write(line);
     });
