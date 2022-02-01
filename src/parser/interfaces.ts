@@ -16,6 +16,8 @@ export type ProductionRule = {
   rhs: SyntaxSymbol[];
 };
 
+export type ProductionRuleId = number;
+
 export type Node = (NonTerminalNode | TerminalNode) & { symbol: SyntaxSymbol };
 
 export type NonTerminalNode = {

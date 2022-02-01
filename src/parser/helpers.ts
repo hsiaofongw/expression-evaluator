@@ -1,5 +1,5 @@
 import { ArrayHelper } from 'src/helpers/to-array';
-import { ProductionRule, SyntaxSymbol } from './interfaces';
+import { ProductionRule, ProductionRuleId, SyntaxSymbol } from './interfaces';
 
 export class SyntaxSymbolHelper {
   private _symbols: SyntaxSymbol[] = [];
@@ -11,6 +11,12 @@ export class SyntaxSymbolHelper {
   private _endOfFileSymbol!: SyntaxSymbol;
   private _symbolIdToFollowIdSet!: Record<SyntaxSymbol['id'], Set<string>>;
   private _followSetIsCalculated = false;
+  private _predictiveAnalysisTable!: Record<
+    SyntaxSymbol['id'],
+    Record<SyntaxSymbol['id'], ProductionRuleId[]>
+  >;
+  private _patCalculated = false;
+  private _firstIdSetMultikeyCache: Record<string, Set<string>> = {};
 
   constructor(config: {
     symbols: SyntaxSymbol[] | Record<string, SyntaxSymbol>;
@@ -46,6 +52,8 @@ export class SyntaxSymbolHelper {
     this._endOfFileSymbol = config.specialSymbol.endOfFileSymbol;
     this._symbolIdToFollowIdSet = {};
     this._followSetIsCalculated = false;
+    this._predictiveAnalysisTable = {};
+    this._patCalculated = false;
   }
 
   public first(symbols: SyntaxSymbol[]): SyntaxSymbol[] {
@@ -71,6 +79,11 @@ export class SyntaxSymbolHelper {
   }
 
   private _firstIdSet(symbols: SyntaxSymbol[]): Set<string> {
+    const cacheKey = JSON.stringify(symbols.map((symbol) => symbol.id));
+    if (this._firstIdSetMultikeyCache[cacheKey]) {
+      return this._firstIdSetMultikeyCache[cacheKey];
+    }
+
     const terminalIdSet = new Set<string>();
     const checkList: SyntaxSymbol[][] = [symbols];
     while (checkList.length > 0) {
@@ -97,6 +110,7 @@ export class SyntaxSymbolHelper {
       }
     }
 
+    this._firstIdSetMultikeyCache[cacheKey] = terminalIdSet;
     return terminalIdSet;
   }
 
@@ -207,5 +221,102 @@ export class SyntaxSymbolHelper {
 
     this._symbolIdToFollowIdSet = symbolIdToFollowIdSet;
     this._followSetIsCalculated = true;
+  }
+
+  public getProductionRuleFromId(
+    productionRuleId: ProductionRuleId,
+  ): ProductionRule {
+    return this._rules[productionRuleId];
+  }
+
+  public getPredictiveAnalysisTable(): Record<
+    SyntaxSymbol['id'],
+    Record<SyntaxSymbol['id'], ProductionRuleId[]>
+  > {
+    const table: Record<
+      SyntaxSymbol['id'],
+      Record<SyntaxSymbol['id'], ProductionRuleId[]>
+    > = {};
+
+    if (!this._patCalculated) {
+      this._calculatePredictiveAnalysisTable();
+    }
+
+    // make a deep copy, in case downstream change it.
+    for (const rowId in this._predictiveAnalysisTable) {
+      table[rowId] = {};
+      for (const colId in this._predictiveAnalysisTable[rowId]) {
+        table[rowId][colId] = this._predictiveAnalysisTable[rowId][colId].map(
+          (x) => x,
+        );
+      }
+    }
+
+    return table;
+  }
+
+  private _calculatePredictiveAnalysisTable(): void {
+    const table: Record<
+      SyntaxSymbol['id'],
+      Record<SyntaxSymbol['id'], ProductionRuleId[]>
+    > = {};
+
+    for (let i = 0; i < this._rules.length; i++) {
+      const ruleId = i;
+      const rule = this._rules[i];
+      const lhs = rule.lhs;
+      const rhs = rule.rhs;
+
+      const firstRhs = this._firstIdSet(rhs);
+      const followLhs = this._followIdSet(lhs);
+      for (const a of firstRhs) {
+        // for every terminal symbol a in FIRST(rhs), add lhs -> rhs into table[lhs, a]
+        const symbol = this._symbolMap[a];
+        if (symbol.type === 'terminal') {
+          if (table[lhs.id] === undefined) {
+            table[lhs.id] = {};
+          }
+
+          if (table[lhs.id][a] === undefined) {
+            table[lhs.id][a] = [];
+          }
+          table[lhs.id][a].push(ruleId);
+        }
+
+        // if epsilon in FIRST(rhs)
+        if (firstRhs.has(this._epsilonSymbol.id)) {
+          // then for every terminal symbol b in FOLLOW(lhs), add lhs -> rhs into table[lhs, b]
+
+          for (const b of followLhs) {
+            const symbol = this._symbolMap[b];
+            if (symbol.type === 'terminal') {
+              if (table[lhs.id] === undefined) {
+                table[lhs.id] = {};
+              }
+
+              if (table[lhs.id][b] === undefined) {
+                table[lhs.id][b] = [];
+              }
+              table[lhs.id][b].push(ruleId);
+            }
+          }
+
+          // if epsilon in FIRST(rhs) and $ in FOLLOW(lhs), add lhs -> rhs into table[lhs, $]
+          if (followLhs.has(this._endOfFileSymbol.id)) {
+            if (table[lhs.id] === undefined) {
+              table[lhs.id] = {};
+            }
+
+            if (table[lhs.id][this._endOfFileSymbol.id] === undefined) {
+              table[lhs.id][this._endOfFileSymbol.id] = [];
+            }
+            table[lhs.id][this._endOfFileSymbol.id].push(ruleId);
+          }
+        }
+      }
+    }
+
+    this._predictiveAnalysisTable = table;
+    this._patCalculated = true;
   }
 }

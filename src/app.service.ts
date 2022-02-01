@@ -53,7 +53,7 @@ export class AppService {
       const firstDisplay = first
         .map((_symbol) => _symbol.displayName ?? _symbol.name)
         .join(', ');
-      console.log(`${symbolDisplay}: [${firstDisplay}]`);
+      console.log(`${symbolDisplay}: [ ${firstDisplay} ]`);
     }
 
     const symbolsToFollow = [
@@ -70,7 +70,60 @@ export class AppService {
       const followDisplay = follow
         .map((_symbol) => _symbol.displayName ?? _symbol.name)
         .join(', ');
-      console.log(`${symbolDisplay}: [${followDisplay}]`);
+      console.log(`${symbolDisplay}: [ ${followDisplay} ]`);
+    }
+
+    console.log('PREDICTIVE TABLE:');
+    const rowSymbols = [
+      allSymbols.expression,
+      allSymbols.expressionExpand,
+      allSymbols.term,
+      allSymbols.termExpand,
+      allSymbols.factor,
+    ];
+    const colSymbols = [
+      allSymbols.number,
+      allSymbols.plus,
+      allSymbols.minus,
+      allSymbols.times,
+      allSymbols.divideBy,
+      allSymbols.leftParenthesis,
+      allSymbols.rightParenthesis,
+      allSymbols.endOfFile,
+    ];
+    const predictiveTable = symbolHelper.getPredictiveAnalysisTable();
+    for (const rowSymbol of rowSymbols) {
+      for (const colSymbol of colSymbols) {
+        const rowDisplay = rowSymbol.displayName ?? rowSymbol.name;
+        const colDisplay = colSymbol.displayName ?? colSymbol.name;
+        const entryHeaderDisplay = `[ ${rowDisplay}, ${colDisplay} ]: `;
+
+        const ruleIds: number[] = [];
+        if (predictiveTable[rowSymbol.id]) {
+          if (predictiveTable[rowSymbol.id][colSymbol.id]) {
+            for (const id of predictiveTable[rowSymbol.id][colSymbol.id]) {
+              ruleIds.push(id);
+            }
+          }
+        }
+        const rules = ruleIds.map((ruleId) =>
+          symbolHelper.getProductionRuleFromId(ruleId),
+        );
+
+        const ruleDisplays = rules.map((rule) => {
+          const lhs = rule.lhs;
+          const rhs = rule.rhs;
+          const ruleBodyDisplay = rhs
+            .map((sbl) => sbl.displayName ?? sbl.name)
+            .join(' ');
+
+          return `${lhs.displayName ?? lhs.name} -> ${ruleBodyDisplay}`;
+        });
+        const paddingSpace = ' '.repeat(entryHeaderDisplay.length);
+        const entryBodyDisplay = ruleDisplays.join('\n' + paddingSpace);
+        const entryDisplay = `${entryHeaderDisplay}${entryBodyDisplay}`;
+        console.log(entryDisplay);
+      }
     }
 
     const inputString = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
