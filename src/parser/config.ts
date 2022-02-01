@@ -141,6 +141,18 @@ const rightParenthesis: SyntaxSymbol = {
   },
 };
 
+// $
+const endOfFile: SyntaxSymbol = {
+  id: 'endOfFile',
+  name: 'EndOfFile',
+  description: '文件结束符',
+  type: 'terminal',
+  displayName: '$',
+  definition: {
+    tokenClassName: 'endOfFile',
+  },
+};
+
 export const allSymbols = {
   expression,
   expressionExpand,
@@ -155,6 +167,7 @@ export const allSymbols = {
   rightParenthesis,
   epsilon,
   number,
+  endOfFile,
 };
 
 export const allRules: ProductionRule[] = [

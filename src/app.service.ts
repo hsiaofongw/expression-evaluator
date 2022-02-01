@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-
+import { SyntaxSymbolHelper } from './parser/helpers';
 import {
   ToCharacters,
   ToIndexedCharacter,
@@ -15,10 +15,40 @@ import {
   charClass as allCharClasses,
   stateTransitions,
 } from './lexer/config';
+import { allRules, allSymbols } from './parser/config';
 
 @Injectable()
 export class AppService {
   main(): void {
+    const symbolHelper = new SyntaxSymbolHelper({
+      symbols: allSymbols,
+      rules: allRules,
+    });
+    const symbols = [
+      allSymbols.expression,
+      allSymbols.expressionExpand,
+      allSymbols.term,
+      allSymbols.termExpand,
+      allSymbols.factor,
+      allSymbols.plus,
+      allSymbols.minus,
+      allSymbols.times,
+      allSymbols.divideBy,
+      allSymbols.leftParenthesis,
+      allSymbols.rightParenthesis,
+      allSymbols.epsilon,
+      allSymbols.number,
+    ];
+    console.log('FIRST:');
+    for (const symbol of symbols) {
+      const first = symbolHelper.first([symbol]);
+      const symbolDisplay = symbol.displayName ?? symbol.name;
+      const firstDisplay = first
+        .map((_symbol) => _symbol.displayName ?? _symbol.name)
+        .join(', ');
+      console.log(`${symbolDisplay}: [${firstDisplay}]`);
+    }
+
     const inputString = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
     const inputStream = Readable.from(inputString);
 
