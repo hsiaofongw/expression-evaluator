@@ -1,12 +1,15 @@
-import { TypedToken } from 'src/lexer/interfaces';
+import { TokenClass, TypedToken } from 'src/lexer/interfaces';
 
 export type SyntaxSymbol = {
   id: string;
   name: string;
   description?: string;
-  type: 'nonTerminal' | 'terminal';
+
   displayName?: string;
-};
+} & (
+  | { type: 'nonTerminal' }
+  | { type: 'terminal'; definition: { tokenClassName: TokenClass['name'] } }
+);
 
 export type ProductionRule = {
   lhs: SyntaxSymbol;

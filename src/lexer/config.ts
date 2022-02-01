@@ -88,7 +88,9 @@ export const stateTransitions: StateTransition[] = [
     current: allStates.startState,
     input: charClass.endOfFileCharClass,
     next: allStates.startState,
-    action: (ctx, _) => {
+    action: (ctx, eof) => {
+      ctx._popToken();
+      ctx._pushChar(eof);
       ctx._popToken();
     },
     comment: '结束时，将 token 弹出',
@@ -133,7 +135,9 @@ export const stateTransitions: StateTransition[] = [
     current: allStates.numberInputState,
     input: charClass.endOfFileCharClass,
     next: allStates.startState,
-    action: (ctx, _) => {
+    action: (ctx, eof) => {
+      ctx._popToken();
+      ctx._pushChar(eof);
       ctx._popToken();
     },
   },
@@ -178,7 +182,9 @@ export const stateTransitions: StateTransition[] = [
     current: allStates.symbolInputState,
     input: charClass.endOfFileCharClass,
     next: allStates.startState,
-    action: (ctx, _) => {
+    action: (ctx, eof) => {
+      ctx._popToken();
+      ctx._pushChar(eof);
       ctx._popToken();
     },
   },
@@ -218,7 +224,9 @@ export const stateTransitions: StateTransition[] = [
     current: allStates.floatInputState,
     input: charClass.endOfFileCharClass,
     next: allStates.startState,
-    action: (ctx, __) => {
+    action: (ctx, eof) => {
+      ctx._popToken();
+      ctx._pushChar(eof);
       ctx._popToken();
     },
   },
@@ -245,6 +253,7 @@ export const allTokenClasses: TokenClass[] = [
   {
     name: 'leftParenthesis',
     definition: {
+      type: 'regexp',
       regexp: /\(/,
     },
     description: '左括号 (',
@@ -252,6 +261,7 @@ export const allTokenClasses: TokenClass[] = [
   {
     name: 'rightParenthesis',
     definition: {
+      type: 'regexp',
       regexp: /\)/,
     },
     description: '右括号 (',
@@ -259,6 +269,7 @@ export const allTokenClasses: TokenClass[] = [
   {
     name: 'plus',
     definition: {
+      type: 'regexp',
       regexp: /\+/,
     },
     description: '加 +',
@@ -266,6 +277,7 @@ export const allTokenClasses: TokenClass[] = [
   {
     name: 'minus',
     definition: {
+      type: 'regexp',
       regexp: /\-/,
     },
     description: '减 -',
@@ -273,6 +285,7 @@ export const allTokenClasses: TokenClass[] = [
   {
     name: 'times',
     definition: {
+      type: 'regexp',
       regexp: /\*/,
     },
     description: '乘 *',
@@ -280,6 +293,7 @@ export const allTokenClasses: TokenClass[] = [
   {
     name: 'divideBy',
     definition: {
+      type: 'regexp',
       regexp: /\//,
     },
     description: '除 /',
@@ -287,6 +301,7 @@ export const allTokenClasses: TokenClass[] = [
   {
     name: 'dot',
     definition: {
+      type: 'regexp',
       regexp: /\./,
     },
     description: '点 .',
@@ -294,8 +309,17 @@ export const allTokenClasses: TokenClass[] = [
   {
     name: 'digits',
     definition: {
+      type: 'regexp',
       regexp: /\d+\.?\d*/,
     },
     description: '数字',
+  },
+  {
+    name: 'endOfFile',
+    definition: {
+      type: 'content',
+      content: '',
+    },
+    description: '文件结束符',
   },
 ];

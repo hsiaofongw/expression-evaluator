@@ -34,13 +34,21 @@ export class TokenTyping extends Transform {
       matchLength: number;
     }[] = this._tokenClasses
       .filter((cls) => {
-        return chunk.content.match(cls.definition.regexp) !== null;
+        if (cls.definition.type === 'regexp') {
+          return chunk.content.match(cls.definition.regexp) !== null;
+        } else {
+          return chunk.content === cls.definition.content;
+        }
       })
       .map((cls) => {
-        return {
-          type: cls,
-          matchLength: chunk.content.match(cls.definition.regexp)[0].length,
-        };
+        if (cls.definition.type === 'regexp') {
+          return {
+            type: cls,
+            matchLength: chunk.content.match(cls.definition.regexp)[0].length,
+          };
+        } else {
+          return { type: cls, matchLength: chunk.content.length };
+        }
       });
 
     if (matchedTypesAndMatchingLen.length > 0) {

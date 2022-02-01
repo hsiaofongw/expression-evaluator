@@ -26,11 +26,13 @@ export type CharClass = {
 export type TypedChar = IndexedChar & { type: CharClass };
 
 /** token 类 */
+export type TokenClassDefinition =
+  | { type: 'regexp'; regexp: RegExp }
+  | { type: 'content'; content: string };
+
 export type TokenClass = {
   name: string;
-  definition: {
-    regexp: RegExp;
-  };
+  definition: TokenClassDefinition;
   description?: string;
 };
 

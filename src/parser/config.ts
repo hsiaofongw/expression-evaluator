@@ -16,6 +16,9 @@ const epsilon: SyntaxSymbol = {
   description: '空符号',
   type: 'terminal',
   displayName: 'ε',
+  definition: {
+    tokenClassName: '',
+  },
 };
 
 // number
@@ -25,6 +28,9 @@ const number: SyntaxSymbol = {
   description: '数字',
   type: 'terminal',
   displayName: 'number',
+  definition: {
+    tokenClassName: 'digits',
+  },
 };
 
 // E'
@@ -70,6 +76,9 @@ const plus: SyntaxSymbol = {
   description: '加号',
   type: 'terminal',
   displayName: "'+'",
+  definition: {
+    tokenClassName: 'plus',
+  },
 };
 
 // '-'
@@ -79,6 +88,9 @@ const minus: SyntaxSymbol = {
   description: '减号',
   type: 'terminal',
   displayName: "'-'",
+  definition: {
+    tokenClassName: 'minus',
+  },
 };
 
 // '*'
@@ -88,6 +100,9 @@ const times: SyntaxSymbol = {
   description: '乘号',
   type: 'terminal',
   displayName: "'*'",
+  definition: {
+    tokenClassName: 'times',
+  },
 };
 
 // '/'
@@ -97,6 +112,9 @@ const divideBy: SyntaxSymbol = {
   description: '除号',
   type: 'terminal',
   displayName: "'/'",
+  definition: {
+    tokenClassName: 'divideBy',
+  },
 };
 
 // '('
@@ -106,6 +124,9 @@ const leftParenthesis: SyntaxSymbol = {
   description: '左括号',
   type: 'terminal',
   displayName: "'('",
+  definition: {
+    tokenClassName: 'leftParenthesis',
+  },
 };
 
 // ')'
@@ -115,6 +136,9 @@ const rightParenthesis: SyntaxSymbol = {
   description: '右括号',
   type: 'terminal',
   displayName: "')'",
+  definition: {
+    tokenClassName: 'rightParenthesis',
+  },
 };
 
 export const allSymbols = {
