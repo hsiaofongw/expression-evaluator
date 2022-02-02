@@ -22,6 +22,7 @@ import {
   SyntaxConfiguration,
 } from './parser/interfaces';
 import { stdin } from 'process';
+import { ToAddibleList, ToAddTree } from './arithmetic/to-addible';
 
 @Injectable()
 export class AppService {
@@ -137,8 +138,8 @@ export class AppService {
       }
     }
 
-    // const inputString = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
-    const inputString = '4 * (.1 - 1.) + 2';
+    const inputString = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
+    // const inputString = '4 * (.1 - 1.) + 2';
     const inputStream = Readable.from(inputString);
 
     const lineStream = createInterface({ input: inputStream });
@@ -154,6 +155,8 @@ export class AppService {
     const toTypedToken = new ToTypedToken(allTokenClasses);
     const toTermianlNode = new ToTerminalNode(syntaxAnalysisConfiguration);
     const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
+    const toAddibles = new ToAddibleList();
+    const toAddTree = new ToAddTree();
 
     console.log('TERMINAL NODES:');
     lineStream.on('line', (line) => {
@@ -170,12 +173,23 @@ export class AppService {
       .pipe(toRawToken)
       .pipe(toTypedToken)
       .pipe(toTermianlNode)
-      .pipe(parse);
+      .pipe(parse)
+      .pipe(toAddibles)
+      .pipe(toAddTree);
 
     parse.on('data', (data) => {
       console.log('root');
       console.log(data);
-      // console.log(JSON.stringify(data));
+    });
+
+    toAddibles.on('data', (data) => {
+      console.log('addible');
+      // console.log(data);
+    });
+
+    toAddTree.on('data', (data) => {
+      console.log('addTree');
+      console.log(data);
     });
 
     stdin.on('data', (e) => {
