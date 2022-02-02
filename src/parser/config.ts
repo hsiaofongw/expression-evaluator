@@ -175,54 +175,63 @@ export const allSymbols = {
 export const allRules: ProductionRule[] = [
   // E -> T E'
   {
+    name: "E -> T E'",
     lhs: allSymbols.expression,
     rhs: [allSymbols.term, allSymbols.expressionExpand],
   },
 
   // E' -> '+' T E'
   {
+    name: "E' -> '+' T E'",
     lhs: allSymbols.expressionExpand,
     rhs: [allSymbols.plus, allSymbols.term, allSymbols.expressionExpand],
   },
 
   // E' -> '-' T E'
   {
+    name: "E' -> '-' T E'",
     lhs: allSymbols.expressionExpand,
     rhs: [allSymbols.minus, allSymbols.term, allSymbols.expressionExpand],
   },
 
   // E' -> ε
   {
+    name: "E' -> ε",
     lhs: allSymbols.expressionExpand,
     rhs: [allSymbols.epsilon],
   },
 
   // T -> F T'
   {
+    name: "T -> F T'",
     lhs: allSymbols.term,
     rhs: [allSymbols.factor, allSymbols.termExpand],
   },
 
   // T' -> '*' F T'
   {
+    name: "T' -> '*' F T'",
     lhs: allSymbols.termExpand,
     rhs: [allSymbols.times, allSymbols.factor, allSymbols.termExpand],
   },
 
   // T' -> '/' F T'
   {
+    name: "T' -> '/' F T'",
     lhs: allSymbols.termExpand,
     rhs: [allSymbols.divideBy, allSymbols.factor, allSymbols.termExpand],
   },
 
   // T' -> ε
   {
+    name: "T' -> ε",
     lhs: allSymbols.termExpand,
     rhs: [allSymbols.epsilon],
   },
 
   // F -> '(' E ')'
   {
+    name: "F -> '(' E ')'",
     lhs: allSymbols.factor,
     rhs: [
       allSymbols.leftParenthesis,
@@ -233,6 +242,7 @@ export const allRules: ProductionRule[] = [
 
   // F -> number
   {
+    name: 'F -> number',
     lhs: allSymbols.factor,
     rhs: [allSymbols.number],
   },

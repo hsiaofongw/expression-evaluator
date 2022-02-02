@@ -68,6 +68,7 @@ export class LL1PredictiveParser extends Transform {
       type: 'nonTerminal',
       symbol: config.specialSymbol.entrySymbol,
       children: [],
+      ruleName: '',
     };
     this._rootNode = root;
     this._nodeStack.push(root);
@@ -94,6 +95,7 @@ export class LL1PredictiveParser extends Transform {
 
       if (rules.length > 0) {
         const rule = rules[0];
+        const ruleName = rule.name;
         const rhs = rule.rhs;
         const rhsNodes: Node[] = [];
         for (const symbol of rhs) {
@@ -103,6 +105,7 @@ export class LL1PredictiveParser extends Transform {
                 type: 'nonTerminal',
                 symbol: symbol,
                 children: [],
+                ruleName: '',
               };
               rhsNodes.push(node);
             } else {
@@ -122,6 +125,7 @@ export class LL1PredictiveParser extends Transform {
         }
 
         if (parentNode.type === 'nonTerminal') {
+          parentNode.ruleName = ruleName;
           parentNode.children = rhsNodes;
         }
       }

@@ -13,6 +13,7 @@ export type SyntaxSymbol = {
 );
 
 export type ProductionRule = {
+  name: string;
   lhs: SyntaxSymbol;
   rhs: SyntaxSymbol[];
 };
@@ -25,6 +26,7 @@ export type NonTerminalNode = {
   type: 'nonTerminal';
   children: Node[];
   symbol: SyntaxSymbol;
+  ruleName: ProductionRule['name'];
 };
 
 export type TerminalNode = {
