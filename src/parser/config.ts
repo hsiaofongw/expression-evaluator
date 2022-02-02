@@ -40,6 +40,7 @@ const expressionExpand: SyntaxSymbol = {
   description: '表达式（辅助符号）',
   type: 'nonTerminal',
   displayName: "E'",
+  expandSymbol: true,
 };
 
 // T
@@ -58,6 +59,7 @@ const termExpand: SyntaxSymbol = {
   description: '项（辅助符号）',
   type: 'nonTerminal',
   displayName: "T'",
+  expandSymbol: true,
 };
 
 // F

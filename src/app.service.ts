@@ -3,8 +3,8 @@ import { SyntaxSymbolHelper } from './parser/helpers';
 import {
   ToCharacters,
   ToIndexedCharacter,
-  Tokenize,
-  TokenTyping,
+  ToRawToken,
+  ToTypedToken,
   ToTypedCharacter,
 } from './lexer/lexer';
 import { createInterface } from 'readline';
@@ -16,11 +16,17 @@ import {
   stateTransitions,
 } from './lexer/config';
 import { allRules, allSymbols } from './parser/config';
+import { LL1PredictiveParser, ToTerminalNode } from './parser/parser';
+import {
+  SyntaxAnalysisConfiguration,
+  SyntaxConfiguration,
+} from './parser/interfaces';
+import { stdin } from 'process';
 
 @Injectable()
 export class AppService {
   main(): void {
-    const symbolHelper = new SyntaxSymbolHelper({
+    const syntaxConfiguration: SyntaxConfiguration = {
       symbols: allSymbols,
       rules: allRules,
       specialSymbol: {
@@ -28,7 +34,12 @@ export class AppService {
         epsilonSymbol: allSymbols.epsilon,
         endOfFileSymbol: allSymbols.endOfFile,
       },
-    });
+    };
+    const symbolHelper = new SyntaxSymbolHelper(syntaxConfiguration);
+    const syntaxAnalysisConfiguration: SyntaxAnalysisConfiguration = {
+      ...syntaxConfiguration,
+      syntaxAnalysisPartner: symbolHelper,
+    };
 
     const symbols = [
       allSymbols.expression,
@@ -133,15 +144,17 @@ export class AppService {
     const toChars = new ToCharacters();
     const toIndexedChars = new ToIndexedCharacter();
     const toTypedChars = new ToTypedCharacter(allCharClasses);
-    const tokenize = new Tokenize({
+    const toRawToken = new ToRawToken({
       allStates,
       allCharClasses,
       transitions: stateTransitions,
       startState: allStates.startState,
     });
-    const tokenTyping = new TokenTyping(allTokenClasses);
+    const toTypedToken = new ToTypedToken(allTokenClasses);
+    const toTermianlNode = new ToTerminalNode(syntaxAnalysisConfiguration);
+    const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
 
-    console.log('TOKENS:');
+    console.log('TERMINAL NODES:');
     lineStream.on('line', (line) => {
       toChars.write(line);
     });
@@ -153,11 +166,19 @@ export class AppService {
     toChars
       .pipe(toIndexedChars)
       .pipe(toTypedChars)
-      .pipe(tokenize)
-      .pipe(tokenTyping);
+      .pipe(toRawToken)
+      .pipe(toTypedToken)
+      .pipe(toTermianlNode)
+      .pipe(parse);
 
-    tokenTyping.on('data', (data) => {
+    parse.on('data', (data) => {
+      console.log('root');
       console.log(data);
+      // console.log(JSON.stringify(data));
+    });
+
+    stdin.on('data', (e) => {
+      console.log(e);
     });
   }
 }

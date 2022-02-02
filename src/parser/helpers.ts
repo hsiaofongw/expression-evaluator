@@ -1,5 +1,11 @@
 import { ArrayHelper } from 'src/helpers/to-array';
-import { ProductionRule, ProductionRuleId, SyntaxSymbol } from './interfaces';
+import {
+  PredictiveAnalysisTable,
+  ProductionRule,
+  ProductionRuleId,
+  SyntaxConfiguration,
+  SyntaxSymbol,
+} from './interfaces';
 
 export class SyntaxSymbolHelper {
   private _symbols: SyntaxSymbol[] = [];
@@ -11,22 +17,23 @@ export class SyntaxSymbolHelper {
   private _endOfFileSymbol!: SyntaxSymbol;
   private _symbolIdToFollowIdSet!: Record<SyntaxSymbol['id'], Set<string>>;
   private _followSetIsCalculated = false;
-  private _predictiveAnalysisTable!: Record<
-    SyntaxSymbol['id'],
-    Record<SyntaxSymbol['id'], ProductionRuleId[]>
-  >;
+  private _predictiveAnalysisTable!: PredictiveAnalysisTable;
   private _patCalculated = false;
   private _firstIdSetMultikeyCache: Record<string, Set<string>> = {};
 
-  constructor(config: {
-    symbols: SyntaxSymbol[] | Record<string, SyntaxSymbol>;
-    rules: ProductionRule[];
-    specialSymbol: {
-      entrySymbol: SyntaxSymbol;
-      epsilonSymbol: SyntaxSymbol;
-      endOfFileSymbol: SyntaxSymbol;
-    };
-  }) {
+  public get entrySymbol(): SyntaxSymbol {
+    return this._entrySymbol;
+  }
+
+  public get epsilonSymbol(): SyntaxSymbol {
+    return this._epsilonSymbol;
+  }
+
+  public get endOfFileSymbol(): SyntaxSymbol {
+    return this._endOfFileSymbol;
+  }
+
+  constructor(config: SyntaxConfiguration) {
     this._symbols = Array.isArray(config.symbols)
       ? config.symbols
       : ArrayHelper.toArray(config.symbols);
@@ -229,14 +236,32 @@ export class SyntaxSymbolHelper {
     return this._rules[productionRuleId];
   }
 
-  public getPredictiveAnalysisTable(): Record<
-    SyntaxSymbol['id'],
-    Record<SyntaxSymbol['id'], ProductionRuleId[]>
-  > {
-    const table: Record<
-      SyntaxSymbol['id'],
-      Record<SyntaxSymbol['id'], ProductionRuleId[]>
-    > = {};
+  public getRulesFromPAT(
+    currentSymbol: SyntaxSymbol,
+    inputSymbol: SyntaxSymbol,
+  ): ProductionRule[] {
+    const rules: ProductionRule[] = [];
+
+    if (!this._patCalculated) {
+      this._calculatePredictiveAnalysisTable();
+    }
+
+    const table = this._predictiveAnalysisTable;
+    if (table[currentSymbol.id]) {
+      if (table[currentSymbol.id][inputSymbol.id]) {
+        const entries = table[currentSymbol.id][inputSymbol.id];
+        for (const ruleId of entries) {
+          const rule = this.getProductionRuleFromId(ruleId);
+          rules.push(rule);
+        }
+      }
+    }
+
+    return rules;
+  }
+
+  public getPredictiveAnalysisTable(): PredictiveAnalysisTable {
+    const table: PredictiveAnalysisTable = {};
 
     if (!this._patCalculated) {
       this._calculatePredictiveAnalysisTable();
@@ -256,10 +281,7 @@ export class SyntaxSymbolHelper {
   }
 
   private _calculatePredictiveAnalysisTable(): void {
-    const table: Record<
-      SyntaxSymbol['id'],
-      Record<SyntaxSymbol['id'], ProductionRuleId[]>
-    > = {};
+    const table: PredictiveAnalysisTable = {};
 
     for (let i = 0; i < this._rules.length; i++) {
       const ruleId = i;

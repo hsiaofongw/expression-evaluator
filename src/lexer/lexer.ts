@@ -15,7 +15,7 @@ import {
 } from './interfaces';
 
 /** 给 token 标注类型 */
-export class TokenTyping extends Transform {
+export class ToTypedToken extends Transform {
   private _tokenClasses!: TokenClass[];
 
   constructor(allTokenClasses: TokenClass[]) {
@@ -67,7 +67,7 @@ export class TokenTyping extends Transform {
 }
 
 /** 将 typedChar 连成 token */
-export class Tokenize extends Transform implements ITokenizeContext {
+export class ToRawToken extends Transform implements ITokenizeContext {
   private _chars!: TypedChar[];
 
   private _stateMap!: Record<IState['stateIdentifier'], IState>;
