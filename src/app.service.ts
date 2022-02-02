@@ -137,7 +137,8 @@ export class AppService {
       }
     }
 
-    const inputString = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
+    // const inputString = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
+    const inputString = '4 * (.1 - 1.) + 2';
     const inputStream = Readable.from(inputString);
 
     const lineStream = createInterface({ input: inputStream });

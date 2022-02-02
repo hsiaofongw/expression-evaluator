@@ -138,8 +138,6 @@ export class LL1PredictiveParser extends Transform {
       return;
     }
 
-    // console.log({ top: this._nodeStackTop });
-
     callback();
   }
 

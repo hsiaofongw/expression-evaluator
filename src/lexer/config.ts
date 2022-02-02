@@ -310,7 +310,7 @@ export const allTokenClasses: TokenClass[] = [
     name: 'digits',
     definition: {
       type: 'regexp',
-      regexp: /\d+\.?\d*/,
+      regexp: /\d*\.?\d*/,
     },
     description: '数字',
   },
