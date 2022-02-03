@@ -19,6 +19,7 @@
 
 ## 语法细节
 
+```
 PRODUCTION RULES:
 E -> T E'
 E' -> + T E' | - T E' | ε
@@ -91,3 +92,4 @@ PREDICTIVE TABLE:
 [ F, '(' ]: F -> '(' E ')'
 [ F, ')' ]:
 [ F, $ ]:
+```
