@@ -48,7 +48,6 @@ export class AppService {
     const asking = () => {
       lineStream.question(`\nIn[${lineNumber}]: `, (expression) => {
         toChars.write(expression);
-        toChars.push('');
       });
     };
 
