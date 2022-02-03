@@ -38,7 +38,7 @@ export class ExpressionTranslate extends Transform {
     },
 
     "T' -> '/' F T'": (node: Node) => {
-      this._evaluateArithmetic(node, 'divde');
+      this._evaluateArithmetic(node, 'divide');
     },
 
     "T' -> ε": (_: Node) => {},
@@ -54,7 +54,7 @@ export class ExpressionTranslate extends Transform {
 
     'F -> number': (node: Node) => {
       if (node.type === 'nonTerminal') {
-        this._valueStack.push({ type: 'value', value: node.children[0] });
+        this._valueStack.push({ type: 'node', node: node.children[0] });
       }
     },
   };
@@ -65,7 +65,6 @@ export class ExpressionTranslate extends Transform {
 
   private _getEvaluator(evaluatorName: string, node: Node): Evaluator {
     const result = this._evaluatorMap[evaluatorName];
-    console.log({ evaluatorName, result, node });
     return result;
   }
 
@@ -108,7 +107,6 @@ export class ExpressionTranslate extends Transform {
     if (node.type === 'nonTerminal') {
       this._evaluatorMap[node.ruleName](node);
       const value = this._valueStack.pop() as EvaluateNode;
-      console.log({ value });
       this.push(value);
     }
     callback();

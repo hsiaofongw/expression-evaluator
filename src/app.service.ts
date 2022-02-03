@@ -25,6 +25,7 @@ import { stdin } from 'process';
 import { ToList, ToArithmeticTree } from './arithmetic/to-addible';
 import { SelectSymbol } from './helpers/select';
 import { ExpressionTranslate } from './translate/translate';
+import { Evaluate } from './translate/evaluate';
 
 @Injectable()
 export class AppService {
@@ -158,6 +159,7 @@ export class AppService {
     const toTerminalNode = new ToTerminalNode(syntaxAnalysisConfiguration);
     const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
     const translate = new ExpressionTranslate();
+    const evaluate = new Evaluate();
 
     lineStream.on('line', (line) => {
       toChars.write(line);
@@ -174,10 +176,11 @@ export class AppService {
       .pipe(toTypedToken)
       .pipe(toTerminalNode)
       .pipe(parse)
-      .pipe(translate);
+      .pipe(translate)
+      .pipe(evaluate);
 
-    translate.on('data', (data) => {
-      console.log('translated');
+    evaluate.on('data', (data) => {
+      console.log('output');
       console.log(data);
     });
 
