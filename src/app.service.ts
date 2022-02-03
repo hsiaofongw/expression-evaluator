@@ -22,7 +22,7 @@ import {
   SyntaxConfiguration,
 } from './parser/interfaces';
 import { stdin } from 'process';
-import { ToAddibleList, ToAddTree } from './arithmetic/to-addible';
+import { ToList, ToArithmeticTree } from './arithmetic/to-addible';
 
 @Injectable()
 export class AppService {
@@ -155,8 +155,11 @@ export class AppService {
     const toTypedToken = new ToTypedToken(allTokenClasses);
     const toTermianlNode = new ToTerminalNode(syntaxAnalysisConfiguration);
     const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
-    const toAddibles = new ToAddibleList();
-    const toAddTree = new ToAddTree();
+    const toAddibles = new ToList(['term', 'plus', 'minus']);
+    const toAddTree = new ToArithmeticTree({
+      operandSymbolIds: ['term'],
+      operatorSymbolIds: ['plus', 'minus'],
+    });
 
     console.log('TERMINAL NODES:');
     lineStream.on('line', (line) => {
