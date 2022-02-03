@@ -29,36 +29,34 @@ export class ToTypedToken extends Transform {
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    const matchedTypesAndMatchingLen: {
-      type: TokenClass;
-      matchLength: number;
-    }[] = this._tokenClasses
-      .filter((cls) => {
-        if (cls.definition.type === 'regexp') {
-          return chunk.content.match(cls.definition.regexp) !== null;
-        } else {
-          return chunk.content === cls.definition.content;
+    const matchResults: { type: TokenClass; length: number }[] = [];
+    for (const tokenClass of this._tokenClasses) {
+      if (
+        tokenClass.definition.type === 'content' &&
+        tokenClass.definition.content === chunk.content
+      ) {
+        const typedToken: TypedToken = {
+          ...chunk,
+          type: tokenClass,
+        };
+        this.push(typedToken);
+        callback();
+        return;
+      } else if (tokenClass.definition.type === 'regexp') {
+        const matchResult = chunk.content.match(tokenClass.definition.regexp);
+        if (matchResult) {
+          matchResults.push({
+            type: tokenClass,
+            length: matchResult[0].length,
+          });
         }
-      })
-      .map((cls) => {
-        if (cls.definition.type === 'regexp') {
-          return {
-            type: cls,
-            matchLength: chunk.content.match(cls.definition.regexp)[0].length,
-          };
-        } else {
-          return { type: cls, matchLength: chunk.content.length };
-        }
-      });
+      }
+    }
 
-    if (matchedTypesAndMatchingLen.length > 0) {
-      const type = matchedTypesAndMatchingLen.sort(
-        (a, b) => b.matchLength - a.matchLength,
-      )[0];
-      const typedToken: TypedToken = {
-        ...chunk,
-        type: type.type,
-      };
+    matchResults.sort((a, b) => b.length - a.length);
+    if (matchResults.length) {
+      const tokenClass = matchResults[0].type;
+      const typedToken: TypedToken = { ...chunk, type: tokenClass };
       this.push(typedToken);
     }
 

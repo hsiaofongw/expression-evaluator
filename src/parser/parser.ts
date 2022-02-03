@@ -76,11 +76,11 @@ export class LL1PredictiveParser extends Transform {
   }
 
   _transform(
-    chunk: TerminalNode,
+    lookAhead: TerminalNode,
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    this._lookAhead = chunk;
+    this._lookAhead = lookAhead;
 
     while (
       this._nodeStack.length > 0 &&
@@ -146,30 +146,7 @@ export class LL1PredictiveParser extends Transform {
   }
 
   _flush(callback: TransformCallback): void {
-    const root = this._rootNode;
-    const nodes: Node[] = [root];
-    while (nodes.length > 0) {
-      const node = nodes.pop() as Node;
-      if (node.type === 'nonTerminal') {
-        node.children = node.children.filter((nodeChild) => {
-          if (
-            nodeChild.type === 'nonTerminal' &&
-            nodeChild.symbol.expandSymbol === true &&
-            nodeChild.children.length === 0
-          ) {
-            return false;
-          }
-
-          return true;
-        });
-
-        for (let i = 0; i < node.children.length; i++) {
-          nodes.push(node.children[node.children.length - 1 - i]);
-        }
-      }
-    }
-
-    this.push(root);
+    this.push(this._rootNode);
 
     callback();
   }

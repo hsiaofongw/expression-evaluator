@@ -23,6 +23,8 @@ import {
 } from './parser/interfaces';
 import { stdin } from 'process';
 import { ToList, ToArithmeticTree } from './arithmetic/to-addible';
+import { SelectSymbol } from './helpers/select';
+import { ExpressionTranslate } from './translate/translate';
 
 @Injectable()
 export class AppService {
@@ -153,15 +155,10 @@ export class AppService {
       startState: allStates.startState,
     });
     const toTypedToken = new ToTypedToken(allTokenClasses);
-    const toTermianlNode = new ToTerminalNode(syntaxAnalysisConfiguration);
+    const toTerminalNode = new ToTerminalNode(syntaxAnalysisConfiguration);
     const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
-    const toAddibles = new ToList(['term', 'plus', 'minus']);
-    const toAddTree = new ToArithmeticTree({
-      operandSymbolIds: ['term'],
-      operatorSymbolIds: ['plus', 'minus'],
-    });
+    const translate = new ExpressionTranslate();
 
-    console.log('TERMINAL NODES:');
     lineStream.on('line', (line) => {
       toChars.write(line);
     });
@@ -175,23 +172,12 @@ export class AppService {
       .pipe(toTypedChars)
       .pipe(toRawToken)
       .pipe(toTypedToken)
-      .pipe(toTermianlNode)
+      .pipe(toTerminalNode)
       .pipe(parse)
-      .pipe(toAddibles)
-      .pipe(toAddTree);
+      .pipe(translate);
 
-    parse.on('data', (data) => {
-      console.log('root');
-      console.log(data);
-    });
-
-    toAddibles.on('data', (data) => {
-      console.log('addible');
-      // console.log(data);
-    });
-
-    toAddTree.on('data', (data) => {
-      console.log('addTree');
+    translate.on('data', (data) => {
+      console.log('translated');
       console.log(data);
     });
 
