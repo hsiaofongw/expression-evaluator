@@ -65,6 +65,9 @@ export class ExpressionTranslate extends Transform {
 
   private _getEvaluator(evaluatorName: string, node: Node): Evaluator {
     const result = this._evaluatorMap[evaluatorName];
+
+    // console.log({ evaluatorName, node, result });
+
     return result;
   }
 
@@ -105,7 +108,7 @@ export class ExpressionTranslate extends Transform {
     callback: TransformCallback,
   ): void {
     if (node.type === 'nonTerminal') {
-      this._evaluatorMap[node.ruleName](node);
+      this._getEvaluator(node.ruleName, node)(node);
       const value = this._valueStack.pop() as EvaluateNode;
       this.push(value);
     }

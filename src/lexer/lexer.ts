@@ -184,13 +184,8 @@ export class ToCharacters extends Transform {
     for (const char of chars) {
       this.push(char);
     }
-
-    callback();
-  }
-
-  _flush(callback: TransformCallback): void {
-    // 故意追加一个代表 eof 的字符
     this.push('');
+
     callback();
   }
 }

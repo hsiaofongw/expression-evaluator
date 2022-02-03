@@ -90,18 +90,18 @@ export class Evaluate extends Transform {
   }
 
   private _mov(registerId: number, value: number): void {
-    console.log(`MOV R${registerId}, \$${value}`);
+    // console.log(`MOV R${registerId}, \$${value}`);
     this._registers[registerId] = value;
   }
 
   private _pop(registerId: number): void {
-    console.log(`POP R${registerId}`);
+    // console.log(`POP R${registerId}`);
     const valueNode = this._valueStack.pop() as NumericValueNode;
     this._registers[registerId] = valueNode.value;
   }
 
   private _add(register1Id: number, register2Id: number): void {
-    console.log(`ADD R${register1Id}, R${register2Id}`);
+    // console.log(`ADD R${register1Id}, R${register2Id}`);
     const v1 = this._registers[register1Id];
     const v2 = this._registers[register2Id];
     const result = v1 + v2;
@@ -109,7 +109,7 @@ export class Evaluate extends Transform {
   }
 
   private _sub(register1Id: number, register2Id: number): void {
-    console.log(`SUB R${register1Id}, R${register2Id}`);
+    // console.log(`SUB R${register1Id}, R${register2Id}`);
     const v1 = this._registers[register1Id];
     const v2 = this._registers[register2Id];
     const result = v1 - v2;
@@ -117,13 +117,13 @@ export class Evaluate extends Transform {
   }
 
   private _push(registerId: number): void {
-    console.log(`PUSH R${registerId}`);
+    // console.log(`PUSH R${registerId}`);
     const value = this._registers[registerId];
     this._valueStack.push({ type: 'value', value: value });
   }
 
   private _times(register1Id: number, register2Id: number): void {
-    console.log(`MUL R${register1Id}, R${register2Id}`);
+    // console.log(`MUL R${register1Id}, R${register2Id}`);
     const v1 = this._registers[register1Id];
     const v2 = this._registers[register2Id];
     const result = v1 * v2;
@@ -131,7 +131,7 @@ export class Evaluate extends Transform {
   }
 
   private _divide(register1Id: number, register2Id: number): void {
-    console.log(`DIV R${register1Id}, R${register2Id}`);
+    // console.log(`DIV R${register1Id}, R${register2Id}`);
     const v1 = this._registers[register1Id];
     const v2 = this._registers[register2Id];
     const result = v1 / v2;
@@ -147,8 +147,8 @@ export class Evaluate extends Transform {
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    console.log('input');
-    console.log(node);
+    // console.log('input');
+    // console.log(node);
     this._getEvaluator(node.type)(node);
     if (this._valueStack.length) {
       const valueNode = this._valueStack.pop() as NumericValueNode;

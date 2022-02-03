@@ -88,12 +88,7 @@ export const stateTransitions: StateTransition[] = [
     current: allStates.startState,
     input: charClass.endOfFileCharClass,
     next: allStates.startState,
-    action: (ctx, eof) => {
-      ctx._popToken();
-      ctx._pushChar(eof);
-      ctx._popToken();
-    },
-    comment: '结束时，将 token 弹出',
+    action: () => {},
   },
   {
     current: allStates.startState,
