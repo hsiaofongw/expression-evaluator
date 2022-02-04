@@ -1,320 +1,142 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
-import { CharClass, IState, StateTransition, TokenClass } from './interfaces';
+import { TokenClass } from './interfaces';
 
-const endOfFileCharClass: CharClass = {
-  id: 'endOfFile',
-  regexp: /^$/,
-  description: '输入终结符',
-  example: '',
+const leftParenthesis: TokenClass = {
+  name: 'leftParenthesis',
+  definition: {
+    type: 'content',
+    content: '(',
+  },
+  description: '左括号 (',
 };
 
-const spaceCharClass: CharClass = {
-  id: 'space',
-  regexp: /\s/,
-  description: '空白符，包括换行、回车、空格、制表等等',
+const rightParenthesis: TokenClass = {
+  name: 'rightParenthesis',
+  definition: {
+    type: 'content',
+    content: ')',
+  },
+  description: '右括号 )',
 };
 
-const digitCharClass: CharClass = {
-  id: 'digit',
-  regexp: /\d/,
-  description: '数字, 0,1,2,3,4,5,6,7,8,9,',
+const plus: TokenClass = {
+  name: 'plus',
+  definition: {
+    type: 'content',
+    content: '+',
+  },
+  description: '加 +',
 };
 
-const symbolCharClass: CharClass = {
-  id: 'symbol',
-  regexp: /[()+\-*/]/,
-  description: '括号、加减乘除',
+const minus: TokenClass = {
+  name: 'minus',
+  definition: {
+    type: 'content',
+    content: '-',
+  },
+  description: '减 -',
 };
 
-const dotCharClass: CharClass = {
-  id: 'dot',
-  regexp: /\./,
-  description: '点',
+const times: TokenClass = {
+  name: 'times',
+  definition: {
+    type: 'content',
+    content: '*',
+  },
+  description: '乘 *',
 };
 
-export const charClass = {
-  endOfFileCharClass,
-  spaceCharClass,
-  digitCharClass,
-  symbolCharClass,
-  dotCharClass,
+const divideBy: TokenClass = {
+  name: 'divideBy',
+  definition: {
+    type: 'content',
+    content: '/',
+  },
+  description: '除 /',
 };
 
-const startState: IState = {
-  stateIdentifier: 'start',
-  stateDescription: '初始状态',
+const dot: TokenClass = {
+  name: 'dot',
+  definition: {
+    type: 'content',
+    content: '.',
+  },
+  description: '点 .',
 };
 
-const numberInputState: IState = {
-  stateIdentifier: 'numberInput',
-  stateDescription: '数字输入',
+const identifier: TokenClass = {
+  name: 'identifier',
+  definition: {
+    type: 'regexp',
+    regexp: /[a-zA-Z_]+[a-zA-Z_\d]*/,
+  },
+  description: '标识符',
 };
 
-const floatInputState: IState = {
-  stateIdentifier: 'floatInput',
-  stateDescription: '浮点数输入',
+const number: TokenClass = {
+  name: 'digits',
+  definition: {
+    type: 'regexp',
+    regexp: /\d*\.?\d*/,
+  },
+  description: '数字',
 };
 
-const symbolInputState: IState = {
-  stateIdentifier: 'symbolInput',
-  stateDescription: '符号输入',
+const comma: TokenClass = {
+  name: 'comma',
+  definition: {
+    type: 'content',
+    content: ',',
+  },
+  description: '逗号 ,',
 };
 
-export const allStates = {
-  startState,
-  numberInputState,
-  floatInputState,
-  symbolInputState,
+const leftSquareBracket: TokenClass = {
+  name: 'leftSquareBracket',
+  definition: {
+    type: 'content',
+    content: '[',
+  },
+  description: '左方括号 [',
 };
 
-export const stateTransitions: StateTransition[] = [
-  // from start state
-  {
-    current: allStates.startState,
-    input: charClass.spaceCharClass,
-    next: allStates.startState,
-    comment: '跳过空白符',
+const rightSquareBracket: TokenClass = {
+  name: 'rightSquareBracket',
+  definition: {
+    type: 'content',
+    content: ']',
   },
-  {
-    current: allStates.startState,
-    input: charClass.digitCharClass,
-    next: allStates.numberInputState,
-    action: (ctx, input) => {
-      ctx._pushChar(input);
-    },
-    comment: '若当前状态是初始状态，并且遇到了一个 digit, 那么将该 char 入栈',
-  },
-  {
-    current: allStates.startState,
-    input: charClass.endOfFileCharClass,
-    next: allStates.startState,
-    action: () => {},
-  },
-  {
-    current: allStates.startState,
-    input: charClass.symbolCharClass,
-    next: allStates.symbolInputState,
-    action: (ctx, symbol) => {
-      ctx._pushChar(symbol);
-    },
-    comment: '支持未来的多个 char symbol',
-  },
-  {
-    current: allStates.startState,
-    input: charClass.dotCharClass,
-    next: allStates.floatInputState,
-    action: (ctx, symbol) => {
-      ctx._pushChar(symbol);
-    },
-  },
+  description: '右方括号 ]',
+};
 
-  // from numberInput state
-  {
-    current: allStates.numberInputState,
-    input: charClass.digitCharClass,
-    next: allStates.numberInputState,
-    action: (ctx, digit) => {
-      ctx._pushChar(digit);
-    },
-    comment: '吸收 digit',
+const endOfLine: TokenClass = {
+  name: 'endOfLine',
+  definition: {
+    type: 'endOfLine',
   },
-  {
-    current: allStates.numberInputState,
-    input: charClass.dotCharClass,
-    next: allStates.floatInputState,
-    action: (ctx, dot) => {
-      ctx._pushChar(dot);
-    },
-  },
-  {
-    current: allStates.numberInputState,
-    input: charClass.endOfFileCharClass,
-    next: allStates.startState,
-    action: (ctx, eof) => {
-      ctx._popToken();
-      ctx._pushChar(eof);
-      ctx._popToken();
-    },
-  },
-  {
-    current: allStates.numberInputState,
-    input: charClass.spaceCharClass,
-    next: allStates.startState,
-    action: (ctx, _) => {
-      ctx._popToken();
-    },
-  },
-  {
-    current: allStates.numberInputState,
-    input: charClass.symbolCharClass,
-    next: allStates.symbolInputState,
-    action: (ctx, symbol) => {
-      ctx._popToken();
-      ctx._pushChar(symbol);
-    },
-  },
+  description: '行结束符',
+};
 
-  // from symbol input state
-  {
-    current: allStates.symbolInputState,
-    input: charClass.dotCharClass,
-    next: allStates.floatInputState,
-    action: (ctx, dot) => {
-      ctx._popToken();
-      ctx._pushChar(dot);
-    },
+const endOfFile: TokenClass = {
+  name: 'endOfFile',
+  definition: {
+    type: 'endOfFile',
   },
-  {
-    current: allStates.symbolInputState,
-    input: charClass.digitCharClass,
-    next: allStates.numberInputState,
-    action: (ctx, digit) => {
-      ctx._popToken();
-      ctx._pushChar(digit);
-    },
-  },
-  {
-    current: allStates.symbolInputState,
-    input: charClass.endOfFileCharClass,
-    next: allStates.startState,
-    action: (ctx, eof) => {
-      ctx._popToken();
-      ctx._pushChar(eof);
-      ctx._popToken();
-    },
-  },
-  {
-    current: allStates.symbolInputState,
-    input: charClass.spaceCharClass,
-    next: allStates.startState,
-    action: (ctx, _) => {
-      ctx._popToken();
-    },
-  },
-  {
-    current: allStates.symbolInputState,
-    input: charClass.symbolCharClass,
-    next: allStates.symbolInputState,
-    action: (ctx, _) => {
-      ctx._popToken();
-    },
-  },
+  description: '文件结束符',
+};
 
-  // from floatInput state
-  {
-    current: allStates.floatInputState,
-    input: charClass.digitCharClass,
-    next: allStates.floatInputState,
-    action: (ctx, digit) => {
-      ctx._pushChar(digit);
-    },
-  },
-  {
-    current: allStates.floatInputState,
-    input: charClass.dotCharClass,
-    next: allStates.floatInputState,
-    action: (_, __) => {},
-  },
-  {
-    current: allStates.floatInputState,
-    input: charClass.endOfFileCharClass,
-    next: allStates.startState,
-    action: (ctx, eof) => {
-      ctx._popToken();
-      ctx._pushChar(eof);
-      ctx._popToken();
-    },
-  },
-  {
-    current: allStates.floatInputState,
-    input: charClass.spaceCharClass,
-    next: allStates.startState,
-    action: (ctx, _) => {
-      ctx._popToken();
-    },
-  },
-  {
-    current: allStates.floatInputState,
-    input: charClass.symbolCharClass,
-    next: allStates.symbolInputState,
-    action: (ctx, symbol) => {
-      ctx._popToken();
-      ctx._pushChar(symbol);
-    },
-  },
-];
-
-export const allTokenClasses: TokenClass[] = [
-  {
-    name: 'leftParenthesis',
-    definition: {
-      type: 'regexp',
-      regexp: /\(/,
-    },
-    description: '左括号 (',
-  },
-  {
-    name: 'rightParenthesis',
-    definition: {
-      type: 'regexp',
-      regexp: /\)/,
-    },
-    description: '右括号 (',
-  },
-  {
-    name: 'plus',
-    definition: {
-      type: 'regexp',
-      regexp: /\+/,
-    },
-    description: '加 +',
-  },
-  {
-    name: 'minus',
-    definition: {
-      type: 'regexp',
-      regexp: /\-/,
-    },
-    description: '减 -',
-  },
-  {
-    name: 'times',
-    definition: {
-      type: 'regexp',
-      regexp: /\*/,
-    },
-    description: '乘 *',
-  },
-  {
-    name: 'divideBy',
-    definition: {
-      type: 'regexp',
-      regexp: /\//,
-    },
-    description: '除 /',
-  },
-  {
-    name: 'dot',
-    definition: {
-      type: 'regexp',
-      regexp: /\./,
-    },
-    description: '点 .',
-  },
-  {
-    name: 'digits',
-    definition: {
-      type: 'regexp',
-      regexp: /\d*\.?\d*/,
-    },
-    description: '数字',
-  },
-  {
-    name: 'endOfFile',
-    definition: {
-      type: 'content',
-      content: '',
-    },
-    description: '文件结束符',
-  },
-];
+export const tokenClasses = {
+  leftParenthesis,
+  rightParenthesis,
+  plus,
+  minus,
+  times,
+  divideBy,
+  dot,
+  identifier,
+  number,
+  comma,
+  leftSquareBracket,
+  rightSquareBracket,
+  endOfLine,
+  endOfFile,
+};

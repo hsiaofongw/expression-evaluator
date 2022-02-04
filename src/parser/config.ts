@@ -1,5 +1,23 @@
 import { SyntaxSymbol, ProductionRule } from './interfaces';
 
+// L
+const list: SyntaxSymbol = {
+  id: 'list',
+  name: 'List',
+  description: '列表',
+  type: 'nonTerminal',
+  displayName: 'L',
+};
+
+// L'
+const listExpand: SyntaxSymbol = {
+  id: 'listExpand',
+  name: 'ListExpand',
+  description: '列表第二项及以后',
+  type: 'nonTerminal',
+  displayName: "L'",
+};
+
 // E
 const expression: SyntaxSymbol = {
   id: 'expression',
@@ -27,7 +45,7 @@ const number: SyntaxSymbol = {
   name: 'Number',
   description: '数字',
   type: 'terminal',
-  displayName: 'number',
+  displayName: 'num',
   definition: {
     tokenClassName: 'digits',
   },
@@ -69,6 +87,15 @@ const factor: SyntaxSymbol = {
   description: '因子',
   type: 'nonTerminal',
   displayName: 'F',
+};
+
+// F'
+const factorExpand: SyntaxSymbol = {
+  id: 'factorExpand',
+  name: 'FactorExpand',
+  description: '因子余项',
+  type: 'nonTerminal',
+  displayName: "F'",
 };
 
 // '+'
@@ -143,6 +170,54 @@ const rightParenthesis: SyntaxSymbol = {
   },
 };
 
+// '['
+const leftSquareBracket: SyntaxSymbol = {
+  id: 'leftSquareBracket',
+  name: 'LeftSquareBracket',
+  description: '左方括号',
+  type: 'terminal',
+  displayName: '[',
+  definition: {
+    tokenClassName: 'leftSquareBracket',
+  },
+};
+
+// ']'
+const rightSquareBracket: SyntaxSymbol = {
+  id: 'rightSquareBracket',
+  name: 'RightSquareBracket',
+  description: '右方括号',
+  displayName: ']',
+  type: 'terminal',
+  definition: {
+    tokenClassName: 'rightSquareBracket',
+  },
+};
+
+// id
+const identifier: SyntaxSymbol = {
+  id: 'identifier',
+  name: 'Identifier',
+  description: '标识符',
+  type: 'terminal',
+  displayName: 'id',
+  definition: {
+    tokenClassName: 'identifier',
+  },
+};
+
+// comma
+const comma: SyntaxSymbol = {
+  id: 'comma',
+  name: 'Comma',
+  description: '逗号',
+  type: 'terminal',
+  displayName: ',',
+  definition: {
+    tokenClassName: 'comma',
+  },
+};
+
 // $
 const endOfFile: SyntaxSymbol = {
   id: 'endOfFile',
@@ -156,23 +231,77 @@ const endOfFile: SyntaxSymbol = {
 };
 
 export const allSymbols = {
+  list,
+  listExpand,
   expression,
   expressionExpand,
   term,
   termExpand,
   factor,
+  factorExpand,
   plus,
   minus,
   times,
   divideBy,
   leftParenthesis,
   rightParenthesis,
-  epsilon,
+  leftSquareBracket,
+  rightSquareBracket,
   number,
+  identifier,
+  comma,
+  epsilon,
   endOfFile,
 };
 
+export const nonTerminalSymbols: SyntaxSymbol[] = [
+  allSymbols.list,
+  allSymbols.listExpand,
+  allSymbols.expression,
+  allSymbols.expressionExpand,
+  allSymbols.term,
+  allSymbols.termExpand,
+  allSymbols.factor,
+  allSymbols.factorExpand,
+];
+
+export const terminalSymbols: SyntaxSymbol[] = [
+  allSymbols.identifier,
+  allSymbols.number,
+  allSymbols.comma,
+  allSymbols.leftParenthesis,
+  allSymbols.leftSquareBracket,
+  allSymbols.rightParenthesis,
+  allSymbols.rightSquareBracket,
+  allSymbols.plus,
+  allSymbols.minus,
+  allSymbols.times,
+  allSymbols.divideBy,
+  allSymbols.endOfFile,
+];
+
 export const allRules: ProductionRule[] = [
+  // L -> E L'
+  {
+    name: "L -> E L'",
+    lhs: allSymbols.list,
+    rhs: [allSymbols.expression, allSymbols.listExpand],
+  },
+
+  // L' -> , E L'
+  {
+    name: "L' -> , E L'",
+    lhs: allSymbols.listExpand,
+    rhs: [allSymbols.comma, allSymbols.expression, allSymbols.listExpand],
+  },
+
+  // L' -> ε
+  {
+    name: "L' -> ε",
+    lhs: allSymbols.listExpand,
+    rhs: [allSymbols.epsilon],
+  },
+
   // E -> T E'
   {
     name: "E -> T E'",
@@ -245,5 +374,30 @@ export const allRules: ProductionRule[] = [
     name: 'F -> number',
     lhs: allSymbols.factor,
     rhs: [allSymbols.number],
+  },
+
+  // F -> id F'
+  {
+    name: "F -> id F'",
+    lhs: allSymbols.factor,
+    rhs: [allSymbols.identifier, allSymbols.factorExpand],
+  },
+
+  // F' -> [ L ]
+  {
+    name: "F' -> [ L ]",
+    lhs: allSymbols.factorExpand,
+    rhs: [
+      allSymbols.leftSquareBracket,
+      allSymbols.list,
+      allSymbols.rightSquareBracket,
+    ],
+  },
+
+  // F' -> ε
+  {
+    name: "F' -> ε",
+    lhs: allSymbols.factorExpand,
+    rhs: [allSymbols.epsilon],
   },
 ];

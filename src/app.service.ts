@@ -1,24 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { SyntaxSymbolHelper } from './parser/helpers';
-import {
-  ToCharacters,
-  ToIndexedCharacter,
-  ToRawToken,
-  ToTypedToken,
-  ToTypedCharacter,
-} from './lexer/lexer';
+import { ToCharacters, ToToken } from './lexer/lexer';
 import { createInterface } from 'readline';
 import {
-  allStates,
-  allTokenClasses,
-  charClass as allCharClasses,
-  stateTransitions,
-} from './lexer/config';
-import { allRules, allSymbols } from './parser/config';
+  allRules,
+  allSymbols,
+  nonTerminalSymbols,
+  terminalSymbols,
+} from './parser/config';
 import { LL1PredictiveParser, ToTerminalNode } from './parser/parser';
 import {
   SyntaxAnalysisConfiguration,
   SyntaxConfiguration,
+  SyntaxSymbol,
 } from './parser/interfaces';
 import { stdin, stdout } from 'process';
 import { ExpressionTranslate } from './translate/translate';
@@ -31,12 +25,13 @@ export class AppService {
       symbols: allSymbols,
       rules: allRules,
       specialSymbol: {
-        entrySymbol: allSymbols.expression,
+        entrySymbol: allSymbols.list,
         epsilonSymbol: allSymbols.epsilon,
         endOfFileSymbol: allSymbols.endOfFile,
       },
     };
     const symbolHelper = new SyntaxSymbolHelper(syntaxConfiguration);
+    // symbolHelper.printPredictiveTable();
     const syntaxAnalysisConfiguration: SyntaxAnalysisConfiguration = {
       ...syntaxConfiguration,
       syntaxAnalysisPartner: symbolHelper,
@@ -46,7 +41,7 @@ export class AppService {
 
     let lineNumber = 0;
     const asking = () => {
-      lineStream.question(`\nIn[${lineNumber}]: `, (expression) => {
+      lineStream.question(`\nIn[]: `, (expression) => {
         toChars.write(expression);
       });
     };
@@ -54,36 +49,24 @@ export class AppService {
     asking();
 
     const toChars = new ToCharacters();
-    const toIndexedChars = new ToIndexedCharacter();
-    const toTypedChars = new ToTypedCharacter(allCharClasses);
-    const toRawToken = new ToRawToken({
-      allStates,
-      allCharClasses,
-      transitions: stateTransitions,
-      startState: allStates.startState,
-    });
-    const toTypedToken = new ToTypedToken(allTokenClasses);
+    const toToken = new ToToken();
     const toTerminalNode = new ToTerminalNode(syntaxAnalysisConfiguration);
     const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
-    const translate = new ExpressionTranslate();
-    const evaluate = new Evaluate();
+    // const translate = new ExpressionTranslate();
+    // const evaluate = new Evaluate();
 
     // const inputString1 = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
     // const inputString2 = '4 * (.1 - 1.) + 2';
 
-    toChars
-      .pipe(toIndexedChars)
-      .pipe(toTypedChars)
-      .pipe(toRawToken)
-      .pipe(toTypedToken)
-      .pipe(toTerminalNode)
-      .pipe(parse)
-      .pipe(translate)
-      .pipe(evaluate);
+    toChars.pipe(toToken).pipe(toTerminalNode).pipe(parse);
 
-    evaluate.on('data', (answer) => {
-      console.log(`\nOut[${lineNumber}]: ${answer}`);
+    parse.on('data', (datum) => {
+      console.log(`\nOut[${lineNumber}]:`);
       lineNumber = lineNumber + 1;
+
+      console.log('tree');
+      console.log(datum);
+
       asking();
     });
   }

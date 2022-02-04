@@ -1,4 +1,5 @@
 import { ArrayHelper } from 'src/helpers/to-array';
+import { nonTerminalSymbols, terminalSymbols } from './config';
 import {
   PredictiveAnalysisTable,
   ProductionRule,
@@ -61,6 +62,28 @@ export class SyntaxSymbolHelper {
     this._followSetIsCalculated = false;
     this._predictiveAnalysisTable = {};
     this._patCalculated = false;
+  }
+
+  public printPredictiveTable(): void {
+    for (const nonTerminalSbl of nonTerminalSymbols) {
+      for (const terminalSbl of terminalSymbols) {
+        const rules = this.getRulesFromPAT(nonTerminalSbl, terminalSbl);
+        const nonTerminal = nonTerminalSbl.displayName ?? nonTerminalSbl.name;
+        const terminal = terminalSbl.displayName ?? terminalSbl.name;
+        const header = `[ ${nonTerminal}, ${terminal} ]: `;
+        const spacePadding = ' '.repeat(header.length);
+        const body = rules
+          .map((rule) => {
+            const lhs = rule.lhs.displayName ?? rule.lhs.name;
+            const rhs = rule.rhs
+              .map((sbl) => sbl.displayName ?? sbl.name)
+              .join(' ');
+            return `${lhs} -> ${rhs}`;
+          })
+          .join('\n' + spacePadding);
+        console.log(header + body);
+      }
+    }
   }
 
   public first(symbols: SyntaxSymbol[]): SyntaxSymbol[] {
