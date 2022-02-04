@@ -4,7 +4,6 @@ import { Node } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
 import {
   BuiltInArithmeticFunctionName,
-  EvaluateNode,
   ExpressionNode,
   FunctionNode,
   IdentifierNode,
@@ -220,8 +219,7 @@ export class ExpressionTranslate extends Transform {
   ): void {
     if (node.type === 'nonTerminal') {
       this._getEvaluator(node.ruleName, node)(node);
-      const value = this._nodeStack.pop() as EvaluateNode;
-      this.push(value);
+      this.push(this._nodeStack.pop());
     }
     callback();
   }
