@@ -24,7 +24,7 @@ PRODUCTION RULES:
 E -> T E'
 E' -> + T E' | - T E' | ε
 T -> F T'
-F -> * F T' | / F T' | ε
+T' -> * F T' | / F T' | ε
 F -> ( E ) | number
 
 FIRST:
