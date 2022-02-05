@@ -81,6 +81,15 @@ class EvaluatorHelper {
     functionName: string,
     valueFunction: (v1: number, v2: number) => number,
   ): ExpressionNodeEvaluator {
+    return EvaluatorHelper.makeTwoInputNodeFunction(functionName, (v1, v2) => {
+      return { type: 'value', value: valueFunction(v1, v2) };
+    });
+  }
+
+  public static makeTwoInputNodeFunction(
+    functionName: string,
+    nodeFunction: (v1: number, v2: number) => ExpressionNode,
+  ): ExpressionNodeEvaluator {
     return {
       match: { type: 'functionName', functionName: functionName },
       action: (node, context) => {
@@ -99,13 +108,9 @@ class EvaluatorHelper {
             node.children[0].type === 'value' &&
             node.children[1].type === 'value'
           ) {
-            context._pushNode({
-              type: 'value',
-              value: valueFunction(
-                node.children[0].value,
-                node.children[1].value,
-              ),
-            });
+            context._pushNode(
+              nodeFunction(node.children[0].value, node.children[1].value),
+            );
           } else {
             context._pushNode(node);
           }
@@ -156,6 +161,19 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   EvaluatorHelper.makeTwoInputValueFunction('Minus', (v1, v2) => v1 - v2),
   EvaluatorHelper.makeTwoInputValueFunction('Times', (v1, v2) => v1 * v2),
   EvaluatorHelper.makeTwoInputValueFunction('Divide', (v1, v2) => v1 / v2),
+
+  EvaluatorHelper.makeTwoInputNodeFunction('GreaterThan', (v1, v2) => {
+    return { type: 'boolean', value: v1 > v2 };
+  }),
+  EvaluatorHelper.makeTwoInputNodeFunction('GreaterThanOrEqual', (v1, v2) => {
+    return { type: 'boolean', value: v1 >= v2 };
+  }),
+  EvaluatorHelper.makeTwoInputNodeFunction('LessThan', (v1, v2) => {
+    return { type: 'boolean', value: v1 < v2 };
+  }),
+  EvaluatorHelper.makeTwoInputNodeFunction('LessThanOrEqual', (v1, v2) => {
+    return { type: 'boolean', value: v1 <= v2 };
+  }),
 
   {
     match: { type: 'functionName', functionName: 'EqualQ' },
@@ -255,34 +273,18 @@ export const evaluators: ExpressionNodeEvaluator[] = [
     match: { type: 'functionName', functionName: 'Append' },
     action: (node: FunctionNode, context: IEvaluateContext) => {
       const v1 = node.children[0];
-      const v2 = node.children[1];
 
-      if (
-        v1.type === 'function' &&
-        v1.functionName === 'Append' &&
-        v1.children.length === 0
-      ) {
-        // manual call Append
-        context._evaluate(v2);
-      } else if (v1.type === 'function' && v1.functionName !== 'Append') {
-        // evaluate v2
-        context._evaluate(v2);
-        const evaluatedV2 = context._popNode();
+      if (v1.type === 'function') {
+        // 对 v2 求值
+        context._evaluate(node.children[1]);
+        node.children[1] = context._popNode();
 
-        // put evaluatedV2 into v1
-        const newV1: ExpressionNode = {
-          type: 'function',
-          functionName: v1.functionName,
-          children: [...v1.children, evaluatedV2],
-        };
+        // v2 加入 v1 的列表
+        const newParams = [...v1.children, node.children[1]];
+        v1.children = newParams;
 
-        // evaluated v1
-        context._evaluate(newV1);
-      } else if (v1.type === 'function' && v1.functionName === 'Append') {
+        // 再对 v1 求值
         context._evaluate(v1);
-        const evaluatedV1 = context._popNode() as FunctionNode;
-        node.children[0] = evaluatedV1;
-        context._evaluate(node);
       } else {
         context._pushNode(node);
       }

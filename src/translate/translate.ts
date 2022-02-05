@@ -44,9 +44,9 @@ export class ExpressionTranslate extends Transform {
 
     'L -> ε': (_) => {},
 
-    "L -> S L'": (node) => this._reduce(node, 'Append', 0, 1),
+    "L -> S L'": (node) => this._reduceByAppend(node, 0, 1),
 
-    "L' -> , S L'": (node) => this._reduce(node, 'Append', 1, 2),
+    "L' -> , S L'": (node) => this._reduceByAppend(node, 1, 2),
 
     "L' -> ε": (_) => {},
 
@@ -142,6 +142,23 @@ export class ExpressionTranslate extends Transform {
       this._pushNode(sum);
 
       this._evaluate(node.children[nextIdx]);
+    }
+  }
+
+  private _reduceByAppend(node: Node, currIdx: number, nextIdx: number): void {
+    if (node.type === 'nonTerminal') {
+      const prev = this._popNode();
+      if (prev.type === 'function') {
+        this._evaluate(node.children[currIdx]);
+        const current = this._popNode();
+        const appended: FunctionNode = {
+          type: 'function',
+          functionName: prev.functionName,
+          children: [...prev.children, current],
+        };
+        this._pushNode(appended);
+        this._evaluate(node.children[nextIdx]);
+      }
     }
   }
 

@@ -6,6 +6,7 @@ import {
   IdentifierNode,
   IEvaluateContext,
 } from './interfaces';
+import { ExpressionNodeHelper } from './translate';
 
 export class Evaluate extends Transform implements IEvaluateContext {
   private _nodeStack: ExpressionNode[] = [];
@@ -55,6 +56,9 @@ export class Evaluate extends Transform implements IEvaluateContext {
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
+    // console.log('in');
+    // ExpressionNodeHelper.print(node);
+
     this._evaluate(node);
     const value = this._popNode();
     this._outputHistory.push(value);
