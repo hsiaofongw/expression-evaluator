@@ -4,6 +4,20 @@
 
 这是基于 Nest 框架，以及作者自己写的 Lexer (词法分析器) 和 LL(1) Parser (语法分析器) 来实现的。
 
+## 致敬 Respects
+
+作者非常喜欢 Wolfram 语言，于是现在是处于上手实现一个简化再简化版本的这么样的一个状态。
+
+I enjoy using Wolfram Language, so now I am coding my own very simplified version of it.
+
+以下是我的启发来源：
+
+Below are what enlighten me:
+
+- [Evaluation of Expressions - Wolfram Language & System Documentation Center](https://reference.wolfram.com/language/tutorial/EvaluationOfExpressions.html)（表达式的求值）
+
+- [Everything Is an Expression - Wolfram Language & System Documentation Center](https://reference.wolfram.com/language/tutorial/Expressions.html) (一切皆表达式)
+
 ## 已实现函数列表
 
 ```
