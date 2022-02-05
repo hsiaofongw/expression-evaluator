@@ -30,7 +30,7 @@ class EvaluatorHelper {
     };
   }
 
-  public static makeTwoInputFunction(
+  public static makeTwoInputValueFunction(
     functionName: string,
     valueFunction: (v1: number, v2: number) => number,
   ): ExpressionNodeEvaluator {
@@ -40,7 +40,7 @@ class EvaluatorHelper {
         const v1 = node.children[0];
         const v2 = node.children[1];
 
-        if (v1 && v2) {
+        if (v1 !== undefined && v2 !== undefined) {
           context._evaluate(v1);
           context._evaluate(v2);
           const evaluatedV2 = context._popNode();
@@ -105,10 +105,65 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   EvaluatorHelper.makeSingleValueEvaluator('Lg', (v) => Math.log10(v)),
   EvaluatorHelper.makeSingleValueEvaluator('Log2', (v) => Math.log2(v)),
 
-  EvaluatorHelper.makeTwoInputFunction('Plus', (v1, v2) => v1 + v2),
-  EvaluatorHelper.makeTwoInputFunction('Minus', (v1, v2) => v1 - v2),
-  EvaluatorHelper.makeTwoInputFunction('Times', (v1, v2) => v1 * v2),
-  EvaluatorHelper.makeTwoInputFunction('Divide', (v1, v2) => v1 / v2),
+  EvaluatorHelper.makeTwoInputValueFunction('Plus', (v1, v2) => v1 + v2),
+  EvaluatorHelper.makeTwoInputValueFunction('Minus', (v1, v2) => v1 - v2),
+  EvaluatorHelper.makeTwoInputValueFunction('Times', (v1, v2) => v1 * v2),
+  EvaluatorHelper.makeTwoInputValueFunction('Divide', (v1, v2) => v1 / v2),
+
+  {
+    match: { type: 'functionName', functionName: 'Out' },
+    action: (node: FunctionNode, context: IEvaluateContext) => {
+      const historyLength = context._getHistoryLength();
+      // 无 history
+      if (historyLength === 0) {
+        context._pushNode(node);
+        return;
+      }
+
+      // 有 history, 有参数
+      if (node.children.length) {
+        const v1 = node.children[0];
+        context._evaluate(v1);
+        const evaluatedV1 = context._popNode();
+        node.children[0] = evaluatedV1;
+
+        // 非 number 类型
+        if (evaluatedV1.type !== 'value') {
+          context._pushNode(node);
+          return;
+        }
+
+        // 负数
+        const requestedIdx = evaluatedV1.value;
+        if (requestedIdx < 0) {
+          context._pushNode(node);
+          return;
+        }
+
+        // 数组越界
+        if (requestedIdx >= historyLength) {
+          context._pushNode(node);
+          return;
+        }
+
+        // 非整数
+        const requestedIdxInt = parseInt(requestedIdx.toFixed(0));
+        if (requestedIdx !== requestedIdxInt) {
+          context._pushNode(node);
+          return;
+        }
+
+        const history = context._getHistory(requestedIdx);
+        context._pushNode(history);
+        return;
+      } else {
+        // 无参数
+        const history = context._getMostRecentHistory();
+        context._pushNode(history);
+        return;
+      }
+    },
+  },
 
   {
     match: { type: 'functionName', functionName: 'Append' },

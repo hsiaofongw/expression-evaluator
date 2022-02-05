@@ -23,6 +23,9 @@ export interface IEvaluateContext {
   _pushNode(node: ExpressionNode): void;
   _getValue(identifierNode: IdentifierNode): ExpressionNode;
   _setValue(identifier: string, node: ExpressionNode): void;
+  _getHistory(idx: number): ExpressionNode;
+  _getHistoryLength(): number;
+  _getMostRecentHistory(): ExpressionNode;
 }
 
 export type ExpressionNodeEvaluator = {

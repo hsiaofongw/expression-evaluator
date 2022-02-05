@@ -93,4 +93,16 @@ export class Evaluate extends Transform implements IEvaluateContext {
     this._globalContext[identifier] = node;
     this._pushNode(node);
   }
+
+  _getHistory(idx: number): ExpressionNode {
+    return this._outputHistory[idx];
+  }
+
+  _getHistoryLength(): number {
+    return this._outputHistory.length;
+  }
+
+  _getMostRecentHistory(): ExpressionNode {
+    return this._outputHistory[this._outputHistory.length - 1];
+  }
 }
