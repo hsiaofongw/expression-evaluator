@@ -104,6 +104,18 @@ export class ToToken extends Transform {
         return;
       }
 
+      // 如果遇到一个左花括号 {, 则 emit 一个左花括号 { token
+      if (charObject.char.match(/\{/)) {
+        this._emitSingleToken(charObject, tokenClasses.leftBracket);
+        return;
+      }
+
+      // 如果遇到一个右花括号 }, 则 emit 一个右花括号 } token
+      if (charObject.char.match(/\}/)) {
+        this._emitSingleToken(charObject, tokenClasses.rightBracket);
+        return;
+      }
+
       // 如果遇到一个逗号 ,, 则 emit 一个逗号 , token
       if (charObject.char.match(/\,/)) {
         this._emitSingleToken(charObject, tokenClasses.comma);

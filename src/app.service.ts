@@ -2,17 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { SyntaxSymbolHelper } from './parser/helpers';
 import { ToCharacters, ToToken } from './lexer/lexer';
 import { createInterface } from 'readline';
-import {
-  allRules,
-  allSymbols,
-  nonTerminalSymbols,
-  terminalSymbols,
-} from './parser/config';
+import { allRules, allSymbols } from './parser/config';
 import { LL1PredictiveParser, ToTerminalNode } from './parser/parser';
 import {
   SyntaxAnalysisConfiguration,
   SyntaxConfiguration,
-  SyntaxSymbol,
 } from './parser/interfaces';
 import { stdin, stdout } from 'process';
 import { ExpressionTranslate } from './translate/translate';
@@ -25,13 +19,13 @@ export class AppService {
       symbols: allSymbols,
       rules: allRules,
       specialSymbol: {
-        entrySymbol: allSymbols.list,
+        entrySymbol: allSymbols.start,
         epsilonSymbol: allSymbols.epsilon,
         endOfFileSymbol: allSymbols.endOfFile,
       },
     };
     const symbolHelper = new SyntaxSymbolHelper(syntaxConfiguration);
-    // symbolHelper.printPredictiveTable();
+    symbolHelper.printPredictiveTable();
     const syntaxAnalysisConfiguration: SyntaxAnalysisConfiguration = {
       ...syntaxConfiguration,
       syntaxAnalysisPartner: symbolHelper,
@@ -58,14 +52,11 @@ export class AppService {
     // const inputString1 = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
     // const inputString2 = '4 * (.1 - 1.) + 2';
 
-    toChars
-      .pipe(toToken)
-      .pipe(toTerminalNode)
-      .pipe(parse)
-      .pipe(translate)
-      .pipe(evaluate);
+    toChars.pipe(toToken).pipe(toTerminalNode).pipe(parse);
+    // .pipe(translate)
+    // .pipe(evaluate);
 
-    evaluate.on('data', (datum) => {
+    parse.on('data', (datum) => {
       console.log(`\nOut[${lineNumber}]:`);
       lineNumber = lineNumber + 1;
 

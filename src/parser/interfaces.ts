@@ -4,9 +4,9 @@ import { SyntaxSymbolHelper } from './helpers';
 export type SyntaxSymbol = {
   id: string;
   name: string;
-  description?: string;
-  expandSymbol?: boolean;
-  displayName?: string;
+  description: string;
+  displayName: string;
+  zhName: string;
 } & (
   | { type: 'nonTerminal' }
   | { type: 'terminal'; definition: { tokenClassName: TokenClass['name'] } }

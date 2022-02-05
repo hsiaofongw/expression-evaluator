@@ -1,12 +1,34 @@
+import { ArrayHelper } from 'src/helpers/to-array';
 import { SyntaxSymbol, ProductionRule } from './interfaces';
+
+// S
+const start: SyntaxSymbol = {
+  id: 'start',
+  name: 'Start',
+  description: '开始符号',
+  type: 'nonTerminal',
+  displayName: 'S',
+  zhName: '开始',
+};
+
+// A
+const array: SyntaxSymbol = {
+  id: 'array',
+  name: 'Array',
+  description: '数组符号',
+  type: 'nonTerminal',
+  displayName: 'A',
+  zhName: '数组',
+};
 
 // L
 const list: SyntaxSymbol = {
   id: 'list',
   name: 'List',
-  description: '列表',
+  description: '列表符号',
   type: 'nonTerminal',
   displayName: 'L',
+  zhName: '列表',
 };
 
 // L'
@@ -16,15 +38,17 @@ const listExpand: SyntaxSymbol = {
   description: '列表第二项及以后',
   type: 'nonTerminal',
   displayName: "L'",
+  zhName: '列表余项',
 };
 
 // E
 const expression: SyntaxSymbol = {
   id: 'expression',
   name: 'Expression',
-  description: '表达式',
+  description: '表达式符号',
   type: 'nonTerminal',
   displayName: 'E',
+  zhName: '表达式',
 };
 
 // ε
@@ -32,6 +56,7 @@ const epsilon: SyntaxSymbol = {
   id: 'epsilon',
   name: 'Epsilon',
   description: '空符号',
+  zhName: '空',
   type: 'terminal',
   displayName: 'ε',
   definition: {
@@ -43,12 +68,13 @@ const epsilon: SyntaxSymbol = {
 const number: SyntaxSymbol = {
   id: 'number',
   name: 'Number',
-  description: '数字',
+  description: '数值符号',
   type: 'terminal',
   displayName: 'num',
   definition: {
     tokenClassName: 'digits',
   },
+  zhName: '数值',
 };
 
 // E'
@@ -58,44 +84,57 @@ const expressionExpand: SyntaxSymbol = {
   description: '表达式（辅助符号）',
   type: 'nonTerminal',
   displayName: "E'",
-  expandSymbol: true,
+  zhName: '表达式余项',
 };
 
 // T
 const term: SyntaxSymbol = {
   id: 'term',
   name: 'Term',
-  description: '项',
+  description: '可加项符号',
   type: 'nonTerminal',
   displayName: 'T',
+  zhName: '可加项',
 };
 
 // T'
 const termExpand: SyntaxSymbol = {
   id: 'termExpand',
   name: 'TermExpand',
-  description: '项（辅助符号）',
+  description: '可加项余项符号（辅助符号）',
   type: 'nonTerminal',
   displayName: "T'",
-  expandSymbol: true,
+  zhName: '可加项余项',
 };
 
 // F
 const factor: SyntaxSymbol = {
   id: 'factor',
   name: 'Factor',
-  description: '因子',
+  description: '因子符号（可乘项）',
   type: 'nonTerminal',
   displayName: 'F',
+  zhName: '因子',
 };
 
 // F'
 const factorExpand: SyntaxSymbol = {
   id: 'factorExpand',
   name: 'FactorExpand',
-  description: '因子余项',
+  description: '因子余项符号（辅助符号）',
   type: 'nonTerminal',
   displayName: "F'",
+  zhName: '因子余项',
+};
+
+// P
+const parametersPart: SyntaxSymbol = {
+  id: 'parametersPart',
+  name: 'ParametersPart',
+  description: '函数调用中的参数部分',
+  type: 'nonTerminal',
+  displayName: 'P',
+  zhName: '函数参数部分',
 };
 
 // '+'
@@ -108,6 +147,7 @@ const plus: SyntaxSymbol = {
   definition: {
     tokenClassName: 'plus',
   },
+  zhName: '加号',
 };
 
 // '-'
@@ -120,6 +160,7 @@ const minus: SyntaxSymbol = {
   definition: {
     tokenClassName: 'minus',
   },
+  zhName: '减号',
 };
 
 // '*'
@@ -132,6 +173,7 @@ const times: SyntaxSymbol = {
   definition: {
     tokenClassName: 'times',
   },
+  zhName: '乘号',
 };
 
 // '/'
@@ -144,109 +186,159 @@ const divideBy: SyntaxSymbol = {
   definition: {
     tokenClassName: 'divideBy',
   },
+  zhName: '除号',
 };
 
 // '('
 const leftParenthesis: SyntaxSymbol = {
   id: 'leftParenthesis',
   name: 'LeftParenthesis',
-  description: '左括号',
+  description: '左括号，通常用于强制运算符结合顺序。',
   type: 'terminal',
   displayName: "'('",
   definition: {
     tokenClassName: 'leftParenthesis',
   },
+  zhName: '左括号',
 };
 
 // ')'
 const rightParenthesis: SyntaxSymbol = {
   id: 'rightParenthesis',
   name: 'RightParenthesis',
-  description: '右括号',
+  description: '右括号，通常用于强制运算符结合顺序。',
   type: 'terminal',
   displayName: "')'",
   definition: {
     tokenClassName: 'rightParenthesis',
   },
+  zhName: '右括号',
 };
 
 // '['
 const leftSquareBracket: SyntaxSymbol = {
   id: 'leftSquareBracket',
   name: 'LeftSquareBracket',
-  description: '左方括号',
+  description: '左方括号，通常用于表示一个函数参数列表的开始。',
   type: 'terminal',
   displayName: '[',
   definition: {
     tokenClassName: 'leftSquareBracket',
   },
+  zhName: '左方括号',
 };
 
 // ']'
 const rightSquareBracket: SyntaxSymbol = {
   id: 'rightSquareBracket',
   name: 'RightSquareBracket',
-  description: '右方括号',
+  description: '右方括号，通常用于表示一个函数参数列表的结束。',
   displayName: ']',
   type: 'terminal',
   definition: {
     tokenClassName: 'rightSquareBracket',
   },
+  zhName: '右方括号',
+};
+
+// '{'
+const leftBracket: SyntaxSymbol = {
+  id: 'leftBracket',
+  name: 'LeftBracket',
+  description: '左花括号',
+  displayName: '{',
+  type: 'terminal',
+  definition: {
+    tokenClassName: 'leftBracket',
+  },
+  zhName: '左花括号',
+};
+
+// '}'
+const rightBracket: SyntaxSymbol = {
+  id: 'rightBracket',
+  name: 'RightBracket',
+  description: '右花括号',
+  displayName: '}',
+  type: 'terminal',
+  definition: {
+    tokenClassName: 'rightBracket',
+  },
+  zhName: '右花括号',
 };
 
 // id
 const identifier: SyntaxSymbol = {
   id: 'identifier',
   name: 'Identifier',
-  description: '标识符',
+  description:
+    '标识符，一般也就是变量名，通常是以下划线或者字母打头，然后后续可能紧接着 0 个或多个字母、数字以及下划线。',
   type: 'terminal',
   displayName: 'id',
   definition: {
     tokenClassName: 'identifier',
   },
+  zhName: '标识符',
 };
 
 // comma
 const comma: SyntaxSymbol = {
   id: 'comma',
   name: 'Comma',
-  description: '逗号',
+  description: '逗号，可用作函数参数列表的分隔符或者数组各项的分隔符。',
   type: 'terminal',
   displayName: ',',
   definition: {
     tokenClassName: 'comma',
   },
+  zhName: '逗号',
 };
 
 // $
 const endOfFile: SyntaxSymbol = {
   id: 'endOfFile',
   name: 'EndOfFile',
-  description: '文件结束符',
+  description: '文件结束符，表示输入结束。',
   type: 'terminal',
   displayName: '$',
   definition: {
     tokenClassName: 'endOfFile',
   },
+  zhName: '文件结束符',
 };
 
+/** 所有符号 */
 export const allSymbols = {
+  start,
+
+  array,
+
   list,
   listExpand,
+
   expression,
   expressionExpand,
+
   term,
   termExpand,
+
   factor,
   factorExpand,
+
+  parametersPart,
+
   plus,
   minus,
   times,
   divideBy,
+
   leftParenthesis,
   rightParenthesis,
   leftSquareBracket,
   rightSquareBracket,
+  leftBracket,
+  rightBracket,
+
   number,
   identifier,
   comma,
@@ -254,111 +346,108 @@ export const allSymbols = {
   endOfFile,
 };
 
-export const nonTerminalSymbols: SyntaxSymbol[] = [
-  allSymbols.list,
-  allSymbols.listExpand,
-  allSymbols.expression,
-  allSymbols.expressionExpand,
-  allSymbols.term,
-  allSymbols.termExpand,
-  allSymbols.factor,
-  allSymbols.factorExpand,
-];
+/** 文法中的全体非终结符号 */
+export const nonTerminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(
+  allSymbols,
+).filter((sbl) => sbl.type === 'nonTerminal');
 
-export const terminalSymbols: SyntaxSymbol[] = [
-  allSymbols.identifier,
-  allSymbols.number,
-  allSymbols.comma,
-  allSymbols.leftParenthesis,
-  allSymbols.leftSquareBracket,
-  allSymbols.rightParenthesis,
-  allSymbols.rightSquareBracket,
-  allSymbols.plus,
-  allSymbols.minus,
-  allSymbols.times,
-  allSymbols.divideBy,
-  allSymbols.endOfFile,
-];
+/** 文法中的全体终结符号 */
+export const terminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(
+  allSymbols,
+).filter((sbl) => sbl.type === 'terminal');
 
+/** 全体产生式规则 */
 export const allRules: ProductionRule[] = [
-  // L -> E L'
   {
-    name: "L -> E L'",
+    name: 'S -> A',
+    lhs: allSymbols.start,
+    rhs: [allSymbols.array],
+  },
+
+  {
+    name: 'S -> E',
+    lhs: allSymbols.start,
+    rhs: [allSymbols.expression],
+  },
+
+  {
+    name: 'A -> { L }',
+    lhs: allSymbols.array,
+    rhs: [allSymbols.leftBracket, allSymbols.list, allSymbols.rightBracket],
+  },
+
+  {
+    name: 'L -> ε',
     lhs: allSymbols.list,
-    rhs: [allSymbols.expression, allSymbols.listExpand],
+    rhs: [allSymbols.epsilon],
   },
 
-  // L' -> , E L'
   {
-    name: "L' -> , E L'",
-    lhs: allSymbols.listExpand,
-    rhs: [allSymbols.comma, allSymbols.expression, allSymbols.listExpand],
+    name: "L -> S L'",
+    lhs: allSymbols.list,
+    rhs: [allSymbols.start, allSymbols.listExpand],
   },
 
-  // L' -> ε
+  {
+    name: "L' -> , S L'",
+    lhs: allSymbols.listExpand,
+    rhs: [allSymbols.comma, allSymbols.start, allSymbols.listExpand],
+  },
+
   {
     name: "L' -> ε",
     lhs: allSymbols.listExpand,
     rhs: [allSymbols.epsilon],
   },
 
-  // E -> T E'
   {
     name: "E -> T E'",
     lhs: allSymbols.expression,
     rhs: [allSymbols.term, allSymbols.expressionExpand],
   },
 
-  // E' -> '+' T E'
   {
     name: "E' -> '+' T E'",
     lhs: allSymbols.expressionExpand,
     rhs: [allSymbols.plus, allSymbols.term, allSymbols.expressionExpand],
   },
 
-  // E' -> '-' T E'
   {
     name: "E' -> '-' T E'",
     lhs: allSymbols.expressionExpand,
     rhs: [allSymbols.minus, allSymbols.term, allSymbols.expressionExpand],
   },
 
-  // E' -> ε
   {
     name: "E' -> ε",
     lhs: allSymbols.expressionExpand,
     rhs: [allSymbols.epsilon],
   },
 
-  // T -> F T'
   {
     name: "T -> F T'",
     lhs: allSymbols.term,
     rhs: [allSymbols.factor, allSymbols.termExpand],
   },
 
-  // T' -> '*' F T'
   {
     name: "T' -> '*' F T'",
     lhs: allSymbols.termExpand,
     rhs: [allSymbols.times, allSymbols.factor, allSymbols.termExpand],
   },
 
-  // T' -> '/' F T'
   {
     name: "T' -> '/' F T'",
     lhs: allSymbols.termExpand,
     rhs: [allSymbols.divideBy, allSymbols.factor, allSymbols.termExpand],
   },
 
-  // T' -> ε
   {
     name: "T' -> ε",
     lhs: allSymbols.termExpand,
     rhs: [allSymbols.epsilon],
   },
 
-  // F -> '(' E ')'
   {
     name: "F -> '(' E ')'",
     lhs: allSymbols.factor,
@@ -369,35 +458,31 @@ export const allRules: ProductionRule[] = [
     ],
   },
 
-  // F -> number
   {
     name: 'F -> number',
     lhs: allSymbols.factor,
     rhs: [allSymbols.number],
   },
 
-  // F -> id F'
   {
-    name: "F -> id F'",
+    name: 'F -> id P',
     lhs: allSymbols.factor,
-    rhs: [allSymbols.identifier, allSymbols.factorExpand],
+    rhs: [allSymbols.identifier, allSymbols.parametersPart],
   },
 
-  // F' -> [ L ]
   {
-    name: "F' -> [ L ]",
-    lhs: allSymbols.factorExpand,
+    name: 'P -> ε',
+    lhs: allSymbols.parametersPart,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: 'P -> [ L ]',
+    lhs: allSymbols.parametersPart,
     rhs: [
       allSymbols.leftSquareBracket,
       allSymbols.list,
       allSymbols.rightSquareBracket,
     ],
-  },
-
-  // F' -> ε
-  {
-    name: "F' -> ε",
-    lhs: allSymbols.factorExpand,
-    rhs: [allSymbols.epsilon],
   },
 ];

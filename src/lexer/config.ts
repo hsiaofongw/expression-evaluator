@@ -108,6 +108,18 @@ const rightSquareBracket: TokenClass = {
   description: '右方括号 ]',
 };
 
+const leftBracket: TokenClass = {
+  name: 'leftBracket',
+  definition: { type: 'content', content: '{' },
+  description: '左花括号 {',
+};
+
+const rightBracket: TokenClass = {
+  name: 'rightBracket',
+  definition: { type: 'content', content: '}' },
+  description: '右花括号 }',
+};
+
 const endOfLine: TokenClass = {
   name: 'endOfLine',
   definition: {
@@ -125,8 +137,6 @@ const endOfFile: TokenClass = {
 };
 
 export const tokenClasses = {
-  leftParenthesis,
-  rightParenthesis,
   plus,
   minus,
   times,
@@ -135,8 +145,12 @@ export const tokenClasses = {
   identifier,
   number,
   comma,
+  leftParenthesis,
+  rightParenthesis,
   leftSquareBracket,
   rightSquareBracket,
+  leftBracket,
+  rightBracket,
   endOfLine,
   endOfFile,
 };
