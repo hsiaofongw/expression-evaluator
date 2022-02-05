@@ -13,6 +13,22 @@ import {
 type Evaluator = (node: Node) => void;
 type EvaluatorMap = Record<string, Evaluator>;
 
+export class ExpressionNodeHelper {
+  public static nodeToString(node: ExpressionNode): string {
+    if (node.type === 'identifier') {
+      return node.identifier;
+    } else if (node.type === 'value') {
+      return node.value.toString();
+    } else {
+      const functionName = node.functionName;
+      const parameters = node.children
+        .map((_n) => ExpressionNodeHelper.nodeToString(_n))
+        .join(', ');
+      return `${functionName}[${parameters}]`;
+    }
+  }
+}
+
 export class ExpressionTranslate extends Transform {
   _nodeStack: ExpressionNode[] = [];
 

@@ -9,7 +9,10 @@ import {
   SyntaxConfiguration,
 } from './parser/interfaces';
 import { stdin, stdout } from 'process';
-import { ExpressionTranslate } from './translate/translate';
+import {
+  ExpressionNodeHelper,
+  ExpressionTranslate,
+} from './translate/translate';
 import { Evaluate } from './translate/evaluate';
 
 @Injectable()
@@ -25,7 +28,7 @@ export class AppService {
       },
     };
     const symbolHelper = new SyntaxSymbolHelper(syntaxConfiguration);
-    symbolHelper.printPredictiveTable();
+    // symbolHelper.printPredictiveTable();
     const syntaxAnalysisConfiguration: SyntaxAnalysisConfiguration = {
       ...syntaxConfiguration,
       syntaxAnalysisPartner: symbolHelper,
@@ -60,7 +63,7 @@ export class AppService {
       console.log(`\nOut[${lineNumber}]:`);
       lineNumber = lineNumber + 1;
 
-      console.log(datum);
+      console.log(ExpressionNodeHelper.nodeToString(datum));
 
       asking();
     });
