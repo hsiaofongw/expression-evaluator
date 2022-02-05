@@ -215,6 +215,60 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   },
 
   {
+    match: { type: 'functionName', functionName: 'GetParametersList' },
+    action: (node: FunctionNode, context: IEvaluateContext) => {
+      if (node.children.length === 0) {
+        context._pushNode(node);
+        return;
+      }
+
+      const v1 = node.children[0];
+      if (v1.type !== 'function') {
+        context._pushNode(node);
+        return;
+      }
+
+      const parameters: ExpressionNode[] = [];
+      for (const param of v1.children) {
+        context._evaluate(param);
+        parameters.push(context._popNode());
+      }
+
+      context._pushNode({
+        type: 'function',
+        functionName: 'List',
+        children: parameters,
+      });
+    },
+  },
+
+  {
+    match: { type: 'functionName', functionName: 'Take' },
+    action: (node, context) => {
+      if (node.children.length === 2) {
+        const v1 = node.children[0];
+        const v2 = node.children[1];
+        context._evaluate(v1);
+        context._evaluate(v2);
+
+        const nv2 = context._popNode();
+        const nv1 = context._popNode();
+
+        if (nv1.type === 'function' && nv2.type === 'value') {
+          const idx = parseInt(nv2.value.toFixed(0));
+          if (idx >= 0 && idx < nv1.children.length) {
+            const element = nv1.children[idx];
+            context._evaluate(element);
+            return;
+          }
+        }
+      }
+
+      context._pushNode(node);
+    },
+  },
+
+  {
     match: { type: 'functionName', functionName: 'Out' },
     action: (node: FunctionNode, context: IEvaluateContext) => {
       const historyLength = context._getHistoryLength();
