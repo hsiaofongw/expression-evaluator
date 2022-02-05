@@ -8,6 +8,53 @@ import {
 } from './interfaces';
 
 class EvaluatorHelper {
+  /** compare two node, no evaluate, just direct compare */
+  public static twoNodeEqualQ(a: ExpressionNode, b: ExpressionNode): boolean {
+    const compareList: ExpressionNode[][] = [[a, b]];
+    while (compareList.length) {
+      const pair = compareList.pop() as any as ExpressionNode[];
+      const lhs = pair[0];
+      const rhs = pair[1];
+
+      if (lhs.type !== rhs.type) {
+        return false;
+      } else if (lhs.type === 'function' && rhs.type === 'function') {
+        if (lhs.functionName !== rhs.functionName) {
+          // 函数名不一样
+          return false;
+        } else if (
+          lhs.functionName === rhs.functionName &&
+          lhs.children.length !== rhs.children.length
+        ) {
+          // 函数输入个数不一样
+          return false;
+        } else {
+          // 函数名一样，函数个数也一样，对比 chilren
+          for (let i = 0; i < lhs.children.length; i++) {
+            compareList.push([lhs.children[i], rhs.children[i]]);
+          }
+        }
+      } else if (lhs.type === 'boolean' && rhs.type === 'boolean') {
+        if (lhs.value !== rhs.value) {
+          return false;
+        }
+
+        // 如果相等，不要退出，可能还有其它项需要比较（也就是说 compareList 非空），下同。
+      } else if (lhs.type === 'identifier' && rhs.type === 'identifier') {
+        if (lhs.value !== rhs.value) {
+          return false;
+        }
+      } else if (lhs.type === 'value' && rhs.type === 'value') {
+        if (lhs.value !== rhs.value) {
+          return false;
+        }
+      } else {
+      }
+    }
+
+    return true;
+  }
+
   public static makeSingleValueEvaluator(
     functionName: string,
     valueFunction: (v: number) => number,
@@ -109,6 +156,29 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   EvaluatorHelper.makeTwoInputValueFunction('Minus', (v1, v2) => v1 - v2),
   EvaluatorHelper.makeTwoInputValueFunction('Times', (v1, v2) => v1 * v2),
   EvaluatorHelper.makeTwoInputValueFunction('Divide', (v1, v2) => v1 / v2),
+
+  {
+    match: { type: 'functionName', functionName: 'EqualQ' },
+    action: (node: FunctionNode, context: IEvaluateContext) => {
+      if (node.children.length === 2) {
+        context._evaluate(node.children[0]);
+        context._evaluate(node.children[1]);
+        node.children[1] = context._popNode();
+        node.children[0] = context._popNode();
+
+        context._pushNode({
+          type: 'boolean',
+          value: EvaluatorHelper.twoNodeEqualQ(
+            node.children[0],
+            node.children[1],
+          ),
+        });
+        return;
+      }
+
+      context._pushNode(node);
+    },
+  },
 
   {
     match: { type: 'functionName', functionName: 'GetHead' },
