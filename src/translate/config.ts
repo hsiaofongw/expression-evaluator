@@ -187,6 +187,13 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   }),
 
   {
+    match: { type: 'functionName', functionName: 'FullForm' },
+    action: (node, context) => {
+      context._pushNode(node.children[0]);
+    },
+  },
+
+  {
     match: { type: 'functionName', functionName: 'If' },
     action: (node, context) => {
       if (node.children.length === 3) {

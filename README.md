@@ -51,6 +51,7 @@ Exp[x]                      # 计算 e^{x}
 Ln[x]                       # 计算 x 的自然对数
 Lg[x]                       # 计算 x 的以 10 为底的对数
 Log2[x]                     # 计算 x 的以 2 为底的对数
+FullForm[x]                 # 给出输入的标准 Expression 形式
 ```
 
 ## 开发计划 Roadmap
