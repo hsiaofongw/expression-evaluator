@@ -70,13 +70,9 @@ export class Evaluate extends Transform implements IEvaluateContext {
     if (node.type === 'function') {
       const evaluator = this._getEvaluatorForFunctionNode(node.functionName);
       evaluator.action(node, this);
-    }
-
-    if (node.type === 'identifier') {
+    } else if (node.type === 'identifier') {
       this._pushNode(this._getValue(node));
-    }
-
-    if (node.type === 'value') {
+    } else {
       this._pushNode(node);
     }
   }

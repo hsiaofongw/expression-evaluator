@@ -9,18 +9,16 @@ type EvaluatorMap = Record<string, Evaluator>;
 
 export class ExpressionNodeHelper {
   public static nodeToString(node: ExpressionNode): string {
-    if (
-      node.type === 'identifier' ||
-      node.type === 'value' ||
-      node.type === 'boolean'
-    ) {
-      return node.value.toString();
-    } else {
+    if (node.type === 'function') {
       const functionName = node.functionName;
       const parameters = node.children
         .map((_n) => ExpressionNodeHelper.nodeToString(_n))
         .join(', ');
       return `${functionName}[${parameters}]`;
+    } else if (node.type === 'string') {
+      return '"' + node.value.toString() + '"';
+    } else {
+      return node.value.toString();
     }
   }
 
@@ -34,6 +32,21 @@ export class ExpressionTranslate extends Transform {
 
   _evaluatorMap: EvaluatorMap = {
     'S -> A': (node) => this._evaluateEveryChild(node),
+
+    'S -> E': (node) => this._evaluateEveryChild(node),
+
+    'S -> str': (node) => {
+      if (node.type === 'nonTerminal') {
+        const v1 = node.children[0];
+        if (v1.type === 'terminal' && v1.token) {
+          const stringContent = v1.token.content;
+          this._pushNode({
+            type: 'string',
+            value: stringContent,
+          });
+        }
+      }
+    },
 
     'A -> { L }': (node) => {
       if (node.type === 'nonTerminal') {
@@ -49,8 +62,6 @@ export class ExpressionTranslate extends Transform {
     "L' -> , S L'": (node) => this._reduceByAppend(node, 1, 2),
 
     "L' -> ε": (_) => {},
-
-    'S -> E': (node) => this._evaluateEveryChild(node),
 
     "E -> T E'": (node) => this._evaluateEveryChild(node),
 

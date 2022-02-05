@@ -3,22 +3,30 @@ export type BuiltInArithmeticFunctionName =
   | 'Minus'
   | 'Times'
   | 'Divide';
+
 export type FunctionNode = {
   type: 'function';
   functionName: string;
   children: ExpressionNode[];
 };
+
 export type ValueNode = {
   type: 'value';
   numberType: 'integer' | 'float';
   value: number;
 };
+
 export type IdentifierNode = { type: 'identifier'; value: string };
+
 export type BooleanNode = { type: 'boolean'; value: boolean };
+
+export type StringNode = { type: 'string'; value: string };
+
 export type ExpressionNode =
   | FunctionNode
   | ValueNode
   | BooleanNode
+  | StringNode
   | IdentifierNode;
 
 export interface IEvaluateContext {

@@ -37,7 +37,13 @@ export class ToCharacters extends Transform {
 }
 
 type StateAction = (charObject: CharObject) => void;
-type State = 'start' | 'number' | 'float' | 'identifier';
+type State =
+  | 'start'
+  | 'number'
+  | 'float'
+  | 'identifier'
+  | 'string'
+  | 'stringEscape';
 
 /** 将 chars 组合成 token */
 export class ToToken extends Transform {
@@ -119,6 +125,18 @@ export class ToToken extends Transform {
       // 如果遇到一个逗号 ,, 则 emit 一个逗号 , token
       if (charObject.char.match(/\,/)) {
         this._emitSingleToken(charObject, tokenClasses.comma);
+        return;
+      }
+
+      // 如果遇到一个双引号 "
+      if (charObject.char.match(/\"/)) {
+        // 双引号本身丢弃
+
+        // 设置字符串起始 offset, 在双引号后一位
+        this._offset = charObject.offset + 1;
+
+        // 进入 string 模式
+        this._state = 'string';
         return;
       }
 
@@ -216,6 +234,44 @@ export class ToToken extends Transform {
         // 对于所有其他使得 identifier 输入状态中止的输入
         this._emitToken(charObject, tokenClasses.identifier);
       }
+    },
+
+    // 在 string 输入状态下
+    string: (charObject) => {
+      if (charObject.char.match(/\\/)) {
+        // 当前字符本身跳过
+
+        // 进入字符转义状态
+        this._state = 'stringEscape';
+      } else if (charObject.char.match(/[^\"]/)) {
+        // 吸收
+        this._append(charObject.char);
+      } else {
+        // 对于其余所有的情况
+
+        // 释出 token
+        const token: TypedToken = {
+          offset: this._offset,
+          content: this._content,
+          type: tokenClasses.stringToken,
+        };
+        this.push(token);
+
+        // 重置 token 内容区
+        this._content = '';
+
+        // 回到开始状态
+        this._state = 'start';
+      }
+    },
+
+    // 字符转义模式，接受且只接受一个
+    stringEscape: (charObject) => {
+      // 接受完了这一个
+      this._append(charObject.char);
+
+      // 立马回到 string 状态
+      this._state = 'string';
     },
   };
 

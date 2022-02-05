@@ -13,7 +13,6 @@ export type TokenClassDefinition =
 
 export type TokenClass = {
   name: string;
-  definition: TokenClassDefinition;
   description?: string;
 };
 

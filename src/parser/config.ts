@@ -11,6 +11,17 @@ const start: SyntaxSymbol = {
   zhName: '开始',
 };
 
+// str
+const stringSymbol: SyntaxSymbol = {
+  id: 'string',
+  name: 'String',
+  description: '字符串符号',
+  type: 'terminal',
+  definition: { tokenClassName: 'string' },
+  displayName: 'str',
+  zhName: '字符串',
+};
+
 // A
 const array: SyntaxSymbol = {
   id: 'array',
@@ -312,6 +323,7 @@ export const allSymbols = {
   start,
 
   array,
+  stringSymbol,
 
   list,
   listExpand,
@@ -368,6 +380,12 @@ export const allRules: ProductionRule[] = [
     name: 'S -> E',
     lhs: allSymbols.start,
     rhs: [allSymbols.expression],
+  },
+
+  {
+    name: 'S -> str',
+    lhs: allSymbols.start,
+    rhs: [allSymbols.stringSymbol],
   },
 
   {
