@@ -5,6 +5,7 @@ import {
   ExpressionNodeEvaluator,
   FunctionNode,
   IEvaluateContext,
+  ValueNode,
 } from './interfaces';
 
 class EvaluatorHelper {
@@ -65,7 +66,8 @@ class EvaluatorHelper {
         context._evaluate(node.children[0]);
         const v1 = context._popNode();
         if (v1.type === 'value') {
-          context._pushNode({ type: 'value', value: valueFunction(v1.value) });
+          const value = valueFunction(v1.value);
+          context._pushNode(EvaluatorHelper.makeValueNode(value));
         } else {
           context._pushNode({
             type: 'function',
@@ -82,7 +84,8 @@ class EvaluatorHelper {
     valueFunction: (v1: number, v2: number) => number,
   ): ExpressionNodeEvaluator {
     return EvaluatorHelper.makeTwoInputNodeFunction(functionName, (v1, v2) => {
-      return { type: 'value', value: valueFunction(v1, v2) };
+      const value = valueFunction(v1, v2);
+      return EvaluatorHelper.makeValueNode(value);
     });
   }
 
@@ -120,6 +123,14 @@ class EvaluatorHelper {
           process.exit(1);
         }
       },
+    };
+  }
+
+  public static makeValueNode(value: number): ValueNode {
+    return {
+      type: 'value',
+      value: value,
+      numberType: Math.floor(value) === value ? 'integer' : 'float',
     };
   }
 }
@@ -174,6 +185,34 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   EvaluatorHelper.makeTwoInputNodeFunction('LessThanOrEqual', (v1, v2) => {
     return { type: 'boolean', value: v1 <= v2 };
   }),
+
+  {
+    match: { type: 'functionName', functionName: 'If' },
+    action: (node, context) => {
+      if (node.children.length === 3) {
+        // 对条件 v1 求值
+        context._evaluate(node.children[0]);
+
+        // 更新 v1
+        node.children[0] = context._popNode();
+
+        // 只有 v1 求值后类型为 boolean, 才有定义
+        if (node.children[0].type === 'boolean') {
+          // 分支判断
+          if (node.children[0].value) {
+            context._evaluate(node.children[1]);
+          } else {
+            context._evaluate(node.children[2]);
+          }
+
+          // 执行完后立即退出
+          return;
+        }
+      }
+
+      context._pushNode(node);
+    },
+  },
 
   {
     match: { type: 'functionName', functionName: 'EqualQ' },

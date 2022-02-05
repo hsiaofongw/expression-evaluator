@@ -78,9 +78,12 @@ export class ExpressionTranslate extends Transform {
       if (node.type === 'nonTerminal') {
         const v1 = node.children[0];
         if (v1.type === 'terminal' && v1.token) {
+          const value = parseFloat(v1.token.content);
+          const isInteger = Math.floor(value) === value;
           this._pushNode({
             type: 'value',
-            value: parseFloat(v1.token.content),
+            value: value,
+            numberType: isInteger ? 'integer' : 'float',
           });
         }
       }

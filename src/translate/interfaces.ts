@@ -8,7 +8,11 @@ export type FunctionNode = {
   functionName: string;
   children: ExpressionNode[];
 };
-export type ValueNode = { type: 'value'; value: number };
+export type ValueNode = {
+  type: 'value';
+  numberType: 'integer' | 'float';
+  value: number;
+};
 export type IdentifierNode = { type: 'identifier'; value: string };
 export type BooleanNode = { type: 'boolean'; value: boolean };
 export type ExpressionNode =
