@@ -17,153 +17,87 @@ export class ExpressionTranslate extends Transform {
   _nodeStack: ExpressionNode[] = [];
 
   _evaluatorMap: EvaluatorMap = {
-    "L -> E L'": (node: Node) => {
+    'S -> A': (node) => this._evaluateEveryChild(node),
+
+    'A -> { L }': (node) => {
+      if (node.type === 'nonTerminal') {
+        this._nodeStack.push(this._makeFunctionNode('List', []));
+        this._evaluate(node.children[1]);
+      }
+    },
+
+    'L -> ε': (_) => {},
+
+    "L -> S L'": (node) => this._reduce(node, 'Append', 0, 1),
+
+    "L' -> , S L'": (node) => this._reduce(node, 'Append', 1, 2),
+
+    "L' -> ε": (_) => {},
+
+    'S -> E': (node) => this._evaluateEveryChild(node),
+
+    "E -> T E'": (node) => this._evaluateEveryChild(node),
+
+    "E' -> '+' T E'": (node) => this._reduce(node, 'Plus', 1, 2),
+
+    "E' -> '-' T E'": (node) => this._reduce(node, 'Minus', 1, 2),
+
+    "E' -> ε": (_) => {},
+
+    "T -> F T'": (node) => this._evaluateEveryChild(node),
+
+    "T' -> '*' F T'": (node) => this._reduce(node, 'Times', 1, 2),
+
+    "T' -> '/' F T'": (node) => this._reduce(node, 'Divide', 1, 2),
+
+    "T' -> ε": (_) => {},
+
+    "F -> '(' E ')'": (node) => {
+      if (node.type === 'nonTerminal') {
+        this._evaluate(node.children[1]);
+      }
+    },
+
+    'F -> number': (node) => {
       if (node.type === 'nonTerminal') {
         const v1 = node.children[0];
-        const v2 = node.children[1];
-        if (v1.type === 'nonTerminal' && v2.type === 'nonTerminal') {
-          // evaluate v1
-          this._getEvaluator(v1.ruleName, v1)(v1);
-
-          // get v1
-          const v1ExpressionNode: ExpressionNode =
-            this._nodeStack.pop() as ExpressionNode;
-
-          // put v1 in a list
-          const listNode: FunctionNode = {
-            type: 'function',
-            functionName: 'List',
-            children: [v1ExpressionNode],
-          };
-
-          // push list[v1]
-          this._nodeStack.push(listNode);
-
-          // evaluate L'
-          this._getEvaluator(v2.ruleName, v2)(v2);
+        if (v1.type === 'terminal' && v1.token) {
+          this._pushNode({
+            type: 'value',
+            value: parseFloat(v1.token.content),
+          });
         }
       }
     },
 
-    "L' -> , E L'": (node: Node) => {
-      if (node.type === 'nonTerminal') {
-        const v2 = node.children[1];
-        const v3 = node.children[2];
-
-        if (v2.type === 'nonTerminal' && v3.type === 'nonTerminal') {
-          const previousValue: FunctionNode =
-            this._nodeStack.pop() as any as FunctionNode;
-
-          this._getEvaluator(v2.ruleName, v2)(v2);
-          const currentValue: ExpressionNode =
-            this._nodeStack.pop() as ExpressionNode;
-
-          previousValue.children.push(currentValue);
-          this._nodeStack.push(previousValue);
-
-          this._getEvaluator(v3.ruleName, v3)(v3);
-        }
-      }
-    },
-
-    "L' -> ε": (_: Node) => {},
-
-    "E -> T E'": (node: Node) => {
-      if (node.type === 'nonTerminal') {
-        this._evalauteSequentially(node.children);
-      }
-    },
-
-    "E' -> '+' T E'": (node: Node) => {
-      this._evaluateArithmetic(node, 'Plus');
-    },
-
-    "E' -> '-' T E'": (node: Node) => {
-      this._evaluateArithmetic(node, 'Minus');
-    },
-
-    "E' -> ε": (_: Node) => {},
-
-    "T -> F T'": (node: Node) => {
-      if (node.type === 'nonTerminal') {
-        this._evalauteSequentially(node.children);
-      }
-    },
-
-    "T' -> '*' F T'": (node: Node) => {
-      this._evaluateArithmetic(node, 'Times');
-    },
-
-    "T' -> '/' F T'": (node: Node) => {
-      this._evaluateArithmetic(node, 'Divide');
-    },
-
-    "T' -> ε": (_: Node) => {},
-
-    "F -> '(' E ')'": (node: Node) => {
-      if (node.type === 'nonTerminal') {
-        const v2 = node.children[1];
-        if (v2.type === 'nonTerminal') {
-          this._getEvaluator(v2.ruleName, v2)(v2);
-        }
-      }
-    },
-
-    'F -> number': (node: Node) => {
-      if (node.type === 'nonTerminal') {
-        const numberNode = node.children[0];
-        if (numberNode.type === 'terminal' && numberNode.token) {
-          const valueString = numberNode.token.content;
-          const value = parseFloat(valueString);
-          const valueNode: ValueNode = { type: 'value', value: value };
-          this._nodeStack.push(valueNode);
-        }
-      }
-    },
-
-    "F -> id F'": (node: Node) => {
+    'F -> id P': (node) => {
       if (node.type === 'nonTerminal') {
         const v1 = node.children[0];
-        const v2 = node.children[1];
-        if (v1.type === 'terminal' && v1.token?.content) {
-          const functionName = v1.token.content;
-          const functionNode: FunctionNode = {
-            type: 'function',
-            functionName: functionName,
-            children: [],
-          };
-          this._nodeStack.push(functionNode);
-          if (v2.type === 'nonTerminal') {
-            this._getEvaluator(v2.ruleName, v2)(v2);
-          }
+        if (v1.type === 'terminal' && v1.token) {
+          this._pushNode(this._makeFunctionNode(v1.token.content, []));
+          this._evaluate(node.children[1]);
         }
       }
     },
 
-    "F' -> [ L ]": (node: Node) => {
-      if (node.type === 'nonTerminal') {
-        const v2 = node.children[1];
-        if (v2.type === 'nonTerminal') {
-          this._getEvaluator(v2.ruleName, v2)(v2);
-          const listNode = this._nodeStack.pop() as FunctionNode;
-
-          const functionNode = this._nodeStack.pop() as FunctionNode;
-          functionNode.children = listNode.children;
-          this._nodeStack.push(functionNode);
-        }
-      }
+    'P -> ε': (_) => {
+      const fn = this._popNode() as FunctionNode;
+      const id: IdentifierNode = {
+        type: 'identifier',
+        identifier: fn.functionName,
+      };
+      this._pushNode(id);
     },
 
-    "F' -> ε": (node: Node) => {
+    'P -> [ L ]': (node) => {
       if (node.type === 'nonTerminal') {
-        const functionNode = this._nodeStack.pop() as any as FunctionNode;
-        const functionName = functionNode.functionName;
-        const identifier = functionName;
-        const identifierNode: IdentifierNode = {
-          type: 'identifier',
-          identifier: identifier,
-        };
-        this._nodeStack.push(identifierNode);
+        const functionNode = this._popNode() as FunctionNode;
+        const parameters = this._makeFunctionNode('Parameters', []);
+        this._pushNode(parameters);
+        this._evaluate(node.children[1]);
+        const appendedParameters = this._popNode() as FunctionNode;
+        functionNode.children = [appendedParameters];
+        this._pushNode(functionNode);
       }
     },
   };
@@ -172,43 +106,63 @@ export class ExpressionTranslate extends Transform {
     super({ objectMode: true });
   }
 
-  private _getEvaluator(evaluatorName: string, node: Node): Evaluator {
-    const result = this._evaluatorMap[evaluatorName];
-
-    // console.log({ evaluatorName, node, result });
-
-    return result;
+  private _makeFunctionNode(
+    functionName: string,
+    children: ExpressionNode[],
+  ): FunctionNode {
+    return { type: 'function', functionName, children };
   }
 
-  private _evalauteSequentially(nodes: Node[]) {
-    for (const node of nodes) {
-      if (node.type === 'nonTerminal') {
-        this._getEvaluator(node.ruleName, node)(node);
-      }
+  private _reduce(
+    node: Node,
+    functionName: string,
+    currIdx: number,
+    nextIdx: number,
+  ): void {
+    if (node.type === 'nonTerminal') {
+      const prev = this._popNode();
+      this._evaluate(node.children[currIdx]);
+      const current = this._popNode();
+
+      const sum: FunctionNode = {
+        type: 'function',
+        functionName: functionName,
+        children: [prev, current],
+      };
+      this._pushNode(sum);
+
+      this._evaluate(node.children[nextIdx]);
     }
   }
 
-  private _evaluateArithmetic(node: Node, type: BuiltInArithmeticFunctionName) {
+  private _evaluateEveryChild(node: Node): void {
     if (node.type === 'nonTerminal') {
-      const v1 = node.children[0];
-      const v2 = node.children[1];
-      const v3 = node.children[2];
-      if (
-        v1.type === 'terminal' &&
-        v2.type === 'nonTerminal' &&
-        v3.type === 'nonTerminal'
-      ) {
-        this._getEvaluator(v2.ruleName, v2)(v2);
-        const v2Value = this._nodeStack.pop() as ExpressionNode;
-        const previousValue = this._nodeStack.pop() as ExpressionNode;
-        const currentValue: ExpressionNode = {
-          type: 'function',
-          functionName: type,
-          children: [previousValue, v2Value],
-        };
-        this._nodeStack.push(currentValue);
-        this._getEvaluator(v3.ruleName, v3)(v3);
+      node.children.forEach((child) => this._evaluate(child));
+    }
+  }
+
+  private _pushNode(node: ExpressionNode): void {
+    this._nodeStack.push(node);
+  }
+
+  private _popNode(): ExpressionNode {
+    return this._nodeStack.pop() as ExpressionNode;
+  }
+
+  private _evaluate(node: Node): void {
+    if (node.type === 'nonTerminal') {
+      const evaluator = this._evaluatorMap[node.ruleName];
+      if (typeof evaluator === 'function') {
+        evaluator(node);
+      } else {
+        console.error(`No evaluator`);
+        console.error({ node });
+        process.exit(1);
       }
+    } else {
+      console.error(`Try evaluate a terminal node`);
+      console.error({ node });
+      process.exit(1);
     }
   }
 
@@ -218,7 +172,7 @@ export class ExpressionTranslate extends Transform {
     callback: TransformCallback,
   ): void {
     if (node.type === 'nonTerminal') {
-      this._getEvaluator(node.ruleName, node)(node);
+      this._evaluate(node);
       this.push(this._nodeStack.pop());
     }
     callback();
