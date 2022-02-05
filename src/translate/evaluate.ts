@@ -6,7 +6,6 @@ import {
   IdentifierNode,
   IEvaluateContext,
 } from './interfaces';
-import { ExpressionNodeHelper } from './translate';
 
 export class Evaluate extends Transform implements IEvaluateContext {
   private _nodeStack: ExpressionNode[] = [];
