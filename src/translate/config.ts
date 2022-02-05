@@ -111,6 +111,22 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   EvaluatorHelper.makeTwoInputValueFunction('Divide', (v1, v2) => v1 / v2),
 
   {
+    match: { type: 'functionName', functionName: 'GetHead' },
+    action: (node: FunctionNode, context: IEvaluateContext) => {
+      if (node.children[0] !== undefined) {
+        context._evaluate(node.children[0]);
+        const v1 = context._popNode();
+        if (v1.type === 'function') {
+          context._pushNode({ type: 'identifier', value: v1.functionName });
+          return;
+        }
+      }
+
+      context._pushNode(node);
+    },
+  },
+
+  {
     match: { type: 'functionName', functionName: 'Out' },
     action: (node: FunctionNode, context: IEvaluateContext) => {
       const historyLength = context._getHistoryLength();
