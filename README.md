@@ -53,9 +53,9 @@ Lg[x]                       # 计算 x 的以 10 为底的对数
 Log2[x]                     # 计算 x 的以 2 为底的对数
 ```
 
-## 功能 Roadmap
+## 开发计划 Roadmap
 
-开发计划，按重要程度排序：
+按重要程度排序：
 
 Most urgent at top:
 
