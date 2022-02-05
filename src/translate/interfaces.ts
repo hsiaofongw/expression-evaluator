@@ -8,12 +8,26 @@ export type FunctionNode = {
   functionName: string;
   children: ExpressionNode[];
 };
-export type IdentifierNode = { type: 'identifier'; identifier: string };
 export type ValueNode = { type: 'value'; value: number };
-export type ExpressionNode = FunctionNode | IdentifierNode | ValueNode;
-export type Evaluator = (node: ExpressionNode) => void;
-export type EvaluatorMap = Record<string, Evaluator>;
-export type ExpressionNodeReduceFuntion = (
-  a: ExpressionNode,
-  b: ExpressionNode,
-) => ExpressionNode;
+export type IdentifierNode = { type: 'identifier'; value: string };
+export type BooleanNode = { type: 'boolean'; value: boolean };
+export type ExpressionNode =
+  | FunctionNode
+  | ValueNode
+  | BooleanNode
+  | IdentifierNode;
+
+export interface IEvaluateContext {
+  _evaluate(node: ExpressionNode): void;
+  _popNode(): ExpressionNode;
+  _pushNode(node: ExpressionNode): void;
+  _getValue(identifierNode: IdentifierNode): ExpressionNode;
+  _setValue(identifier: string, node: ExpressionNode): void;
+}
+
+export type ExpressionNodeEvaluator = {
+  match:
+    | { type: 'functionName'; functionName: string }
+    | { type: 'regexp'; regexp: RegExp };
+  action(node: FunctionNode, context: IEvaluateContext): void;
+};

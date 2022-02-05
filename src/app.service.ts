@@ -55,15 +55,18 @@ export class AppService {
     // const inputString1 = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
     // const inputString2 = '4 * (.1 - 1.) + 2';
 
-    toChars.pipe(toToken).pipe(toTerminalNode).pipe(parse).pipe(translate);
-    // .pipe(translate)
-    // .pipe(evaluate);
+    toChars
+      .pipe(toToken)
+      .pipe(toTerminalNode)
+      .pipe(parse)
+      .pipe(translate)
+      .pipe(evaluate);
 
-    translate.on('data', (datum) => {
+    evaluate.on('data', (datum) => {
       console.log(`\nOut[${lineNumber}]:`);
       lineNumber = lineNumber + 1;
 
-      console.log(ExpressionNodeHelper.nodeToString(datum));
+      ExpressionNodeHelper.print(datum);
 
       asking();
     });

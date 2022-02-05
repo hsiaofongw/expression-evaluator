@@ -2,22 +2,18 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { Node } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
-import {
-  BuiltInArithmeticFunctionName,
-  ExpressionNode,
-  FunctionNode,
-  IdentifierNode,
-  ValueNode,
-} from './interfaces';
+import { ExpressionNode, FunctionNode, IdentifierNode } from './interfaces';
 
 type Evaluator = (node: Node) => void;
 type EvaluatorMap = Record<string, Evaluator>;
 
 export class ExpressionNodeHelper {
   public static nodeToString(node: ExpressionNode): string {
-    if (node.type === 'identifier') {
-      return node.identifier;
-    } else if (node.type === 'value') {
+    if (
+      node.type === 'identifier' ||
+      node.type === 'value' ||
+      node.type === 'boolean'
+    ) {
       return node.value.toString();
     } else {
       const functionName = node.functionName;
@@ -26,6 +22,10 @@ export class ExpressionNodeHelper {
         .join(', ');
       return `${functionName}[${parameters}]`;
     }
+  }
+
+  public static print(node: ExpressionNode): void {
+    console.log(ExpressionNodeHelper.nodeToString(node));
   }
 }
 
@@ -100,20 +100,14 @@ export class ExpressionTranslate extends Transform {
       const fn = this._popNode() as FunctionNode;
       const id: IdentifierNode = {
         type: 'identifier',
-        identifier: fn.functionName,
+        value: fn.functionName,
       };
       this._pushNode(id);
     },
 
     'P -> [ L ]': (node) => {
       if (node.type === 'nonTerminal') {
-        const functionNode = this._popNode() as FunctionNode;
-        const parameters = this._makeFunctionNode('Parameters', []);
-        this._pushNode(parameters);
         this._evaluate(node.children[1]);
-        const appendedParameters = this._popNode() as FunctionNode;
-        functionNode.children = [appendedParameters];
-        this._pushNode(functionNode);
       }
     },
   };
