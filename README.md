@@ -1,14 +1,18 @@
-# 计算器
+# 表达式求值器 Evaluator
 
-这是一个命令行界面的计算器，能进行简单的四则运算。
+这是一个命令行界面的表达式求值器，能进行一些简单的数学函数运算。但暂时还不支持自定义函数。
+
+This is a expression evaluator, it provides commandline interface, it is capable of doing some simple calculations (listed below). Yet it currently doesn't support custom-defined functions.
 
 这是基于 Nest 框架，以及作者自己写的 Lexer (词法分析器) 和 LL(1) Parser (语法分析器) 来实现的。
+
+This project is based on [Nest.js Framework](https://nestjs.com/), and our own implementation of Lexer, LL(1) Parser, Translator and Evaluator.
 
 ## 致敬 Respects
 
 作者非常喜欢 Wolfram 语言，于是现在是处于上手实现一个简化再简化版本的这么样的一个状态。
 
-I enjoy using Wolfram Language, so now I am coding my own very simplified version of it.
+I enjoy using Wolfram Language so much, by now I am coding my own very simplified version of it.
 
 以下是我的启发来源：
 
@@ -18,7 +22,7 @@ Below are what enlighten me:
 
 - [Everything Is an Expression - Wolfram Language & System Documentation Center](https://reference.wolfram.com/language/tutorial/Expressions.html) (一切皆表达式)
 
-## 已实现函数列表
+## 已实现函数列表 Currently Supported Functions
 
 ```
 Plus[x, y]                  # x+y
@@ -49,7 +53,7 @@ Lg[x]                       # 计算 x 的以 10 为底的对数
 Log2[x]                     # 计算 x 的以 2 为底的对数
 ```
 
-## 功能
+## 功能 Roadmap
 
 - [x] 将输入解析成为 CST
 - [x] 将 CST 翻译成中间表示
@@ -60,11 +64,11 @@ Log2[x]                     # 计算 x 的以 2 为底的对数
 - [x] 常用的初等函数（三角、对数、指数函数）
 - [ ] 自定义函数功能
 
-## 语法细节
+## 语法概览 Grammar Overview
 
 ```
 PRODUCTION RULES:
-S -> A | E
+S -> A | E | str
 A -> { L }
 L -> ε
 L -> S L'
