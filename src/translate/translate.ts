@@ -33,11 +33,18 @@ export class ExpressionTranslate extends Transform {
   _nodeStack: ExpressionNode[] = [];
 
   _evaluatorMap: EvaluatorMap = {
-    'S -> A': (node) => this._evaluateEveryChild(node),
+    "S -> S' CMP_0": (node) => {
+      this._evaluateEveryChild(node);
+    },
 
-    'S -> E': (node) => this._evaluateEveryChild(node),
+    "CMP_0 -> == S' CMP_0": (node) => this._reduce(node, 'EqualQ', 1, 2),
+    'CMP_0 -> ε': (_) => {},
 
-    'S -> str': (node) => {
+    "S' -> A": (node) => this._evaluateEveryChild(node),
+
+    "S' -> CMP_1": (node) => this._evaluateEveryChild(node),
+
+    "S' -> str": (node) => {
       if (node.type === 'nonTerminal') {
         const v1 = node.children[0];
         if (v1.type === 'terminal' && v1.token) {
@@ -64,6 +71,20 @@ export class ExpressionTranslate extends Transform {
     "L' -> , S L'": (node) => this._reduceByAppend(node, 1, 2),
 
     "L' -> ε": (_) => {},
+
+    'CMP_1 -> E CMP_2': (node) => this._evaluateEveryChild(node),
+
+    'CMP_2 -> > E CMP_2': (node) => this._reduce(node, 'GreaterThan', 1, 2),
+
+    'CMP_2 -> < E CMP_2': (node) => this._reduce(node, 'LessThan', 1, 2),
+
+    'CMP_2 -> >= E CMP_2': (node) =>
+      this._reduce(node, 'GreaterThanOrEqual', 1, 2),
+
+    'CMP_2 -> <= E CMP_2': (node) =>
+      this._reduce(node, 'LessThanOrEqual', 1, 2),
+
+    'CMP_2 -> ε': (_) => {},
 
     "E -> T E'": (node) => this._evaluateEveryChild(node),
 

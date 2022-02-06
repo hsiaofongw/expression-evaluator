@@ -44,7 +44,9 @@ type State =
   | 'identifier'
   | 'string'
   | 'stringEscape'
-  | 'equalSign';
+  | 'equalSign'
+  | 'lessThanAndThen'
+  | 'greaterThanAndThen';
 
 /** 将 chars 组合成 token */
 export class ToToken extends Transform {
@@ -149,6 +151,20 @@ export class ToToken extends Transform {
         // 进入等于号输入模式
         this._state = 'equalSign';
         return;
+      }
+
+      // 如果遇到一个小于号 <
+      if (charObject.char === '<') {
+        this._offset = charObject.offset;
+        this._append(charObject.char);
+        this._state = 'lessThanAndThen';
+      }
+
+      // 如果遇到一个大于号 >
+      if (charObject.char === '>') {
+        this._offset = charObject.offset;
+        this._append(charObject.char);
+        this._state = 'greaterThanAndThen';
       }
 
       // 如果遇到空白字符, 这代表一个特殊的信号：输入串结束了
@@ -304,20 +320,17 @@ export class ToToken extends Transform {
       this._state = 'string';
     },
 
-    // 等于号输入模式
+    // 等于号输入模式，此模式下将又可能输出单等于号、双等于号或者仨等于号
     equalSign: (charObj) => {
       if (charObj.char !== '=') {
         this._charBuffer.push(charObj);
 
         const singleEqual = tokenClasses.assignToken;
         const doubleEqual = tokenClasses.doubleEqualSign;
-        const tripleEqual = tokenClasses.tripleEqualSign;
+        // 当前 parser 对于仨等于号 token 还没有对应的语法规则去消化
+        // const tripleEqual = tokenClasses.tripleEqualSign;
         const tokenType =
-          this._content.length === 1
-            ? singleEqual
-            : this._content.length === 2
-            ? doubleEqual
-            : tripleEqual;
+          this._content.length === 1 ? singleEqual : doubleEqual;
 
         const token: TypedToken = {
           offset: this._offset,
@@ -332,6 +345,56 @@ export class ToToken extends Transform {
       }
 
       this._append(charObj.char);
+    },
+
+    // 小于号 < 及其后续
+    lessThanAndThen: (charObj) => {
+      if (charObj.char === '=') {
+        this._append('=');
+        const token: TypedToken = {
+          offset: this._offset,
+          content: this._content,
+          type: tokenClasses.lessThanOrEqualSign,
+        };
+        this._content = '';
+        this._state = 'start';
+        this.push(token);
+      } else {
+        this._charBuffer.push(charObj);
+        const token: TypedToken = {
+          offset: this._offset,
+          content: this._content,
+          type: tokenClasses.lessThanSign,
+        };
+        this._content = '';
+        this._state = 'start';
+        this.push(token);
+      }
+    },
+
+    // 大于号 > 及其后续
+    greaterThanAndThen: (charObj) => {
+      if (charObj.char === '=') {
+        this._append('=');
+        const token: TypedToken = {
+          offset: this._offset,
+          content: this._content,
+          type: tokenClasses.greaterThanOrEqualTo,
+        };
+        this._content = '';
+        this._state = 'start';
+        this.push(token);
+      } else {
+        this._charBuffer.push(charObj);
+        const token: TypedToken = {
+          offset: this._offset,
+          content: this._content,
+          type: tokenClasses.greaterThanSign,
+        };
+        this._content = '';
+        this._state = 'start';
+        this.push(token);
+      }
     },
   };
 

@@ -95,6 +95,26 @@ const tripleEqualSign: TokenClass = {
   description: '仨等于号',
 };
 
+const lessThanSign: TokenClass = {
+  name: 'lessThan',
+  description: '严格小于号',
+};
+
+const lessThanOrEqualSign: TokenClass = {
+  name: 'lessThanOrEqualTo',
+  description: '严格不大于号',
+};
+
+const greaterThanSign: TokenClass = {
+  name: 'greaterThan',
+  description: '严格大于号',
+};
+
+const greaterThanOrEqualTo: TokenClass = {
+  name: 'greaterThanOrEqualTo',
+  description: '严格不小于号',
+};
+
 const endOfLine: TokenClass = {
   name: 'endOfLine',
   description: '行结束符',
@@ -110,6 +130,11 @@ export const tokenClasses = {
   minus,
   times,
   divideBy,
+  lessThanSign,
+  lessThanOrEqualSign,
+  greaterThanSign,
+  greaterThanOrEqualTo,
+  doubleEqualSign,
   dot,
   identifier,
   number,
@@ -123,7 +148,6 @@ export const tokenClasses = {
   doubleQuote,
   stringToken,
   assignToken,
-  doubleEqualSign,
   tripleEqualSign,
   endOfLine,
   endOfFile,

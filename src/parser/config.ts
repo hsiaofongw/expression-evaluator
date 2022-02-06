@@ -11,6 +11,42 @@ const start: SyntaxSymbol = {
   zhName: '开始',
 };
 
+const value: SyntaxSymbol = {
+  id: 'value',
+  name: 'Value',
+  description: '值符号',
+  type: 'nonTerminal',
+  displayName: "S'",
+  zhName: '值',
+};
+
+const cmp0: SyntaxSymbol = {
+  id: 'cmp0',
+  name: 'CMP_0',
+  description: '比较层级 0',
+  type: 'nonTerminal',
+  displayName: 'CMP_0',
+  zhName: '比较_0',
+};
+
+const cmp1: SyntaxSymbol = {
+  id: 'cmp1',
+  name: 'CMP_1',
+  description: '比较层级 1',
+  type: 'nonTerminal',
+  displayName: 'CMP_1',
+  zhName: '比较_1',
+};
+
+const cmp2: SyntaxSymbol = {
+  id: 'cmp2',
+  name: 'CMP_2',
+  description: '比较层级 2',
+  type: 'nonTerminal',
+  displayName: 'CMP_2',
+  zhName: '比较_2',
+};
+
 // str
 const stringSymbol: SyntaxSymbol = {
   id: 'string',
@@ -223,6 +259,71 @@ const divideBy: SyntaxSymbol = {
   zhName: '除号',
 };
 
+// >
+const greaterThan: SyntaxSymbol = {
+  id: 'greaterThan',
+  name: 'GreaterThan',
+  description: '严格大于号',
+  type: 'terminal',
+  displayName: '>',
+  definition: {
+    tokenClassName: 'greaterThan',
+  },
+  zhName: '严格大于号',
+};
+
+// >=
+const greaterThanOrEqualTo: SyntaxSymbol = {
+  id: 'greaterThanOrEqualTo',
+  name: 'GreaterThanOrEqualTo',
+  description: '严格不小于号',
+  type: 'terminal',
+  displayName: '>=',
+  definition: {
+    tokenClassName: 'greaterThanOrEqualTo',
+  },
+  zhName: '严格不小于号',
+};
+
+// <
+const lessThan: SyntaxSymbol = {
+  id: 'lessThan',
+  name: 'LessThan',
+  description: '严格小于号',
+  type: 'terminal',
+  displayName: '<',
+  definition: {
+    tokenClassName: 'lessThan',
+  },
+  zhName: '严格小于号',
+};
+
+// <=
+const lessThanOrEqualTo: SyntaxSymbol = {
+  id: 'lessThanOrEqualTo',
+  name: 'LessThanOrEqualTo',
+  description: '严格不大于号',
+  type: 'terminal',
+  displayName: '<=',
+  definition: {
+    tokenClassName: 'lessThanOrEqualTo',
+  },
+  zhName: '严格不小于号',
+};
+
+// ==
+const equalSign: SyntaxSymbol = {
+  id: 'equalSign',
+  name: 'DoubleEqual',
+  description: '等于号',
+  type: 'terminal',
+  displayName: '==',
+  definition: {
+    tokenClassName: 'doubleEqual',
+  },
+  zhName: '双等于号',
+};
+
 // '('
 const leftParenthesis: SyntaxSymbol = {
   id: 'leftParenthesis',
@@ -344,6 +445,10 @@ const endOfFile: SyntaxSymbol = {
 /** 所有符号 */
 export const allSymbols = {
   start,
+  value,
+  cmp0,
+  cmp1,
+  cmp2,
 
   array,
   stringSymbol,
@@ -368,6 +473,11 @@ export const allSymbols = {
   times,
   divideBy,
   singleEqualSign,
+  lessThan,
+  lessThanOrEqualTo,
+  greaterThan,
+  greaterThanOrEqualTo,
+  equalSign,
 
   leftParenthesis,
   rightParenthesis,
@@ -396,20 +506,38 @@ export const terminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(
 /** 全体产生式规则 */
 export const allRules: ProductionRule[] = [
   {
-    name: 'S -> A',
+    name: "S -> S' CMP_0",
     lhs: allSymbols.start,
+    rhs: [allSymbols.value, allSymbols.cmp0],
+  },
+
+  {
+    name: "CMP_0 -> == S' CMP_0",
+    lhs: allSymbols.cmp0,
+    rhs: [allSymbols.equalSign, allSymbols.value, allSymbols.cmp0],
+  },
+
+  {
+    name: 'CMP_0 -> ε',
+    lhs: allSymbols.cmp0,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: "S' -> A",
+    lhs: allSymbols.value,
     rhs: [allSymbols.array],
   },
 
   {
-    name: 'S -> E',
-    lhs: allSymbols.start,
-    rhs: [allSymbols.expression],
+    name: "S' -> CMP_1",
+    lhs: allSymbols.value,
+    rhs: [allSymbols.cmp1],
   },
 
   {
-    name: 'S -> str',
-    lhs: allSymbols.start,
+    name: "S' -> str",
+    lhs: allSymbols.value,
     rhs: [allSymbols.stringSymbol],
   },
 
@@ -440,6 +568,46 @@ export const allRules: ProductionRule[] = [
   {
     name: "L' -> ε",
     lhs: allSymbols.listExpand,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: 'CMP_1 -> E CMP_2',
+    lhs: allSymbols.cmp1,
+    rhs: [allSymbols.expression, allSymbols.cmp2],
+  },
+
+  {
+    name: 'CMP_2 -> > E CMP_2',
+    lhs: allSymbols.cmp2,
+    rhs: [allSymbols.greaterThan, allSymbols.expression, allSymbols.cmp2],
+  },
+
+  {
+    name: 'CMP_2 -> < E CMP_2',
+    lhs: allSymbols.cmp2,
+    rhs: [allSymbols.lessThan, allSymbols.expression, allSymbols.cmp2],
+  },
+
+  {
+    name: 'CMP_2 -> >= E CMP_2',
+    lhs: allSymbols.cmp2,
+    rhs: [
+      allSymbols.greaterThanOrEqualTo,
+      allSymbols.expression,
+      allSymbols.cmp2,
+    ],
+  },
+
+  {
+    name: 'CMP_2 -> <= E CMP_2',
+    lhs: allSymbols.cmp2,
+    rhs: [allSymbols.lessThanOrEqualTo, allSymbols.expression, allSymbols.cmp2],
+  },
+
+  {
+    name: 'CMP_2 -> ε',
+    lhs: allSymbols.cmp2,
     rhs: [allSymbols.epsilon],
   },
 
