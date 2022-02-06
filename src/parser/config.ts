@@ -194,6 +194,56 @@ const parametersExpandPart: SyntaxSymbol = {
   zhName: '赋值部分',
 };
 
+// REM_0
+const remainder: SyntaxSymbol = {
+  id: 'rem0',
+  name: 'Remainder',
+  description: '余数运算',
+  type: 'nonTerminal',
+  displayName: 'REM_0',
+  zhName: '余数运算',
+};
+
+// REM_1
+const remainderExpand: SyntaxSymbol = {
+  id: 'rem1',
+  name: 'RemainderExpand',
+  description: '余数运算余项',
+  type: 'nonTerminal',
+  displayName: 'REM_1',
+  zhName: '余数运算余项',
+};
+
+// NEG
+const negFactor: SyntaxSymbol = {
+  id: 'negFactor',
+  name: 'NegativeFactor',
+  description: '可能为负数的项',
+  type: 'nonTerminal',
+  displayName: 'NEG',
+  zhName: '可能为负项',
+};
+
+// POW_0
+const powerFactor: SyntaxSymbol = {
+  id: 'powerFactor',
+  name: 'PowerFactor',
+  description: '幂次项',
+  type: 'nonTerminal',
+  displayName: 'POW_0',
+  zhName: '幂次项',
+};
+
+// POW_1
+const powerFactorExpand: SyntaxSymbol = {
+  id: 'powerFactorExpand',
+  name: 'PowerFactorExpand',
+  description: '幂次项余项',
+  type: 'nonTerminal',
+  displayName: 'POW_1',
+  zhName: '幂次项余项',
+};
+
 // '='
 const singleEqualSign: SyntaxSymbol = {
   id: 'singleEqual',
@@ -416,7 +466,7 @@ const identifier: SyntaxSymbol = {
   zhName: '标识符',
 };
 
-// comma
+// ,
 const comma: SyntaxSymbol = {
   id: 'comma',
   name: 'Comma',
@@ -427,6 +477,32 @@ const comma: SyntaxSymbol = {
     tokenClassName: 'comma',
   },
   zhName: '逗号',
+};
+
+// ^
+const caret: SyntaxSymbol = {
+  id: 'caret',
+  name: 'Caret',
+  description: '插入符',
+  type: 'terminal',
+  displayName: '^',
+  definition: {
+    tokenClassName: 'caret',
+  },
+  zhName: '插入符',
+};
+
+// %
+const percent: SyntaxSymbol = {
+  id: 'percent',
+  name: 'Percent',
+  description: '百分号',
+  type: 'terminal',
+  displayName: '%',
+  definition: {
+    tokenClassName: 'percent',
+  },
+  zhName: '百分号',
 };
 
 // $
@@ -462,6 +538,12 @@ export const allSymbols = {
   term,
   termExpand,
 
+  remainder,
+  remainderExpand,
+  negFactor,
+  powerFactor,
+  powerFactorExpand,
+
   factor,
   factorExpand,
 
@@ -489,6 +571,9 @@ export const allSymbols = {
   number,
   identifier,
   comma,
+  caret,
+  percent,
+
   epsilon,
   endOfFile,
 };
@@ -636,21 +721,21 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: "T -> F T'",
+    name: "T -> REM_0 T'",
     lhs: allSymbols.term,
-    rhs: [allSymbols.factor, allSymbols.termExpand],
+    rhs: [allSymbols.remainder, allSymbols.termExpand],
   },
 
   {
-    name: "T' -> '*' F T'",
+    name: "T' -> '*' REM_0 T'",
     lhs: allSymbols.termExpand,
-    rhs: [allSymbols.times, allSymbols.factor, allSymbols.termExpand],
+    rhs: [allSymbols.times, allSymbols.remainder, allSymbols.termExpand],
   },
 
   {
-    name: "T' -> '/' F T'",
+    name: "T' -> '/' REM_0 T'",
     lhs: allSymbols.termExpand,
-    rhs: [allSymbols.divideBy, allSymbols.factor, allSymbols.termExpand],
+    rhs: [allSymbols.divideBy, allSymbols.remainder, allSymbols.termExpand],
   },
 
   {
@@ -660,7 +745,55 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: "F -> '(' E ')'",
+    name: 'REM_0 -> NEG REM_1',
+    lhs: allSymbols.remainder,
+    rhs: [allSymbols.negFactor, allSymbols.remainderExpand],
+  },
+
+  {
+    name: 'REM_1 -> % NEG REM_1',
+    lhs: allSymbols.remainderExpand,
+    rhs: [allSymbols.percent, allSymbols.negFactor, allSymbols.remainderExpand],
+  },
+
+  {
+    name: 'REM_1 -> ε',
+    lhs: allSymbols.remainderExpand,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: 'NEG -> - POW_0',
+    lhs: allSymbols.negFactor,
+    rhs: [allSymbols.minus, allSymbols.powerFactor],
+  },
+
+  {
+    name: 'NEG -> POW_0',
+    lhs: allSymbols.negFactor,
+    rhs: [allSymbols.powerFactor],
+  },
+
+  {
+    name: 'POW_0 -> F POW_1',
+    lhs: allSymbols.powerFactor,
+    rhs: [allSymbols.factor, allSymbols.powerFactorExpand],
+  },
+
+  {
+    name: 'POW_1 -> ^ F POW_1',
+    lhs: allSymbols.powerFactorExpand,
+    rhs: [allSymbols.caret, allSymbols.factor, allSymbols.powerFactorExpand],
+  },
+
+  {
+    name: 'POW_1 -> ε',
+    lhs: allSymbols.powerFactorExpand,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: 'F -> ( E )',
     lhs: allSymbols.factor,
     rhs: [
       allSymbols.leftParenthesis,
@@ -673,6 +806,12 @@ export const allRules: ProductionRule[] = [
     name: 'F -> number',
     lhs: allSymbols.factor,
     rhs: [allSymbols.number],
+  },
+
+  {
+    name: 'F -> - number',
+    lhs: allSymbols.factor,
+    rhs: [allSymbols.minus, allSymbols.number],
   },
 
   {

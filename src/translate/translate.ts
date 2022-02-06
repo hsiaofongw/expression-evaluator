@@ -94,15 +94,34 @@ export class ExpressionTranslate extends Transform {
 
     "E' -> ε": (_) => {},
 
-    "T -> F T'": (node) => this._evaluateEveryChild(node),
+    "T -> REM_0 T'": (node) => this._evaluateEveryChild(node),
 
-    "T' -> '*' F T'": (node) => this._reduce(node, 'Times', 1, 2),
+    "T' -> '*' REM_0 T'": (node) => this._reduce(node, 'Times', 1, 2),
 
-    "T' -> '/' F T'": (node) => this._reduce(node, 'Divide', 1, 2),
+    "T' -> '/' REM_0 T'": (node) => this._reduce(node, 'Divide', 1, 2),
 
     "T' -> ε": (_) => {},
 
-    "F -> '(' E ')'": (node) => {
+    'REM_0 -> NEG REM_1': (node) => this._evaluateEveryChild(node),
+
+    'REM_1 -> % NEG REM_1': (node) => this._reduce(node, 'Remainder', 1, 2),
+    'REM_1 -> ε': (_) => {},
+
+    'NEG -> - POW_0': (node) => {
+      if (node.type === 'nonTerminal') {
+        this._evaluate(node.children[1]);
+        const theValue = this._popNode();
+        this._pushNode(this._makeFunctionNode('Negative', [theValue]));
+      }
+    },
+
+    'NEG -> POW_0': (node) => this._evaluateEveryChild(node),
+
+    'POW_0 -> F POW_1': (node) => this._evaluateEveryChild(node),
+    'POW_1 -> ^ F POW_1': (node) => this._reduce(node, 'Power', 1, 2),
+    'POW_1 -> ε': (_) => {},
+
+    'F -> ( E )': (node) => {
       if (node.type === 'nonTerminal') {
         this._evaluate(node.children[1]);
       }

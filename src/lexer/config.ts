@@ -115,6 +115,16 @@ const greaterThanOrEqualTo: TokenClass = {
   description: '严格不小于号',
 };
 
+const caretSign: TokenClass = {
+  name: 'caret',
+  description: '插入符',
+};
+
+const percentSign: TokenClass = {
+  name: 'percent',
+  description: '百分号',
+};
+
 const endOfLine: TokenClass = {
   name: 'endOfLine',
   description: '行结束符',
@@ -149,6 +159,8 @@ export const tokenClasses = {
   stringToken,
   assignToken,
   tripleEqualSign,
+  caretSign,
+  percentSign,
   endOfLine,
   endOfFile,
 };

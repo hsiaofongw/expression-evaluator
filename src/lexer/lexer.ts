@@ -131,6 +131,16 @@ export class ToToken extends Transform {
         return;
       }
 
+      // 如果遇到一个插入符
+      if (charObject.char === '^') {
+        this._emitSingleToken(charObject, tokenClasses.caretSign);
+      }
+
+      // 如果遇到一个百分号
+      if (charObject.char === '%') {
+        this._emitSingleToken(charObject, tokenClasses.percentSign);
+      }
+
       // 如果遇到一个双引号 "
       if (charObject.char.match(/\"/)) {
         // 双引号本身丢弃
