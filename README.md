@@ -8,6 +8,31 @@ This is a expression evaluator, it provides commandline interface, it is capable
 
 This project is based on [Nest.js Framework](https://nestjs.com/), and our own implementation of Lexer, LL(1) Parser, Translator and Evaluator.
 
+## 安装运行
+
+分为 3 个步骤：
+
+1）克隆仓库至运行环境，并切换到 master 分支：
+
+```
+git clone https://github.com/hsiaofongw/expression-evaluator.git
+cd expression-evaluator
+```
+
+2）安装依赖：
+
+```
+npm i  # 如 npm 提示找不到，则需要先安装 NodeJS 和 NPM 软件
+```
+
+3) 启动运行：
+
+```
+npm run start:dev  # 或者 npm run start:inspect
+```
+
+在出现 `In[0]:` 字样的提示之后，可开始输入表达式，之后按回车键获得计算结果。
+
 ## 致敬 Respects
 
 作者非常喜欢 Wolfram 语言，于是现在是处于上手实现一个简化再简化版本的这么样的一个状态。
@@ -16,7 +41,7 @@ I enjoy using Wolfram Language so much, by now I am coding my own very simplifie
 
 以下是我的启发来源：
 
-Below are what enlighten me:
+Here are what I found interesting:
 
 - [Evaluation of Expressions - Wolfram Language & System Documentation Center](https://reference.wolfram.com/language/tutorial/EvaluationOfExpressions.html)（表达式的求值）
 
