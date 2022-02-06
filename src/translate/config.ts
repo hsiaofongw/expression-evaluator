@@ -187,6 +187,27 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   }),
 
   {
+    match: { type: 'functionName', functionName: 'Print' },
+    action: (node, context) => {
+      if (node.children.length === 0) {
+        context._pushNode(node);
+        return;
+      }
+
+      context._evaluate(node.children[0]);
+      const v1 = context._popNode();
+      node.children[0] = v1;
+      if (v1.type !== 'string') {
+        context._pushNode(node);
+        return;
+      }
+
+      const content = v1.value;
+      context._pushNode({ type: 'printable', value: content });
+    },
+  },
+
+  {
     match: { type: 'functionName', functionName: 'FullForm' },
     action: (node, context) => {
       context._pushNode(node.children[0]);

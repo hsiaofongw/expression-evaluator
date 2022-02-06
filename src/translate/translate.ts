@@ -17,6 +17,8 @@ export class ExpressionNodeHelper {
       return `${functionName}[${parameters}]`;
     } else if (node.type === 'string') {
       return '"' + node.value.toString() + '"';
+    } else if (node.type === 'nothing') {
+      return '';
     } else {
       return node.value.toString();
     }

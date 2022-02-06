@@ -154,7 +154,7 @@ const plus: SyntaxSymbol = {
   name: 'Plus',
   description: '加号',
   type: 'terminal',
-  displayName: "'+'",
+  displayName: '+',
   definition: {
     tokenClassName: 'plus',
   },
@@ -167,7 +167,7 @@ const minus: SyntaxSymbol = {
   name: 'Minus',
   description: '减号',
   type: 'terminal',
-  displayName: "'-'",
+  displayName: '-',
   definition: {
     tokenClassName: 'minus',
   },
@@ -180,7 +180,7 @@ const times: SyntaxSymbol = {
   name: 'times',
   description: '乘号',
   type: 'terminal',
-  displayName: "'*'",
+  displayName: '*',
   definition: {
     tokenClassName: 'times',
   },
@@ -193,7 +193,7 @@ const divideBy: SyntaxSymbol = {
   name: 'DivideBy',
   description: '除号',
   type: 'terminal',
-  displayName: "'/'",
+  displayName: '/',
   definition: {
     tokenClassName: 'divideBy',
   },
@@ -206,7 +206,7 @@ const leftParenthesis: SyntaxSymbol = {
   name: 'LeftParenthesis',
   description: '左括号，通常用于强制运算符结合顺序。',
   type: 'terminal',
-  displayName: "'('",
+  displayName: '(',
   definition: {
     tokenClassName: 'leftParenthesis',
   },
@@ -219,7 +219,7 @@ const rightParenthesis: SyntaxSymbol = {
   name: 'RightParenthesis',
   description: '右括号，通常用于强制运算符结合顺序。',
   type: 'terminal',
-  displayName: "')'",
+  displayName: ')',
   definition: {
     tokenClassName: 'rightParenthesis',
   },
@@ -395,15 +395,15 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'L -> ε',
-    lhs: allSymbols.list,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
     name: "L -> S L'",
     lhs: allSymbols.list,
     rhs: [allSymbols.start, allSymbols.listExpand],
+  },
+
+  {
+    name: 'L -> ε',
+    lhs: allSymbols.list,
+    rhs: [allSymbols.epsilon],
   },
 
   {
@@ -489,12 +489,6 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'P -> ε',
-    lhs: allSymbols.parametersPart,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
     name: 'P -> [ L ]',
     lhs: allSymbols.parametersPart,
     rhs: [
@@ -502,5 +496,11 @@ export const allRules: ProductionRule[] = [
       allSymbols.list,
       allSymbols.rightSquareBracket,
     ],
+  },
+
+  {
+    name: 'P -> ε',
+    lhs: allSymbols.parametersPart,
+    rhs: [allSymbols.epsilon],
   },
 ];

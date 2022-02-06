@@ -16,6 +16,10 @@ export type ValueNode = {
   value: number;
 };
 
+export type PrintableNode = { type: 'printable'; value: string };
+
+export type NullNode = { type: 'nothing' };
+
 export type IdentifierNode = { type: 'identifier'; value: string };
 
 export type BooleanNode = { type: 'boolean'; value: boolean };
@@ -27,7 +31,9 @@ export type ExpressionNode =
   | ValueNode
   | BooleanNode
   | StringNode
-  | IdentifierNode;
+  | IdentifierNode
+  | PrintableNode
+  | NullNode;
 
 export interface IEvaluateContext {
   _evaluate(node: ExpressionNode): void;

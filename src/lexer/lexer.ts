@@ -267,8 +267,26 @@ export class ToToken extends Transform {
 
     // 字符转义模式，接受且只接受一个
     stringEscape: (charObject) => {
-      // 接受完了这一个
-      this._append(charObject.char);
+      const escapeTable: Record<string, string> = {
+        a: '07',
+        b: '08',
+        e: '1B',
+        f: '0C',
+        n: '0A',
+        r: '0D',
+        t: '09',
+        v: '0B',
+        '\\': '5C',
+        "'": '27',
+        '"': '22',
+        '?': '3F',
+      };
+
+      const charHex = escapeTable[charObject.char];
+      if (charHex !== undefined) {
+        const targetChar = Buffer.from(charHex, 'hex').toString('utf8');
+        this._append(targetChar);
+      }
 
       // 立马回到 string 状态
       this._state = 'string';

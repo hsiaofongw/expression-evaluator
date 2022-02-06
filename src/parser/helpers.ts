@@ -364,4 +364,51 @@ export class SyntaxSymbolHelper {
     this._predictiveAnalysisTable = table;
     this._patCalculated = true;
   }
+
+  /** 在控制台打印出语法产生式规则 */
+  public printProductionRules(
+    symbolNamePicker: (sbl: SyntaxSymbol) => string,
+  ): void {
+    const rules = this._rules;
+
+    // we wont just simply print the .name attribute,
+    // because .name is just a id
+
+    // a more precise way is to print symbols name
+
+    // group by lhs symbol
+    const groupByLhs: Record<string, ProductionRule[]> = {};
+    for (const rule of rules) {
+      const lhs = rule.lhs;
+      if (groupByLhs[lhs.id] === undefined) {
+        groupByLhs[lhs.id] = [];
+      }
+
+      groupByLhs[lhs.id].push(rule);
+    }
+
+    const paddingBetweenSbl = ' '.repeat(2);
+    const groupsContent: string[] = [];
+    for (const lhsId in groupByLhs) {
+      const rules = groupByLhs[lhsId];
+      const firstRule = rules[0];
+      const lhs = firstRule.lhs;
+      const lhsDisplay = symbolNamePicker(lhs);
+      const headerPart = `${lhsDisplay}${paddingBetweenSbl}->${paddingBetweenSbl}`;
+      const spacePadding = ' '.repeat(
+        headerPart.length - paddingBetweenSbl.length - 1,
+      );
+      const getDisplayFromRhs = (sbls: SyntaxSymbol[]): string => {
+        return sbls.map((sbl) => symbolNamePicker(sbl)).join(paddingBetweenSbl);
+      };
+      const bodyPart = rules
+        .map((rule) => rule.rhs)
+        .map((rhs) => getDisplayFromRhs(rhs))
+        .join('\n' + spacePadding + '|' + paddingBetweenSbl);
+      const ruleGroupContent = `${headerPart}${bodyPart}`;
+      groupsContent.push(ruleGroupContent);
+    }
+
+    console.log(groupsContent.join('\n\n'));
+  }
 }

@@ -29,6 +29,7 @@ export class AppService {
     };
     const symbolHelper = new SyntaxSymbolHelper(syntaxConfiguration);
     // symbolHelper.printPredictiveTable();
+    // symbolHelper.printProductionRules((sbl) => sbl.displayName ?? sbl.name);
     const syntaxAnalysisConfiguration: SyntaxAnalysisConfiguration = {
       ...syntaxConfiguration,
       syntaxAnalysisPartner: symbolHelper,
