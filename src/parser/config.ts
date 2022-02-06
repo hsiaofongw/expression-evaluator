@@ -525,15 +525,15 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'P -> ε',
-    lhs: allSymbols.parametersPart,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
     name: 'P -> = S',
     lhs: allSymbols.parametersPart,
     rhs: [allSymbols.singleEqualSign, allSymbols.start],
+  },
+
+  {
+    name: 'P -> ε',
+    lhs: allSymbols.parametersPart,
+    rhs: [allSymbols.epsilon],
   },
 
   {
