@@ -142,10 +142,33 @@ const factorExpand: SyntaxSymbol = {
 const parametersPart: SyntaxSymbol = {
   id: 'parametersPart',
   name: 'ParametersPart',
-  description: '函数调用中的参数部分',
+  description: '标识符右侧可选参数部分',
   type: 'nonTerminal',
   displayName: 'P',
   zhName: '函数参数部分',
+};
+
+// P'
+const parametersExpandPart: SyntaxSymbol = {
+  id: 'parametersExpandPart',
+  name: 'ParametersExpandPart',
+  description: '标识符右侧可选赋值右值部分',
+  type: 'nonTerminal',
+  displayName: "P'",
+  zhName: '赋值部分',
+};
+
+// '='
+const singleEqualSign: SyntaxSymbol = {
+  id: 'singleEqual',
+  name: 'SingleEqual',
+  description: '赋值符号',
+  type: 'terminal',
+  displayName: '=',
+  definition: {
+    tokenClassName: 'singleEqual',
+  },
+  zhName: '赋值号',
 };
 
 // '+'
@@ -338,11 +361,13 @@ export const allSymbols = {
   factorExpand,
 
   parametersPart,
+  parametersExpandPart,
 
   plus,
   minus,
   times,
   divideBy,
+  singleEqualSign,
 
   leftParenthesis,
   rightParenthesis,
@@ -489,18 +514,37 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'P -> [ L ]',
+    name: "P -> [ L ] P'",
     lhs: allSymbols.parametersPart,
     rhs: [
       allSymbols.leftSquareBracket,
       allSymbols.list,
       allSymbols.rightSquareBracket,
+      allSymbols.parametersExpandPart,
     ],
   },
 
   {
     name: 'P -> ε',
     lhs: allSymbols.parametersPart,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: 'P -> = S',
+    lhs: allSymbols.parametersPart,
+    rhs: [allSymbols.singleEqualSign, allSymbols.start],
+  },
+
+  {
+    name: "P' -> = S",
+    lhs: allSymbols.parametersExpandPart,
+    rhs: [allSymbols.singleEqualSign, allSymbols.start],
+  },
+
+  {
+    name: "P' -> ε",
+    lhs: allSymbols.parametersExpandPart,
     rhs: [allSymbols.epsilon],
   },
 ];

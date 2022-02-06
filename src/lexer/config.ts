@@ -80,6 +80,21 @@ const stringToken: TokenClass = {
   description: '字符串 Token',
 };
 
+const assignToken: TokenClass = {
+  name: 'singleEqual',
+  description: '单等于号',
+};
+
+const doubleEqualSign: TokenClass = {
+  name: 'doubleEqual',
+  description: '双等于号',
+};
+
+const tripleEqualSign: TokenClass = {
+  name: 'tripleEqualSign',
+  description: '仨等于号',
+};
+
 const endOfLine: TokenClass = {
   name: 'endOfLine',
   description: '行结束符',
@@ -107,6 +122,9 @@ export const tokenClasses = {
   rightBracket,
   doubleQuote,
   stringToken,
+  assignToken,
+  doubleEqualSign,
+  tripleEqualSign,
   endOfLine,
   endOfFile,
 };

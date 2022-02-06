@@ -43,7 +43,8 @@ type State =
   | 'float'
   | 'identifier'
   | 'string'
-  | 'stringEscape';
+  | 'stringEscape'
+  | 'equalSign';
 
 /** 将 chars 组合成 token */
 export class ToToken extends Transform {
@@ -137,6 +138,16 @@ export class ToToken extends Transform {
 
         // 进入 string 模式
         this._state = 'string';
+        return;
+      }
+
+      // 如果遇到一个等于号 =
+      if (charObject.char === '=') {
+        this._offset = charObject.offset;
+        this._append(charObject.char);
+
+        // 进入等于号输入模式
+        this._state = 'equalSign';
         return;
       }
 
@@ -248,6 +259,7 @@ export class ToToken extends Transform {
         this._append(charObject.char);
       } else {
         // 对于其余所有的情况
+        // this._charBuffer.push()
 
         // 释出 token
         const token: TypedToken = {
@@ -290,6 +302,36 @@ export class ToToken extends Transform {
 
       // 立马回到 string 状态
       this._state = 'string';
+    },
+
+    // 等于号输入模式
+    equalSign: (charObj) => {
+      if (charObj.char !== '=') {
+        this._charBuffer.push(charObj);
+
+        const singleEqual = tokenClasses.assignToken;
+        const doubleEqual = tokenClasses.doubleEqualSign;
+        const tripleEqual = tokenClasses.tripleEqualSign;
+        const tokenType =
+          this._content.length === 1
+            ? singleEqual
+            : this._content.length === 2
+            ? doubleEqual
+            : tripleEqual;
+
+        const token: TypedToken = {
+          offset: this._offset,
+          content: this._content,
+          type: tokenType,
+        };
+
+        this._content = '';
+        this._state = 'start';
+        this.push(token);
+        return;
+      }
+
+      this._append(charObj.char);
     },
   };
 

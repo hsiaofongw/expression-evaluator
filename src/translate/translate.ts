@@ -105,31 +105,47 @@ export class ExpressionTranslate extends Transform {
     'F -> id P': (node) => {
       if (node.type === 'nonTerminal') {
         const v1 = node.children[0];
+        const v2 = node.children[1];
         if (v1.type === 'terminal' && v1.token) {
-          this._pushNode(this._makeFunctionNode(v1.token.content, []));
-          this._evaluate(node.children[1]);
+          const identifier = v1.token.content;
+          this._pushNode({ type: 'identifier', value: identifier });
+          this._evaluate(v2);
         }
       }
     },
 
-    'P -> ε': (_) => {
-      const fn = this._popNode() as FunctionNode;
-      const id: IdentifierNode = {
-        type: 'identifier',
-        value: fn.functionName,
-      };
-      this._pushNode(id);
-    },
-
-    'P -> [ L ]': (node) => {
+    "P -> [ L ] P'": (node) => {
       if (node.type === 'nonTerminal') {
+        const identifierNode = this._popNode() as IdentifierNode;
+        const identifier = identifierNode.value;
+        const functionNode = this._makeFunctionNode(identifier, []);
+        this._pushNode(functionNode);
         this._evaluate(node.children[1]);
+        this._evaluate(node.children[3]);
       }
     },
+
+    'P -> = S': (node) => this._assign(node),
+    "P' -> = S": (node) => this._assign(node),
+
+    'P -> ε': (_) => {},
+    "P' -> ε": (_) => {},
   };
 
   constructor() {
     super({ objectMode: true });
+  }
+
+  private _assign(node: Node): void {
+    if (node.type === 'nonTerminal') {
+      const leftValueNode = this._popNode();
+      const assignNode = this._makeFunctionNode('Assign', []);
+      this._evaluate(node.children[1]);
+      const rightValue = this._popNode();
+      assignNode.children.push(leftValueNode);
+      assignNode.children.push(rightValue);
+      this._pushNode(assignNode);
+    }
   }
 
   private _makeFunctionNode(
