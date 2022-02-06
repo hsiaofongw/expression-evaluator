@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
+import { symbolHelper } from 'src/parser/helpers';
 import {
   ExpressionNode,
   ExpressionNodeEvaluator,
@@ -185,6 +186,18 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   EvaluatorHelper.makeTwoInputNodeFunction('LessThanOrEqual', (v1, v2) => {
     return { type: 'boolean', value: v1 <= v2 };
   }),
+
+  {
+    match: { type: 'functionName', functionName: 'GetProductionRulesPreview' },
+    action: (node, context) => {
+      context._pushNode({
+        type: 'string',
+        value: symbolHelper.getProductionRulesPreview(
+          (sbl) => sbl.displayName ?? sbl.name,
+        ),
+      });
+    },
+  },
 
   {
     match: { type: 'functionName', functionName: 'Print' },

@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { SyntaxSymbolHelper } from './parser/helpers';
+import {
+  symbolHelper,
+  syntaxAnalysisConfiguration,
+  syntaxConfiguration,
+  SyntaxSymbolHelper,
+} from './parser/helpers';
 import { ToCharacters, ToToken } from './lexer/lexer';
 import { createInterface } from 'readline';
 import { allRules, allSymbols } from './parser/config';
@@ -18,23 +23,6 @@ import { Evaluate } from './translate/evaluate';
 @Injectable()
 export class AppService {
   main(): void {
-    const syntaxConfiguration: SyntaxConfiguration = {
-      symbols: allSymbols,
-      rules: allRules,
-      specialSymbol: {
-        entrySymbol: allSymbols.start,
-        epsilonSymbol: allSymbols.epsilon,
-        endOfFileSymbol: allSymbols.endOfFile,
-      },
-    };
-    const symbolHelper = new SyntaxSymbolHelper(syntaxConfiguration);
-    // symbolHelper.printPredictiveTable();
-    // symbolHelper.printProductionRules((sbl) => sbl.displayName ?? sbl.name);
-    const syntaxAnalysisConfiguration: SyntaxAnalysisConfiguration = {
-      ...syntaxConfiguration,
-      syntaxAnalysisPartner: symbolHelper,
-    };
-
     const lineStream = createInterface({ input: stdin, output: stdout });
 
     let lineNumber = 0;

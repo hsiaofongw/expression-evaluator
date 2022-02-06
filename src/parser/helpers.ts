@@ -1,9 +1,15 @@
 import { ArrayHelper } from 'src/helpers/to-array';
-import { nonTerminalSymbols, terminalSymbols } from './config';
+import {
+  allRules,
+  allSymbols,
+  nonTerminalSymbols,
+  terminalSymbols,
+} from './config';
 import {
   PredictiveAnalysisTable,
   ProductionRule,
   ProductionRuleId,
+  SyntaxAnalysisConfiguration,
   SyntaxConfiguration,
   SyntaxSymbol,
 } from './interfaces';
@@ -366,9 +372,18 @@ export class SyntaxSymbolHelper {
   }
 
   /** 在控制台打印出语法产生式规则 */
-  public printProductionRules(
+  public printProductionRules(): void {
+    console.log(
+      this.getProductionRulesPreview(
+        (sbl) => sbl.displayName ?? sbl.name ?? sbl.zhName ?? sbl.id,
+      ),
+    );
+  }
+
+  /** 得到在控制台打印出语法产生式规则内容 */
+  public getProductionRulesPreview(
     symbolNamePicker: (sbl: SyntaxSymbol) => string,
-  ): void {
+  ): string {
     const rules = this._rules;
 
     // we wont just simply print the .name attribute,
@@ -409,6 +424,23 @@ export class SyntaxSymbolHelper {
       groupsContent.push(ruleGroupContent);
     }
 
-    console.log(groupsContent.join('\n\n'));
+    return groupsContent.join('\n\n');
   }
 }
+
+export const syntaxConfiguration: SyntaxConfiguration = {
+  symbols: allSymbols,
+  rules: allRules,
+  specialSymbol: {
+    entrySymbol: allSymbols.start,
+    epsilonSymbol: allSymbols.epsilon,
+    endOfFileSymbol: allSymbols.endOfFile,
+  },
+};
+
+export const symbolHelper = new SyntaxSymbolHelper(syntaxConfiguration);
+
+export const syntaxAnalysisConfiguration: SyntaxAnalysisConfiguration = {
+  ...syntaxConfiguration,
+  syntaxAnalysisPartner: symbolHelper,
+};
