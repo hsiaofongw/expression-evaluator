@@ -188,6 +188,32 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   }),
 
   {
+    match: { type: 'functionName', functionName: 'StringJoin' },
+    action: (node, context) => {
+      if (node.children.length !== 2) {
+        context._pushNode(node);
+        return;
+      }
+
+      context._evaluate(node.children[0]);
+      context._evaluate(node.children[1]);
+      node.children[1] = context._popNode();
+      node.children[0] = context._popNode();
+
+      if (
+        node.children[0].type === 'string' &&
+        node.children[1].type === 'string'
+      ) {
+        const joinContent = node.children[0].value + node.children[1].value;
+        context._pushNode({ type: 'string', value: joinContent });
+      } else {
+        context._pushNode(node);
+        return;
+      }
+    },
+  },
+
+  {
     match: { type: 'functionName', functionName: 'GetProductionRulesPreview' },
     action: (node, context) => {
       context._pushNode({
