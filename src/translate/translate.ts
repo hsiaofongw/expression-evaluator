@@ -1,203 +1,170 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { Node } from 'src/parser/interfaces';
+import { Node, NonTerminalNode } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
-import { ExpressionNode, FunctionNode, IdentifierNode } from './interfaces';
+import {
+  AssignSymbol,
+  DivideSymbol,
+  EqualQSymbol,
+  GreaterThanOrEqualSymbol,
+  GreaterThanSymbol,
+  LessThanOrEqualSymbol,
+  LessThanSymbol,
+  MinusSymbol,
+  NegativeSymbol,
+  NumberSymbol,
+  PlusSymbol,
+  PowerSymbol,
+  RemainderSymbol,
+  SymbolSymbol,
+  TimesSymbol,
+} from './config';
+import { ExpressionNode } from './interfaces';
 
-type Evaluator = (node: Node) => void;
+type Evaluator = (node: NonTerminalNode) => void;
 type EvaluatorMap = Record<string, Evaluator>;
 
-export class ExpressionNodeHelper {
-  public static nodeToString(node: ExpressionNode): string {
-    if (node.type === 'function') {
-      const functionName = node.functionName;
-      const parameters = node.children
-        .map((_n) => ExpressionNodeHelper.nodeToString(_n))
-        .join(', ');
-      return `${functionName}[${parameters}]`;
-    } else if (node.type === 'string') {
-      return '"' + node.value.toString() + '"';
-    } else if (node.type === 'nothing') {
-      return '';
-    } else {
-      return node.value.toString();
-    }
-  }
-
-  public static print(node: ExpressionNode): void {
-    console.log(ExpressionNodeHelper.nodeToString(node));
-  }
-}
+const doNothing = (_: any) => {};
 
 export class ExpressionTranslate extends Transform {
   _nodeStack: ExpressionNode[] = [];
 
   _evaluatorMap: EvaluatorMap = {
-    "S -> S' CMP_0": (node) => {
-      this._evaluateEveryChild(node);
-    },
+    "S -> S' CMP_0": (node) => this._evaluateEveryChild(node),
 
-    "CMP_0 -> == S' CMP_0": (node) => this._reduce(node, 'EqualQ', 1, 2),
-    'CMP_0 -> ε': (_) => {},
+    "CMP_0 -> == S' CMP_0": (node) => this._reduce(node, EqualQSymbol, 1, 2),
 
-    "S' -> A": (node) => this._evaluateEveryChild(node),
+    'CMP_0 -> ε': doNothing,
 
-    "S' -> CMP_1": (node) => this._evaluateEveryChild(node),
+    "S' -> E CMP_2": (node) => this._evaluateEveryChild(node),
 
-    "S' -> str": (node) => {
-      if (node.type === 'nonTerminal') {
-        const v1 = node.children[0];
-        if (v1.type === 'terminal' && v1.token) {
-          const stringContent = v1.token.content;
-          this._pushNode({
-            type: 'string',
-            value: stringContent,
-          });
-        }
-      }
-    },
-
-    'A -> { L }': (node) => {
-      if (node.type === 'nonTerminal') {
-        this._nodeStack.push(this._makeFunctionNode('List', []));
-        this._evaluate(node.children[1]);
-      }
-    },
-
-    'L -> ε': (_) => {},
+    'L -> ε': doNothing,
 
     "L -> S L'": (node) => this._reduceByAppend(node, 0, 1),
 
     "L' -> , S L'": (node) => this._reduceByAppend(node, 1, 2),
 
-    "L' -> ε": (_) => {},
+    "L' -> ε": doNothing,
 
-    'CMP_1 -> E CMP_2': (node) => this._evaluateEveryChild(node),
+    'CMP_2 -> > E CMP_2': (node) => this._reduce(node, GreaterThanSymbol, 1, 2),
 
-    'CMP_2 -> > E CMP_2': (node) => this._reduce(node, 'GreaterThan', 1, 2),
-
-    'CMP_2 -> < E CMP_2': (node) => this._reduce(node, 'LessThan', 1, 2),
+    'CMP_2 -> < E CMP_2': (node) => this._reduce(node, LessThanSymbol, 1, 2),
 
     'CMP_2 -> >= E CMP_2': (node) =>
-      this._reduce(node, 'GreaterThanOrEqual', 1, 2),
+      this._reduce(node, GreaterThanOrEqualSymbol, 1, 2),
 
     'CMP_2 -> <= E CMP_2': (node) =>
-      this._reduce(node, 'LessThanOrEqual', 1, 2),
+      this._reduce(node, LessThanOrEqualSymbol, 1, 2),
 
-    'CMP_2 -> ε': (_) => {},
+    'CMP_2 -> ε': doNothing,
 
     "E -> T E'": (node) => this._evaluateEveryChild(node),
 
-    "E' -> '+' T E'": (node) => this._reduce(node, 'Plus', 1, 2),
+    "E' -> '+' T E'": (node) => this._reduce(node, PlusSymbol, 1, 2),
 
-    "E' -> '-' T E'": (node) => this._reduce(node, 'Minus', 1, 2),
+    "E' -> '-' T E'": (node) => this._reduce(node, MinusSymbol, 1, 2),
 
-    "E' -> ε": (_) => {},
+    "E' -> ε": doNothing,
 
     "T -> REM_0 T'": (node) => this._evaluateEveryChild(node),
 
-    "T' -> '*' REM_0 T'": (node) => this._reduce(node, 'Times', 1, 2),
+    "T' -> '*' REM_0 T'": (node) => this._reduce(node, TimesSymbol, 1, 2),
 
-    "T' -> '/' REM_0 T'": (node) => this._reduce(node, 'Divide', 1, 2),
+    "T' -> '/' REM_0 T'": (node) => this._reduce(node, DivideSymbol, 1, 2),
 
-    "T' -> ε": (_) => {},
+    "T' -> ε": doNothing,
 
     'REM_0 -> NEG REM_1': (node) => this._evaluateEveryChild(node),
 
-    'REM_1 -> % NEG REM_1': (node) => this._reduce(node, 'Remainder', 1, 2),
-    'REM_1 -> ε': (_) => {},
+    'REM_1 -> % NEG REM_1': (node) => this._reduce(node, RemainderSymbol, 1, 2),
+    'REM_1 -> ε': doNothing,
 
     'NEG -> - POW_0': (node) => {
-      if (node.type === 'nonTerminal') {
-        this._evaluate(node.children[1]);
-        const theValue = this._popNode();
-        this._pushNode(this._makeFunctionNode('Negative', [theValue]));
-      }
+      this._evaluate(node.children[1]);
+      const theValue = this._popNode();
+      const negativeNode: ExpressionNode = {
+        head: NegativeSymbol,
+        nodeType: 'nonTerminal',
+        children: [theValue],
+      };
+      this._pushNode(negativeNode);
     },
 
     'NEG -> POW_0': (node) => this._evaluateEveryChild(node),
 
     'POW_0 -> F POW_1': (node) => this._evaluateEveryChild(node),
-    'POW_1 -> ^ F POW_1': (node) => this._reduce(node, 'Power', 1, 2),
-    'POW_1 -> ε': (_) => {},
+    'POW_1 -> ^ F POW_1': (node) => this._reduce(node, PowerSymbol, 1, 2),
+    'POW_1 -> ε': doNothing,
 
-    'F -> ( E )': (node) => {
-      if (node.type === 'nonTerminal') {
-        this._evaluate(node.children[1]);
+    "F -> F' P": (node) => this._evaluateEveryChild(node),
+
+    "F' -> ( E )": (node) => this._evaluate(node.children[1]),
+
+    "F' -> number": (node) => {
+      const v1 = node.children[0];
+      if (v1.type === 'terminal' && v1.token) {
+        const value = parseFloat(v1.token?.content ?? '0');
+        const numberNode: ExpressionNode = {
+          head: NumberSymbol,
+          nodeType: 'terminal',
+          expressionType: 'number',
+          value: value,
+        };
+        this._pushNode(numberNode);
       }
     },
 
-    'F -> number': (node) => {
-      if (node.type === 'nonTerminal') {
-        const v1 = node.children[0];
-        if (v1.type === 'terminal' && v1.token) {
-          const value = parseFloat(v1.token.content);
-          const isInteger = Math.floor(value) === value;
-          this._pushNode({
-            type: 'value',
-            value: value,
-            numberType: isInteger ? 'integer' : 'float',
-          });
-        }
+    "F' -> id": (node) => {
+      const v1 = node.children[0];
+      if (v1.type === 'terminal' && v1.token) {
+        const identifier = v1.token.content;
+        const symbolNode: ExpressionNode = {
+          head: SymbolSymbol,
+          nodeType: 'terminal',
+          expressionType: 'symbol',
+          value: identifier,
+        };
+        this._pushNode(symbolNode);
       }
     },
 
-    'F -> id P': (node) => {
-      if (node.type === 'nonTerminal') {
-        const v1 = node.children[0];
-        const v2 = node.children[1];
-        if (v1.type === 'terminal' && v1.token) {
-          const identifier = v1.token.content;
-          this._pushNode({ type: 'identifier', value: identifier });
-          this._evaluate(v2);
-        }
-      }
+    'P -> [ L ] P': (node) => {
+      const previousNode: ExpressionNode = this._popNode();
+      const functionNode: ExpressionNode = {
+        head: previousNode,
+        nodeType: 'nonTerminal',
+        children: [],
+      };
+      this._pushNode(functionNode);
+      this._evaluate(node.children[1]);
+      this._evaluate(node.children[3]);
     },
 
-    "P -> [ L ] P'": (node) => {
-      if (node.type === 'nonTerminal') {
-        const identifierNode = this._popNode() as IdentifierNode;
-        const identifier = identifierNode.value;
-        const functionNode = this._makeFunctionNode(identifier, []);
-        this._pushNode(functionNode);
-        this._evaluate(node.children[1]);
-        this._evaluate(node.children[3]);
-      }
-    },
+    'P -> = S': (node) => {
+      const leftValueNode = this._popNode();
+      const assignNode: ExpressionNode = {
+        head: AssignSymbol,
+        nodeType: 'nonTerminal',
+        children: [leftValueNode],
+      };
 
-    'P -> = S': (node) => this._assign(node),
-    "P' -> = S": (node) => this._assign(node),
+      this._evaluate(node.children[1]);
+      const rightValue = this._popNode();
+      assignNode.children.push(rightValue);
+
+      this._pushNode(assignNode);
+    },
 
     'P -> ε': (_) => {},
-    "P' -> ε": (_) => {},
   };
 
   constructor() {
     super({ objectMode: true });
   }
 
-  private _assign(node: Node): void {
-    if (node.type === 'nonTerminal') {
-      const leftValueNode = this._popNode();
-      const assignNode = this._makeFunctionNode('Assign', []);
-      this._evaluate(node.children[1]);
-      const rightValue = this._popNode();
-      assignNode.children.push(leftValueNode);
-      assignNode.children.push(rightValue);
-      this._pushNode(assignNode);
-    }
-  }
-
-  private _makeFunctionNode(
-    functionName: string,
-    children: ExpressionNode[],
-  ): FunctionNode {
-    return { type: 'function', functionName, children };
-  }
-
   private _reduce(
     node: Node,
-    functionName: string,
+    head: ExpressionNode,
     currIdx: number,
     nextIdx: number,
   ): void {
@@ -206,31 +173,34 @@ export class ExpressionTranslate extends Transform {
       this._evaluate(node.children[currIdx]);
       const current = this._popNode();
 
-      const sum: FunctionNode = {
-        type: 'function',
-        functionName: functionName,
+      const reduced: ExpressionNode = {
+        nodeType: 'nonTerminal',
+        head: head,
         children: [prev, current],
       };
-      this._pushNode(sum);
+
+      this._pushNode(reduced);
 
       this._evaluate(node.children[nextIdx]);
     }
   }
 
-  private _reduceByAppend(node: Node, currIdx: number, nextIdx: number): void {
-    if (node.type === 'nonTerminal') {
-      const prev = this._popNode();
-      if (prev.type === 'function') {
-        this._evaluate(node.children[currIdx]);
-        const current = this._popNode();
-        const appended: FunctionNode = {
-          type: 'function',
-          functionName: prev.functionName,
-          children: [...prev.children, current],
-        };
-        this._pushNode(appended);
-        this._evaluate(node.children[nextIdx]);
-      }
+  private _reduceByAppend(
+    node: NonTerminalNode,
+    currIdx: number,
+    nextIdx: number,
+  ): void {
+    const prev = this._popNode();
+    if (prev.nodeType === 'nonTerminal') {
+      this._evaluate(node.children[currIdx]);
+      const current = this._popNode();
+      const appended: ExpressionNode = {
+        nodeType: 'nonTerminal',
+        head: prev.head,
+        children: [...prev.children, current],
+      };
+      this._pushNode(appended);
+      this._evaluate(node.children[nextIdx]);
     }
   }
 

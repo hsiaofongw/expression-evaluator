@@ -184,16 +184,6 @@ const parametersPart: SyntaxSymbol = {
   zhName: '函数参数部分',
 };
 
-// P'
-const parametersExpandPart: SyntaxSymbol = {
-  id: 'parametersExpandPart',
-  name: 'ParametersExpandPart',
-  description: '标识符右侧可选赋值右值部分',
-  type: 'nonTerminal',
-  displayName: "P'",
-  zhName: '赋值部分',
-};
-
 // REM_0
 const remainder: SyntaxSymbol = {
   id: 'rem0',
@@ -548,7 +538,6 @@ export const allSymbols = {
   factorExpand,
 
   parametersPart,
-  parametersExpandPart,
 
   plus,
   minus,
@@ -609,27 +598,9 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: "S' -> A",
+    name: "S' -> E CMP_2",
     lhs: allSymbols.value,
-    rhs: [allSymbols.array],
-  },
-
-  {
-    name: "S' -> CMP_1",
-    lhs: allSymbols.value,
-    rhs: [allSymbols.cmp1],
-  },
-
-  {
-    name: "S' -> str",
-    lhs: allSymbols.value,
-    rhs: [allSymbols.stringSymbol],
-  },
-
-  {
-    name: 'A -> { L }',
-    lhs: allSymbols.array,
-    rhs: [allSymbols.leftBracket, allSymbols.list, allSymbols.rightBracket],
+    rhs: [allSymbols.expression, allSymbols.cmp2],
   },
 
   {
@@ -654,12 +625,6 @@ export const allRules: ProductionRule[] = [
     name: "L' -> ε",
     lhs: allSymbols.listExpand,
     rhs: [allSymbols.epsilon],
-  },
-
-  {
-    name: 'CMP_1 -> E CMP_2',
-    lhs: allSymbols.cmp1,
-    rhs: [allSymbols.expression, allSymbols.cmp2],
   },
 
   {
@@ -793,8 +758,14 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'F -> ( E )',
+    name: "F -> F' P",
     lhs: allSymbols.factor,
+    rhs: [allSymbols.factorExpand, allSymbols.parametersPart],
+  },
+
+  {
+    name: "F' -> ( E )",
+    lhs: allSymbols.factorExpand,
     rhs: [
       allSymbols.leftParenthesis,
       allSymbols.expression,
@@ -803,31 +774,37 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'F -> number',
-    lhs: allSymbols.factor,
+    name: "F' -> number",
+    lhs: allSymbols.factorExpand,
     rhs: [allSymbols.number],
   },
 
   {
-    name: 'F -> - number',
-    lhs: allSymbols.factor,
-    rhs: [allSymbols.minus, allSymbols.number],
+    name: "F' -> id",
+    lhs: allSymbols.factorExpand,
+    rhs: [allSymbols.identifier],
   },
 
   {
-    name: 'F -> id P',
-    lhs: allSymbols.factor,
-    rhs: [allSymbols.identifier, allSymbols.parametersPart],
+    name: "F' -> { L }",
+    lhs: allSymbols.factorExpand,
+    rhs: [allSymbols.leftBracket, allSymbols.list, allSymbols.rightBracket],
   },
 
   {
-    name: "P -> [ L ] P'",
+    name: "F' -> str",
+    lhs: allSymbols.factorExpand,
+    rhs: [allSymbols.stringSymbol],
+  },
+
+  {
+    name: 'P -> [ L ] P',
     lhs: allSymbols.parametersPart,
     rhs: [
       allSymbols.leftSquareBracket,
       allSymbols.list,
       allSymbols.rightSquareBracket,
-      allSymbols.parametersExpandPart,
+      allSymbols.parametersPart,
     ],
   },
 
@@ -840,18 +817,6 @@ export const allRules: ProductionRule[] = [
   {
     name: 'P -> ε',
     lhs: allSymbols.parametersPart,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
-    name: "P' -> = S",
-    lhs: allSymbols.parametersExpandPart,
-    rhs: [allSymbols.singleEqualSign, allSymbols.start],
-  },
-
-  {
-    name: "P' -> ε",
-    lhs: allSymbols.parametersExpandPart,
     rhs: [allSymbols.epsilon],
   },
 ];

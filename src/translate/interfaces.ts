@@ -1,59 +1,57 @@
-export type BuiltInArithmeticFunctionName =
-  | 'Plus'
-  | 'Minus'
-  | 'Times'
-  | 'Divide';
-
-export type FunctionNode = {
-  type: 'function';
-  functionName: string;
-  children: ExpressionNode[];
+export type SymbolExpressionType = {
+  expressionType: 'symbol';
+  value: string;
 };
 
-export type ValueNode = {
-  type: 'value';
-  numberType: 'integer' | 'float';
+export type StringExpressionType = {
+  expressionType: 'string';
+  value: string;
+};
+
+export type NumberExpressionType = {
+  expressionType: 'number';
   value: number;
 };
 
-export type PrintableNode = { type: 'printable'; value: string };
+export type BooleanExpressionType = {
+  expressionType: 'boolean';
+  value: boolean;
+};
 
-export type NullNode = { type: 'nothing' };
+export type ExpressionType =
+  | SymbolExpressionType
+  | StringExpressionType
+  | NumberExpressionType
+  | BooleanExpressionType;
 
-export type IdentifierNode = { type: 'identifier'; value: string };
+export type TerminalNode = {
+  nodeType: 'terminal';
+} & ExpressionType;
 
-export type BooleanNode = { type: 'boolean'; value: boolean };
+export type NonTerminalNode = {
+  nodeType: 'nonTerminal';
+  children: ExpressionNode[];
+};
 
-export type StringNode = { type: 'string'; value: string };
-
-export type ExpressionNode =
-  | FunctionNode
-  | ValueNode
-  | BooleanNode
-  | StringNode
-  | IdentifierNode
-  | PrintableNode
-  | NullNode;
+export type ExpressionNode = (TerminalNode | NonTerminalNode) & {
+  head: ExpressionNode;
+};
 
 export interface IEvaluateContext {
-  _evaluate(node: ExpressionNode): void;
-  _popNode(): ExpressionNode;
-  _pushNode(node: ExpressionNode): void;
-  _getValue(identifierNode: IdentifierNode): ExpressionNode;
-  _setValue(identifier: string, node: ExpressionNode): void;
-  _getHistory(idx: number): ExpressionNode;
-  _getHistoryLength(): number;
-  _getMostRecentHistory(): ExpressionNode;
+  /** 求值，最终的求值结果在栈顶 */
+  evaluate(node: ExpressionNode): void;
+
+  /** 弹出栈顶的那个值（如果有） */
+  popNode(): ExpressionNode;
+
+  /** 将一个值入栈 */
+  pushNode(node: ExpressionNode): void;
+
+  /** 模式匹配 */
+  matchQ(node: ExpressionNode, pattern: ExpressionNode): boolean;
 }
 
-export type NamedEvaluator = {
-  match: { type: 'functionName'; functionName: string };
-  action: (node: FunctionNode, context: IEvaluateContext) => void;
+export type ExpressionNodeEvaluator = {
+  pattern: ExpressionNode;
+  action: (node: ExpressionNode, context: IEvaluateContext) => void;
 };
-
-export type RegexpMatchEvaluator = {
-  match: { type: 'regexp'; regexp: RegExp };
-  action: (node: FunctionNode, context: IEvaluateContext) => void;
-};
-
-export type ExpressionNodeEvaluator = NamedEvaluator;
