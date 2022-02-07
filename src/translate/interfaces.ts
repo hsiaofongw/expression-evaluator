@@ -46,9 +46,14 @@ export interface IEvaluateContext {
   _getMostRecentHistory(): ExpressionNode;
 }
 
-export type ExpressionNodeEvaluator = {
-  match:
-    | { type: 'functionName'; functionName: string }
-    | { type: 'regexp'; regexp: RegExp };
-  action(node: FunctionNode, context: IEvaluateContext): void;
+export type NamedEvaluator = {
+  match: { type: 'functionName'; functionName: string };
+  action: (node: FunctionNode, context: IEvaluateContext) => void;
 };
+
+export type RegexpMatchEvaluator = {
+  match: { type: 'regexp'; regexp: RegExp };
+  action: (node: FunctionNode, context: IEvaluateContext) => void;
+};
+
+export type ExpressionNodeEvaluator = NamedEvaluator | RegexpMatchEvaluator;

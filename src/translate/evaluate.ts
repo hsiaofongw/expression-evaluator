@@ -5,18 +5,27 @@ import {
   ExpressionNodeEvaluator,
   IdentifierNode,
   IEvaluateContext,
+  NamedEvaluator,
 } from './interfaces';
 
 export class Evaluate extends Transform implements IEvaluateContext {
   private _nodeStack: ExpressionNode[] = [];
   private _globalContext: Record<string, ExpressionNode> = {};
   private _outputHistory: ExpressionNode[] = [];
+  private _builtInEvaluatorMap: Record<string, ExpressionNodeEvaluator> = {};
 
   constructor() {
     super({ objectMode: true });
 
     this._nodeStack = [];
     this._globalContext = {};
+
+    const namedBuiltInEvaluators: NamedEvaluator[] = builtInEvaluators.filter(
+      (eva) => eva.match.type === 'functionName',
+    ) as NamedEvaluator[];
+    for (const evaluator of namedBuiltInEvaluators) {
+      this._builtInEvaluatorMap[evaluator.match.functionName] = evaluator;
+    }
   }
 
   public getOutputHistoryLength(): number {
@@ -26,28 +35,7 @@ export class Evaluate extends Transform implements IEvaluateContext {
   private _getEvaluatorForFunctionNode(
     functionName: string,
   ): ExpressionNodeEvaluator {
-    // match by content at first if possible
-    for (const evaluator of builtInEvaluators) {
-      if (
-        evaluator.match.type === 'functionName' &&
-        evaluator.match.functionName === functionName
-      ) {
-        return evaluator;
-      }
-    }
-
-    // if not exact match, using First Regexp Match strategy
-    for (const evaluator of builtInEvaluators) {
-      if (
-        evaluator.match.type === 'regexp' &&
-        functionName.match(evaluator.match.regexp)
-      ) {
-        return evaluator;
-      }
-    }
-
-    // if all above tries failed, resort to defaultEvaluator
-    return defaultEvaluator;
+    return this._builtInEvaluatorMap[functionName] ?? defaultEvaluator;
   }
 
   _transform(
@@ -55,9 +43,6 @@ export class Evaluate extends Transform implements IEvaluateContext {
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    // console.log('in');
-    // ExpressionNodeHelper.print(node);
-
     this._evaluate(node);
     const value = this._popNode();
     this._outputHistory.push(value);
