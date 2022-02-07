@@ -1,5 +1,5 @@
 import { Transform, TransformCallback } from 'stream';
-import { defaultEvaluator, builtInEvaluators } from './config';
+import { builtInEvaluators } from './config';
 import {
   ExpressionNode,
   ExpressionNodeEvaluator,
@@ -34,8 +34,8 @@ export class Evaluate extends Transform implements IEvaluateContext {
 
   private _getEvaluatorForFunctionNode(
     functionName: string,
-  ): ExpressionNodeEvaluator {
-    return this._builtInEvaluatorMap[functionName] ?? defaultEvaluator;
+  ): ExpressionNodeEvaluator | undefined {
+    return this._builtInEvaluatorMap[functionName];
   }
 
   _transform(
@@ -52,8 +52,20 @@ export class Evaluate extends Transform implements IEvaluateContext {
 
   _evaluate(node: ExpressionNode): void {
     if (node.type === 'function') {
+      for (let i = 0; i < node.children.length; i++) {
+        this._evaluate(node.children[i]);
+        node.children[i] = this._popNode();
+      }
+
       const evaluator = this._getEvaluatorForFunctionNode(node.functionName);
-      evaluator.action(node, this);
+      if (evaluator) {
+        if (typeof evaluator.action === 'function') {
+          evaluator.action(node, this);
+          return;
+        }
+      }
+
+      this._pushNode(node);
     } else if (node.type === 'identifier') {
       this._pushNode(this._getValue(node));
     } else {

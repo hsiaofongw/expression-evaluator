@@ -56,4 +56,4 @@ export type RegexpMatchEvaluator = {
   action: (node: FunctionNode, context: IEvaluateContext) => void;
 };
 
-export type ExpressionNodeEvaluator = NamedEvaluator | RegexpMatchEvaluator;
+export type ExpressionNodeEvaluator = NamedEvaluator;

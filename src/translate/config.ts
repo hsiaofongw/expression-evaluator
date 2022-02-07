@@ -136,24 +136,6 @@ class EvaluatorHelper {
   }
 }
 
-export const defaultEvaluator: ExpressionNodeEvaluator = {
-  match: { type: 'regexp', regexp: /.+/ },
-  action: (node, context) => {
-    const evaluatedChidren: ExpressionNode[] = [];
-    for (const child of node.children) {
-      context._evaluate(child);
-      const evaluated = context._popNode();
-      evaluatedChidren.push(evaluated);
-    }
-
-    node.children = evaluatedChidren;
-
-    // dont evaluate this node again,
-    // since it reach here just because there no evaluator for it
-    context._pushNode(node);
-  },
-};
-
 export const builtInEvaluators: ExpressionNodeEvaluator[] = [
   EvaluatorHelper.makeSingleValueEvaluator('Sin', (v) => Math.sin(v)),
   EvaluatorHelper.makeSingleValueEvaluator('Cos', (v) => Math.cos(v)),
@@ -455,6 +437,4 @@ export const builtInEvaluators: ExpressionNodeEvaluator[] = [
       }
     },
   },
-
-  defaultEvaluator,
 ];
