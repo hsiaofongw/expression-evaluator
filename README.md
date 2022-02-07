@@ -8,7 +8,7 @@ This is a expression evaluator, it provides commandline interface, it is capable
 
 This project is based on [Nest.js Framework](https://nestjs.com/), and our own implementation of Lexer, LL(1) Parser, Translator and Evaluator.
 
-## 安装运行
+## 安装运行 Setup and Run
 
 分为 3 个步骤：
 
@@ -55,7 +55,7 @@ Minus[x, y]                    # x-y
 Times[x, y]                    # x*y
 Divide[x, y]                   # x/y
 If[x, y, z]                    # 如果 x 为真，返回 y, 否则返回 z
-Take[x, y]                     # 访问 x 的第 y-1 个元素
+Take[x, y]                     # 访问 x 的第 y+1 个元素
 GetHead[x]                     # 查看 x 表达式树的根节点，将根节点名称以标识符形式返回
 GetParametersList[x]           # 获取 x 作为函数节点的参数列表，以列表形式返回
 EqualQ[x, y]                   # 若 x 等于 y, 则返回 true, 否则返回 false, 判断方式见源码
@@ -163,19 +163,4 @@ P      ->  [  L  ]  P'      # 符号 P 可以被推导为一个被方括号包�
         
 P'     ->  =  S             # 符号 P' 可以被推导为一个以单等于号开头的串，翻译器在翻译应用了这样的产生式的节点时，会将栈顶的值弹出，以弹出值作为左值节点，然后对 S 节点求值并将它作为右值节点弹出，最后再弹回一个 Assign 节点到栈完事
         |  ε                # 如果没有符号可匹配，那就不匹配，翻译器对于 P' -> ε 会什么都不做
-```
-
-其中各符号含义：
-
-```
-S: 开始符号
-A: 数组
-E: 表达式
-E: 表达式余项
-L: 逗号分隔列表
-L': 列表余项
-T: 项
-T': 余项
-F: 因子
-P: 函数参数部分
 ```
