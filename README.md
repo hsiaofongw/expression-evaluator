@@ -80,6 +80,9 @@ FullForm[x]                    # 给出输入的标准 Expression 形式
 GetProductionRulesPreview[]    # 获得语法产生式规则集的预览（字符串形式、已格式化的）
 Print[x]                       # 在控制台打印字符串 x, 字符串以双引号包围，支持 \ 转义
 StringJoin[x, y]               # 将字符串 y 首端连接到字符串 x 的尾端，并且返回连接后的字符串
+Remainder[x, y]                # 计算 x 除以 y 得到的余数
+Power[x, y]                    # 计算 x^y
+Negative[x]                    # 计算 0 - x
 ```
 
 ## 开发计划 Roadmap

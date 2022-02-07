@@ -154,7 +154,7 @@ export const defaultEvaluator: ExpressionNodeEvaluator = {
   },
 };
 
-export const evaluators: ExpressionNodeEvaluator[] = [
+export const builtInEvaluators: ExpressionNodeEvaluator[] = [
   EvaluatorHelper.makeSingleValueEvaluator('Sin', (v) => Math.sin(v)),
   EvaluatorHelper.makeSingleValueEvaluator('Cos', (v) => Math.cos(v)),
   EvaluatorHelper.makeSingleValueEvaluator('Tan', (v) => Math.tan(v)),
@@ -168,11 +168,16 @@ export const evaluators: ExpressionNodeEvaluator[] = [
   EvaluatorHelper.makeSingleValueEvaluator('Ln', (v) => Math.log(v)),
   EvaluatorHelper.makeSingleValueEvaluator('Lg', (v) => Math.log10(v)),
   EvaluatorHelper.makeSingleValueEvaluator('Log2', (v) => Math.log2(v)),
+  EvaluatorHelper.makeSingleValueEvaluator('Negative', (v) => 0 - v),
 
   EvaluatorHelper.makeTwoInputValueFunction('Plus', (v1, v2) => v1 + v2),
   EvaluatorHelper.makeTwoInputValueFunction('Minus', (v1, v2) => v1 - v2),
   EvaluatorHelper.makeTwoInputValueFunction('Times', (v1, v2) => v1 * v2),
   EvaluatorHelper.makeTwoInputValueFunction('Divide', (v1, v2) => v1 / v2),
+  EvaluatorHelper.makeTwoInputValueFunction('Remainder', (v1, v2) => v1 % v2),
+  EvaluatorHelper.makeTwoInputValueFunction('Power', (v1, v2) =>
+    Math.pow(v1, v2),
+  ),
 
   EvaluatorHelper.makeTwoInputNodeFunction('GreaterThan', (v1, v2) => {
     return { type: 'boolean', value: v1 > v2 };

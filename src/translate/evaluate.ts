@@ -1,12 +1,11 @@
 import { Transform, TransformCallback } from 'stream';
-import { defaultEvaluator, evaluators } from './config';
+import { defaultEvaluator, builtInEvaluators } from './config';
 import {
   ExpressionNode,
   ExpressionNodeEvaluator,
   IdentifierNode,
   IEvaluateContext,
 } from './interfaces';
-import { ExpressionNodeHelper } from './translate';
 
 export class Evaluate extends Transform implements IEvaluateContext {
   private _nodeStack: ExpressionNode[] = [];
@@ -28,7 +27,7 @@ export class Evaluate extends Transform implements IEvaluateContext {
     functionName: string,
   ): ExpressionNodeEvaluator {
     // match by content at first if possible
-    for (const evaluator of evaluators) {
+    for (const evaluator of builtInEvaluators) {
       if (
         evaluator.match.type === 'functionName' &&
         evaluator.match.functionName === functionName
@@ -38,7 +37,7 @@ export class Evaluate extends Transform implements IEvaluateContext {
     }
 
     // if not exact match, using First Regexp Match strategy
-    for (const evaluator of evaluators) {
+    for (const evaluator of builtInEvaluators) {
       if (
         evaluator.match.type === 'regexp' &&
         functionName.match(evaluator.match.regexp)
