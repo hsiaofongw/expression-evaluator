@@ -86,8 +86,6 @@ StringJoin[x, y]               # 将字符串 y 首端连接到字符串 x 的�
 
 按重要程度排序：
 
-Most urgent at top:
-
 - [ ] 可编程性 - 自定函数与递归调用
 - [ ] 可编程性 - 高阶函数
 - [ ] 可编程性 - 变量与常量
@@ -97,6 +95,18 @@ Most urgent at top:
 - [ ] 语言功能 - 翻译成 Native Binary Code
 - [ ] 易用性 - VS Code LSP Server
 - [ ] 易用性 - Web 端界面
+
+We are working on:
+
+- [ ] Programmability - Custom Functions and Recursive Evaluating
+- [ ] Programmability - Higher-order Function Support
+- [ ] Programmability - Variables and Constants Support
+- [ ] Language Feature - Error Diagnosis and Recovery
+- [ ] Language Feature - Asynchronous
+- [ ] Language Feature - Module System
+- [ ] Language Feature - Being Able Compile to Native Code
+- [ ] Accessibility - LSP Server
+- [ ] Accessibility - Web User Interface
 
 ## 语法概览 Grammar Overview
 
