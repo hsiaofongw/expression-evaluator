@@ -71,3 +71,6 @@ export const RemainderSymbol = NodeFactory.makeSymbol('Remainder');
 
 // 幂次运算符号
 export const PowerSymbol = NodeFactory.makeSymbol('Power');
+
+// 字符串符号
+export const StringSymbol = NodeFactory.makeSymbol('String');

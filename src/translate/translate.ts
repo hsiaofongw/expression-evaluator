@@ -16,6 +16,7 @@ import {
   PlusSymbol,
   PowerSymbol,
   RemainderSymbol,
+  StringSymbol,
   SymbolSymbol,
   TimesSymbol,
 } from './config';
@@ -125,6 +126,20 @@ export class ExpressionTranslate extends Transform {
           value: identifier,
         };
         this._pushNode(symbolNode);
+      }
+    },
+
+    "F' -> str": (node) => {
+      const v1 = node.children[0];
+      if (v1.type === 'terminal') {
+        const stringContent = v1.token.content ?? '';
+        const stringNode: ExpressionNode = {
+          head: StringSymbol,
+          nodeType: 'terminal',
+          expressionType: 'string',
+          value: stringContent,
+        };
+        this._pushNode(stringNode);
       }
     },
 
