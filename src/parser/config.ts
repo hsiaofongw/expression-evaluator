@@ -1,50 +1,94 @@
 import { ArrayHelper } from 'src/helpers/to-array';
 import { SyntaxSymbol, ProductionRule } from './interfaces';
 
-// S
-const start: SyntaxSymbol = {
-  id: 'start',
-  name: 'Start',
-  description: '开始符号',
+const json: SyntaxSymbol = {
+  id: 'json',
+  name: 'JSON',
+  description: 'JSON, 开始符号',
   type: 'nonTerminal',
-  displayName: 'S',
-  zhName: '开始',
+  displayName: 'JSON',
+  zhName: 'JSON',
 };
 
-const value: SyntaxSymbol = {
-  id: 'value',
-  name: 'Value',
-  description: '值符号',
+const obj: SyntaxSymbol = {
+  id: 'obj',
+  name: 'Object',
+  description: '对象',
   type: 'nonTerminal',
-  displayName: "S'",
+  displayName: 'OBJ',
+  zhName: '对象',
+};
+
+const ary: SyntaxSymbol = {
+  id: 'ary',
+  name: '数组',
+  description: '数组',
+  type: 'nonTerminal',
+  displayName: 'ARY',
+  zhName: '数组',
+};
+
+const val: SyntaxSymbol = {
+  id: 'val',
+  name: 'Value',
+  description: '值',
+  type: 'nonTerminal',
+  displayName: 'VAL',
   zhName: '值',
 };
 
-const cmp0: SyntaxSymbol = {
-  id: 'cmp0',
-  name: 'CMP_0',
-  description: '比较层级 0',
+const atom: SyntaxSymbol = {
+  id: 'atom',
+  name: 'Atom',
+  description: '原子值',
   type: 'nonTerminal',
-  displayName: 'CMP_0',
-  zhName: '比较_0',
+  displayName: 'ATOM',
+  zhName: '原子值',
 };
 
-const cmp1: SyntaxSymbol = {
-  id: 'cmp1',
-  name: 'CMP_1',
-  description: '比较层级 1',
+const valList: SyntaxSymbol = {
+  id: 'valList',
+  name: 'ValueList',
+  description: '值列表',
   type: 'nonTerminal',
-  displayName: 'CMP_1',
-  zhName: '比较_1',
+  displayName: 'ATOM',
+  zhName: '值列表',
 };
 
-const cmp2: SyntaxSymbol = {
-  id: 'cmp2',
-  name: 'CMP_2',
-  description: '比较层级 2',
+const valListE: SyntaxSymbol = {
+  id: 'valListE',
+  name: 'ValueListExtend',
+  description: '值列表余项',
   type: 'nonTerminal',
-  displayName: 'CMP_2',
-  zhName: '比较_2',
+  displayName: 'VAL_LIST_E',
+  zhName: '值列表余项',
+};
+
+const kv: SyntaxSymbol = {
+  id: 'kv',
+  name: 'KeyValuePair',
+  description: '键值对',
+  type: 'nonTerminal',
+  displayName: 'KV',
+  zhName: '键值对',
+};
+
+const kvList: SyntaxSymbol = {
+  id: 'kvList',
+  name: 'KeyValuePairList',
+  description: '键值对列表',
+  type: 'nonTerminal',
+  displayName: 'KV_LIST',
+  zhName: '键值对列表',
+};
+
+const kvListE: SyntaxSymbol = {
+  id: 'kvListE',
+  name: 'KeyValuePairListExtend',
+  description: '键值对列表余项',
+  type: 'nonTerminal',
+  displayName: 'KV_LIST_E',
+  zhName: '键值对列表余项',
 };
 
 // str
@@ -58,44 +102,36 @@ const stringSymbol: SyntaxSymbol = {
   zhName: '字符串',
 };
 
-// A
-const array: SyntaxSymbol = {
-  id: 'array',
-  name: 'Array',
-  description: '数组符号',
-  type: 'nonTerminal',
-  displayName: 'A',
-  zhName: '数组',
+// true
+const trueSymbol: SyntaxSymbol = {
+  id: 'trueSymbol',
+  name: 'True',
+  description: 'True token',
+  type: 'terminal',
+  definition: { tokenClassName: 'true' },
+  displayName: 'true',
+  zhName: '真',
 };
 
-// L
-const list: SyntaxSymbol = {
-  id: 'list',
-  name: 'List',
-  description: '列表符号',
-  type: 'nonTerminal',
-  displayName: 'L',
-  zhName: '列表',
+// false
+const falseSymbol: SyntaxSymbol = {
+  id: 'falseSymbol',
+  name: 'False',
+  description: 'False token',
+  type: 'terminal',
+  definition: { tokenClassName: 'false' },
+  displayName: 'false',
+  zhName: '假',
 };
 
-// L'
-const listExpand: SyntaxSymbol = {
-  id: 'listExpand',
-  name: 'ListExpand',
-  description: '列表第二项及以后',
+// boolean
+const booleanSymbol: SyntaxSymbol = {
+  id: 'booleanSymbol',
+  name: 'Boolean',
+  description: 'Boolean Symbol',
   type: 'nonTerminal',
-  displayName: "L'",
-  zhName: '列表余项',
-};
-
-// E
-const expression: SyntaxSymbol = {
-  id: 'expression',
-  name: 'Expression',
-  description: '表达式符号',
-  type: 'nonTerminal',
-  displayName: 'E',
-  zhName: '表达式',
+  displayName: 'BOOL',
+  zhName: '布尔值',
 };
 
 // ε
@@ -124,270 +160,17 @@ const number: SyntaxSymbol = {
   zhName: '数值',
 };
 
-// E'
-const expressionExpand: SyntaxSymbol = {
-  id: 'expressionExpand',
-  name: 'ExpressionExpand',
-  description: '表达式（辅助符号）',
-  type: 'nonTerminal',
-  displayName: "E'",
-  zhName: '表达式余项',
-};
-
-// T
-const term: SyntaxSymbol = {
-  id: 'term',
-  name: 'Term',
-  description: '可加项符号',
-  type: 'nonTerminal',
-  displayName: 'T',
-  zhName: '可加项',
-};
-
-// T'
-const termExpand: SyntaxSymbol = {
-  id: 'termExpand',
-  name: 'TermExpand',
-  description: '可加项余项符号（辅助符号）',
-  type: 'nonTerminal',
-  displayName: "T'",
-  zhName: '可加项余项',
-};
-
-// F
-const factor: SyntaxSymbol = {
-  id: 'factor',
-  name: 'Factor',
-  description: '因子符号（可乘项）',
-  type: 'nonTerminal',
-  displayName: 'F',
-  zhName: '因子',
-};
-
-// F'
-const factorExpand: SyntaxSymbol = {
-  id: 'factorExpand',
-  name: 'FactorExpand',
-  description: '因子余项符号（辅助符号）',
-  type: 'nonTerminal',
-  displayName: "F'",
-  zhName: '因子余项',
-};
-
-// P
-const parametersPart: SyntaxSymbol = {
-  id: 'parametersPart',
-  name: 'ParametersPart',
-  description: '标识符右侧可选参数部分',
-  type: 'nonTerminal',
-  displayName: 'P',
-  zhName: '函数参数部分',
-};
-
-// REM_0
-const remainder: SyntaxSymbol = {
-  id: 'rem0',
-  name: 'Remainder',
-  description: '余数运算',
-  type: 'nonTerminal',
-  displayName: 'REM_0',
-  zhName: '余数运算',
-};
-
-// REM_1
-const remainderExpand: SyntaxSymbol = {
-  id: 'rem1',
-  name: 'RemainderExpand',
-  description: '余数运算余项',
-  type: 'nonTerminal',
-  displayName: 'REM_1',
-  zhName: '余数运算余项',
-};
-
-// NEG
-const negFactor: SyntaxSymbol = {
-  id: 'negFactor',
-  name: 'NegativeFactor',
-  description: '可能为负数的项',
-  type: 'nonTerminal',
-  displayName: 'NEG',
-  zhName: '可能为负项',
-};
-
-// POW_0
-const powerFactor: SyntaxSymbol = {
-  id: 'powerFactor',
-  name: 'PowerFactor',
-  description: '幂次项',
-  type: 'nonTerminal',
-  displayName: 'POW_0',
-  zhName: '幂次项',
-};
-
-// POW_1
-const powerFactorExpand: SyntaxSymbol = {
-  id: 'powerFactorExpand',
-  name: 'PowerFactorExpand',
-  description: '幂次项余项',
-  type: 'nonTerminal',
-  displayName: 'POW_1',
-  zhName: '幂次项余项',
-};
-
-// '='
-const singleEqualSign: SyntaxSymbol = {
-  id: 'singleEqual',
-  name: 'SingleEqual',
-  description: '赋值符号',
+// null
+const nullSymbol: SyntaxSymbol = {
+  id: 'null',
+  name: 'Null',
+  description: 'Null 符号',
   type: 'terminal',
-  displayName: '=',
+  displayName: 'null',
   definition: {
-    tokenClassName: 'singleEqual',
+    tokenClassName: 'nullToken',
   },
-  zhName: '赋值号',
-};
-
-// '+'
-const plus: SyntaxSymbol = {
-  id: 'plus',
-  name: 'Plus',
-  description: '加号',
-  type: 'terminal',
-  displayName: '+',
-  definition: {
-    tokenClassName: 'plus',
-  },
-  zhName: '加号',
-};
-
-// '-'
-const minus: SyntaxSymbol = {
-  id: 'minus',
-  name: 'Minus',
-  description: '减号',
-  type: 'terminal',
-  displayName: '-',
-  definition: {
-    tokenClassName: 'minus',
-  },
-  zhName: '减号',
-};
-
-// '*'
-const times: SyntaxSymbol = {
-  id: 'times',
-  name: 'times',
-  description: '乘号',
-  type: 'terminal',
-  displayName: '*',
-  definition: {
-    tokenClassName: 'times',
-  },
-  zhName: '乘号',
-};
-
-// '/'
-const divideBy: SyntaxSymbol = {
-  id: 'divideBy',
-  name: 'DivideBy',
-  description: '除号',
-  type: 'terminal',
-  displayName: '/',
-  definition: {
-    tokenClassName: 'divideBy',
-  },
-  zhName: '除号',
-};
-
-// >
-const greaterThan: SyntaxSymbol = {
-  id: 'greaterThan',
-  name: 'GreaterThan',
-  description: '严格大于号',
-  type: 'terminal',
-  displayName: '>',
-  definition: {
-    tokenClassName: 'greaterThan',
-  },
-  zhName: '严格大于号',
-};
-
-// >=
-const greaterThanOrEqualTo: SyntaxSymbol = {
-  id: 'greaterThanOrEqualTo',
-  name: 'GreaterThanOrEqualTo',
-  description: '严格不小于号',
-  type: 'terminal',
-  displayName: '>=',
-  definition: {
-    tokenClassName: 'greaterThanOrEqualTo',
-  },
-  zhName: '严格不小于号',
-};
-
-// <
-const lessThan: SyntaxSymbol = {
-  id: 'lessThan',
-  name: 'LessThan',
-  description: '严格小于号',
-  type: 'terminal',
-  displayName: '<',
-  definition: {
-    tokenClassName: 'lessThan',
-  },
-  zhName: '严格小于号',
-};
-
-// <=
-const lessThanOrEqualTo: SyntaxSymbol = {
-  id: 'lessThanOrEqualTo',
-  name: 'LessThanOrEqualTo',
-  description: '严格不大于号',
-  type: 'terminal',
-  displayName: '<=',
-  definition: {
-    tokenClassName: 'lessThanOrEqualTo',
-  },
-  zhName: '严格不小于号',
-};
-
-// ==
-const equalSign: SyntaxSymbol = {
-  id: 'equalSign',
-  name: 'DoubleEqual',
-  description: '等于号',
-  type: 'terminal',
-  displayName: '==',
-  definition: {
-    tokenClassName: 'doubleEqual',
-  },
-  zhName: '双等于号',
-};
-
-// '('
-const leftParenthesis: SyntaxSymbol = {
-  id: 'leftParenthesis',
-  name: 'LeftParenthesis',
-  description: '左括号，通常用于强制运算符结合顺序。',
-  type: 'terminal',
-  displayName: '(',
-  definition: {
-    tokenClassName: 'leftParenthesis',
-  },
-  zhName: '左括号',
-};
-
-// ')'
-const rightParenthesis: SyntaxSymbol = {
-  id: 'rightParenthesis',
-  name: 'RightParenthesis',
-  description: '右括号，通常用于强制运算符结合顺序。',
-  type: 'terminal',
-  displayName: ')',
-  definition: {
-    tokenClassName: 'rightParenthesis',
-  },
-  zhName: '右括号',
+  zhName: 'null',
 };
 
 // '['
@@ -442,20 +225,6 @@ const rightBracket: SyntaxSymbol = {
   zhName: '右花括号',
 };
 
-// id
-const identifier: SyntaxSymbol = {
-  id: 'identifier',
-  name: 'Identifier',
-  description:
-    '标识符，一般也就是变量名，通常是以下划线或者字母打头，然后后续可能紧接着 0 个或多个字母、数字以及下划线。',
-  type: 'terminal',
-  displayName: 'id',
-  definition: {
-    tokenClassName: 'identifier',
-  },
-  zhName: '标识符',
-};
-
 // ,
 const comma: SyntaxSymbol = {
   id: 'comma',
@@ -469,30 +238,17 @@ const comma: SyntaxSymbol = {
   zhName: '逗号',
 };
 
-// ^
-const caret: SyntaxSymbol = {
-  id: 'caret',
-  name: 'Caret',
-  description: '插入符',
+// :
+const column: SyntaxSymbol = {
+  id: 'column',
+  name: 'Column',
+  description: '冒号',
   type: 'terminal',
-  displayName: '^',
+  displayName: ':',
   definition: {
-    tokenClassName: 'caret',
+    tokenClassName: 'column',
   },
-  zhName: '插入符',
-};
-
-// %
-const percent: SyntaxSymbol = {
-  id: 'percent',
-  name: 'Percent',
-  description: '百分号',
-  type: 'terminal',
-  displayName: '%',
-  definition: {
-    tokenClassName: 'percent',
-  },
-  zhName: '百分号',
+  zhName: '冒号',
 };
 
 // $
@@ -510,61 +266,30 @@ const endOfFile: SyntaxSymbol = {
 
 /** 所有符号 */
 export const allSymbols = {
-  start,
-  value,
-  cmp0,
-  cmp1,
-  cmp2,
-
-  array,
+  json,
+  obj,
+  ary,
+  val,
+  atom,
+  valList,
+  valListE,
+  kv,
+  kvList,
+  kvListE,
   stringSymbol,
-
-  list,
-  listExpand,
-
-  expression,
-  expressionExpand,
-
-  term,
-  termExpand,
-
-  remainder,
-  remainderExpand,
-  negFactor,
-  powerFactor,
-  powerFactorExpand,
-
-  factor,
-  factorExpand,
-
-  parametersPart,
-
-  plus,
-  minus,
-  times,
-  divideBy,
-  singleEqualSign,
-  lessThan,
-  lessThanOrEqualTo,
-  greaterThan,
-  greaterThanOrEqualTo,
-  equalSign,
-
-  leftParenthesis,
-  rightParenthesis,
   leftSquareBracket,
   rightSquareBracket,
   leftBracket,
   rightBracket,
-
   number,
-  identifier,
   comma,
-  caret,
-  percent,
-
   epsilon,
   endOfFile,
+  trueSymbol,
+  falseSymbol,
+  booleanSymbol,
+  column,
+  nullSymbol,
 };
 
 /** 文法中的全体非终结符号 */
@@ -580,243 +305,112 @@ export const terminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(
 /** 全体产生式规则 */
 export const allRules: ProductionRule[] = [
   {
-    name: "S -> S' CMP_0",
-    lhs: allSymbols.start,
-    rhs: [allSymbols.value, allSymbols.cmp0],
+    name: 'JSON -> OBJ',
+    lhs: allSymbols.json,
+    rhs: [allSymbols.obj],
   },
-
   {
-    name: "CMP_0 -> == S' CMP_0",
-    lhs: allSymbols.cmp0,
-    rhs: [allSymbols.equalSign, allSymbols.value, allSymbols.cmp0],
+    name: 'OBJ -> { KV_LIST }',
+    lhs: allSymbols.obj,
+    rhs: [allSymbols.leftBracket, allSymbols.kvList, allSymbols.rightBracket],
   },
-
   {
-    name: 'CMP_0 -> ε',
-    lhs: allSymbols.cmp0,
-    rhs: [allSymbols.epsilon],
+    name: 'JSON -> ARY',
+    lhs: allSymbols.json,
+    rhs: [allSymbols.ary],
   },
-
   {
-    name: "S' -> E CMP_2",
-    lhs: allSymbols.value,
-    rhs: [allSymbols.expression, allSymbols.cmp2],
-  },
-
-  {
-    name: "L -> S L'",
-    lhs: allSymbols.list,
-    rhs: [allSymbols.start, allSymbols.listExpand],
-  },
-
-  {
-    name: 'L -> ε',
-    lhs: allSymbols.list,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
-    name: "L' -> , S L'",
-    lhs: allSymbols.listExpand,
-    rhs: [allSymbols.comma, allSymbols.start, allSymbols.listExpand],
-  },
-
-  {
-    name: "L' -> ε",
-    lhs: allSymbols.listExpand,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
-    name: 'CMP_2 -> > E CMP_2',
-    lhs: allSymbols.cmp2,
-    rhs: [allSymbols.greaterThan, allSymbols.expression, allSymbols.cmp2],
-  },
-
-  {
-    name: 'CMP_2 -> < E CMP_2',
-    lhs: allSymbols.cmp2,
-    rhs: [allSymbols.lessThan, allSymbols.expression, allSymbols.cmp2],
-  },
-
-  {
-    name: 'CMP_2 -> >= E CMP_2',
-    lhs: allSymbols.cmp2,
-    rhs: [
-      allSymbols.greaterThanOrEqualTo,
-      allSymbols.expression,
-      allSymbols.cmp2,
-    ],
-  },
-
-  {
-    name: 'CMP_2 -> <= E CMP_2',
-    lhs: allSymbols.cmp2,
-    rhs: [allSymbols.lessThanOrEqualTo, allSymbols.expression, allSymbols.cmp2],
-  },
-
-  {
-    name: 'CMP_2 -> ε',
-    lhs: allSymbols.cmp2,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
-    name: "E -> T E'",
-    lhs: allSymbols.expression,
-    rhs: [allSymbols.term, allSymbols.expressionExpand],
-  },
-
-  {
-    name: "E' -> '+' T E'",
-    lhs: allSymbols.expressionExpand,
-    rhs: [allSymbols.plus, allSymbols.term, allSymbols.expressionExpand],
-  },
-
-  {
-    name: "E' -> '-' T E'",
-    lhs: allSymbols.expressionExpand,
-    rhs: [allSymbols.minus, allSymbols.term, allSymbols.expressionExpand],
-  },
-
-  {
-    name: "E' -> ε",
-    lhs: allSymbols.expressionExpand,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
-    name: "T -> REM_0 T'",
-    lhs: allSymbols.term,
-    rhs: [allSymbols.remainder, allSymbols.termExpand],
-  },
-
-  {
-    name: "T' -> '*' REM_0 T'",
-    lhs: allSymbols.termExpand,
-    rhs: [allSymbols.times, allSymbols.remainder, allSymbols.termExpand],
-  },
-
-  {
-    name: "T' -> '/' REM_0 T'",
-    lhs: allSymbols.termExpand,
-    rhs: [allSymbols.divideBy, allSymbols.remainder, allSymbols.termExpand],
-  },
-
-  {
-    name: "T' -> ε",
-    lhs: allSymbols.termExpand,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
-    name: 'REM_0 -> NEG REM_1',
-    lhs: allSymbols.remainder,
-    rhs: [allSymbols.negFactor, allSymbols.remainderExpand],
-  },
-
-  {
-    name: 'REM_1 -> % NEG REM_1',
-    lhs: allSymbols.remainderExpand,
-    rhs: [allSymbols.percent, allSymbols.negFactor, allSymbols.remainderExpand],
-  },
-
-  {
-    name: 'REM_1 -> ε',
-    lhs: allSymbols.remainderExpand,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
-    name: 'NEG -> - POW_0',
-    lhs: allSymbols.negFactor,
-    rhs: [allSymbols.minus, allSymbols.powerFactor],
-  },
-
-  {
-    name: 'NEG -> POW_0',
-    lhs: allSymbols.negFactor,
-    rhs: [allSymbols.powerFactor],
-  },
-
-  {
-    name: 'POW_0 -> F POW_1',
-    lhs: allSymbols.powerFactor,
-    rhs: [allSymbols.factor, allSymbols.powerFactorExpand],
-  },
-
-  {
-    name: 'POW_1 -> ^ F POW_1',
-    lhs: allSymbols.powerFactorExpand,
-    rhs: [allSymbols.caret, allSymbols.factor, allSymbols.powerFactorExpand],
-  },
-
-  {
-    name: 'POW_1 -> ε',
-    lhs: allSymbols.powerFactorExpand,
-    rhs: [allSymbols.epsilon],
-  },
-
-  {
-    name: "F -> F' P",
-    lhs: allSymbols.factor,
-    rhs: [allSymbols.factorExpand, allSymbols.parametersPart],
-  },
-
-  {
-    name: "F' -> ( E )",
-    lhs: allSymbols.factorExpand,
-    rhs: [
-      allSymbols.leftParenthesis,
-      allSymbols.expression,
-      allSymbols.rightParenthesis,
-    ],
-  },
-
-  {
-    name: "F' -> number",
-    lhs: allSymbols.factorExpand,
-    rhs: [allSymbols.number],
-  },
-
-  {
-    name: "F' -> id",
-    lhs: allSymbols.factorExpand,
-    rhs: [allSymbols.identifier],
-  },
-
-  {
-    name: "F' -> { L }",
-    lhs: allSymbols.factorExpand,
-    rhs: [allSymbols.leftBracket, allSymbols.list, allSymbols.rightBracket],
-  },
-
-  {
-    name: "F' -> str",
-    lhs: allSymbols.factorExpand,
-    rhs: [allSymbols.stringSymbol],
-  },
-
-  {
-    name: 'P -> [ L ] P',
-    lhs: allSymbols.parametersPart,
+    name: 'ARY -> [ VAL_LIST ]',
+    lhs: allSymbols.ary,
     rhs: [
       allSymbols.leftSquareBracket,
-      allSymbols.list,
+      allSymbols.valList,
       allSymbols.rightSquareBracket,
-      allSymbols.parametersPart,
     ],
   },
-
   {
-    name: 'P -> = S',
-    lhs: allSymbols.parametersPart,
-    rhs: [allSymbols.singleEqualSign, allSymbols.start],
+    name: 'VAL -> ATOM',
+    lhs: allSymbols.val,
+    rhs: [allSymbols.atom],
   },
-
   {
-    name: 'P -> ε',
-    lhs: allSymbols.parametersPart,
+    name: 'VAL -> JSON',
+    lhs: allSymbols.val,
+    rhs: [allSymbols.json],
+  },
+  {
+    name: 'ATOM -> str',
+    lhs: allSymbols.atom,
+    rhs: [allSymbols.stringSymbol],
+  },
+  {
+    name: 'ATOM -> BOOL',
+    lhs: allSymbols.atom,
+    rhs: [allSymbols.booleanSymbol],
+  },
+  {
+    name: 'ATOM -> num',
+    lhs: allSymbols.atom,
+    rhs: [allSymbols.number],
+  },
+  {
+    name: 'ATOM -> null',
+    lhs: allSymbols.atom,
+    rhs: [allSymbols.nullSymbol],
+  },
+  {
+    name: 'VAL_LIST -> VAL VAL_LIST_E',
+    lhs: allSymbols.valList,
+    rhs: [allSymbols.val, allSymbols.valListE],
+  },
+  {
+    name: 'VAL_LIST -> eps',
+    lhs: allSymbols.valList,
     rhs: [allSymbols.epsilon],
+  },
+  {
+    name: 'VAL_LIST_E -> , VAL VAL_LIST_E',
+    lhs: allSymbols.valListE,
+    rhs: [allSymbols.comma, allSymbols.val, allSymbols.valListE],
+  },
+  {
+    name: 'VAL_LIST_E -> eps',
+    lhs: allSymbols.valListE,
+    rhs: [allSymbols.epsilon],
+  },
+  {
+    name: 'KV -> str : VAL',
+    lhs: allSymbols.kv,
+    rhs: [allSymbols.stringSymbol, allSymbols.column, allSymbols.val],
+  },
+  {
+    name: 'KV_LIST -> KV KV_LIST_E',
+    lhs: allSymbols.kvList,
+    rhs: [allSymbols.kv, allSymbols.kvListE],
+  },
+  {
+    name: 'KV_LIST -> eps',
+    lhs: allSymbols.kvList,
+    rhs: [allSymbols.epsilon],
+  },
+  {
+    name: 'KV_LIST_E -> , KV KV_LIST_E',
+    lhs: allSymbols.kvListE,
+    rhs: [allSymbols.comma, allSymbols.kv, allSymbols.kvListE],
+  },
+  {
+    name: 'KV_LIST_E -> eps',
+    lhs: allSymbols.kvListE,
+    rhs: [allSymbols.epsilon],
+  },
+  {
+    name: 'BOOL -> true',
+    lhs: allSymbols.booleanSymbol,
+    rhs: [allSymbols.trueSymbol],
+  },
+  {
+    name: 'BOOL -> false',
+    lhs: allSymbols.booleanSymbol,
+    rhs: [allSymbols.falseSymbol],
   },
 ];

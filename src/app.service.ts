@@ -5,7 +5,6 @@ import { createInterface } from 'readline';
 import { LL1PredictiveParser, ToTerminalNode } from './parser/parser';
 import { stdin, stdout } from 'process';
 import { ExpressionTranslate } from './translate/translate';
-import { ExpressionNodeSerialize } from './translate/serialize';
 
 @Injectable()
 export class AppService {
@@ -26,19 +25,10 @@ export class AppService {
     const toTerminalNode = new ToTerminalNode(syntaxAnalysisConfiguration);
     const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
     const translate = new ExpressionTranslate();
-    const serialize = new ExpressionNodeSerialize();
 
-    // const inputString1 = '124 + 456 * ( 3.178 - 4965.0 * .145 ) - 5 / 3 + 2.259';
-    // const inputString2 = '4 * (.1 - 1.) + 2';
+    toChars.pipe(toToken).pipe(toTerminalNode).pipe(parse).pipe(translate);
 
-    toChars
-      .pipe(toToken)
-      .pipe(toTerminalNode)
-      .pipe(parse)
-      .pipe(translate)
-      .pipe(serialize);
-
-    serialize.on('data', (datum) => {
+    translate.on('data', (datum) => {
       console.log(`\nOut[${lineNumber}]:`);
       console.log(datum);
       lineNumber = lineNumber + 1;

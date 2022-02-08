@@ -41,12 +41,21 @@ type State =
   | 'start'
   | 'number'
   | 'float'
-  | 'identifier'
   | 'string'
   | 'stringEscape'
-  | 'equalSign'
-  | 'lessThanAndThen'
-  | 'greaterThanAndThen';
+  | 't'
+  | 'tr'
+  | 'tru'
+  | 'true'
+  | 'f'
+  | 'fa'
+  | 'fal'
+  | 'fals'
+  | 'false'
+  | 'n'
+  | 'nu'
+  | 'nul'
+  | 'null';
 
 /** 将 chars 组合成 token */
 export class ToToken extends Transform {
@@ -65,84 +74,38 @@ export class ToToken extends Transform {
   private _actions: Record<State, StateAction> = {
     // 在初始状态下
     start: (charObject) => {
-      // 如果遇到一个加号 +, 则 emit 一个加号 + token
-      if (charObject.char.match(/\+/)) {
-        this._emitSingleToken(charObject, tokenClasses.plus);
-        return;
-      }
-
-      // 如果遇到一个减号 +, 则 emit 一个减号 - token
-      if (charObject.char.match(/\-/)) {
-        this._emitSingleToken(charObject, tokenClasses.minus);
-        return;
-      }
-
-      // 如果遇到一个乘号 *, 则 emit 一个乘号 * token
-      if (charObject.char.match(/\*/)) {
-        this._emitSingleToken(charObject, tokenClasses.times);
-        return;
-      }
-
-      // 如果遇到一个除号 /, 则 emit 一个除号 / token
-      if (charObject.char.match(/\//)) {
-        this._emitSingleToken(charObject, tokenClasses.divideBy);
-        return;
-      }
-
-      // 如果遇到一个左括号 (, 则 emit 一个左括号 ( token
-      if (charObject.char.match(/\(/)) {
-        this._emitSingleToken(charObject, tokenClasses.leftParenthesis);
-        return;
-      }
-
-      // 如果遇到一个右括号 ), 则 emit 一个右括号 ) token
-      if (charObject.char.match(/\)/)) {
-        this._emitSingleToken(charObject, tokenClasses.rightParenthesis);
-        return;
-      }
-
-      // 如果遇到一个左方括号 [, 则 emit 一个左方括号 [ token
-      if (charObject.char.match(/\[/)) {
+      // 如果遇到一个左方括号 [
+      if (charObject.char === '[') {
         this._emitSingleToken(charObject, tokenClasses.leftSquareBracket);
         return;
       }
 
-      // 如果遇到一个右方括号 ], 则 emit 一个右方括号 ] token
-      if (charObject.char.match(/\]/)) {
+      // 如果遇到一个右方括号 ]
+      if (charObject.char === ']') {
         this._emitSingleToken(charObject, tokenClasses.rightSquareBracket);
         return;
       }
 
-      // 如果遇到一个左花括号 {, 则 emit 一个左花括号 { token
-      if (charObject.char.match(/\{/)) {
+      // 如果遇到一个左花括号 {
+      if (charObject.char === '{') {
         this._emitSingleToken(charObject, tokenClasses.leftBracket);
         return;
       }
 
-      // 如果遇到一个右花括号 }, 则 emit 一个右花括号 } token
-      if (charObject.char.match(/\}/)) {
+      // 如果遇到一个右花括号 }
+      if (charObject.char === '}') {
         this._emitSingleToken(charObject, tokenClasses.rightBracket);
         return;
       }
 
       // 如果遇到一个逗号 ,, 则 emit 一个逗号 , token
-      if (charObject.char.match(/\,/)) {
+      if (charObject.char === ',') {
         this._emitSingleToken(charObject, tokenClasses.comma);
         return;
       }
 
-      // 如果遇到一个插入符
-      if (charObject.char === '^') {
-        this._emitSingleToken(charObject, tokenClasses.caretSign);
-      }
-
-      // 如果遇到一个百分号
-      if (charObject.char === '%') {
-        this._emitSingleToken(charObject, tokenClasses.percentSign);
-      }
-
       // 如果遇到一个双引号 "
-      if (charObject.char.match(/\"/)) {
+      if (charObject.char === '"') {
         // 双引号本身丢弃
 
         // 设置字符串起始 offset, 在双引号后一位
@@ -153,28 +116,25 @@ export class ToToken extends Transform {
         return;
       }
 
-      // 如果遇到一个等于号 =
-      if (charObject.char === '=') {
-        this._offset = charObject.offset;
+      // 如果遇到 t, 接下来逐个匹配 r, u, e
+      if (charObject.char === 't') {
         this._append(charObject.char);
-
-        // 进入等于号输入模式
-        this._state = 'equalSign';
-        return;
+        this._offset = charObject.offset;
+        this._state = 't';
       }
 
-      // 如果遇到一个小于号 <
-      if (charObject.char === '<') {
+      // 如果遇到 f, 接下来逐个匹配 a, l, s, e
+      if (charObject.char === 'f') {
+        this._append('f');
         this._offset = charObject.offset;
-        this._append(charObject.char);
-        this._state = 'lessThanAndThen';
+        this._state = 'f';
       }
 
-      // 如果遇到一个大于号 >
-      if (charObject.char === '>') {
+      // 如果遇到 n, 接下来逐个匹配 u, l, l
+      if (charObject.char === 'n') {
+        this._append('n');
         this._offset = charObject.offset;
-        this._append(charObject.char);
-        this._state = 'greaterThanAndThen';
+        this._state = 'n';
       }
 
       // 如果遇到空白字符, 这代表一个特殊的信号：输入串结束了
@@ -183,8 +143,8 @@ export class ToToken extends Transform {
         return;
       }
 
-      // 如果遇到数字
-      if (charObject.char.match(/\d/)) {
+      // 如果遇到数字或者负号
+      if (charObject.char === '-' || charObject.char.match(/\d/)) {
         // 保存当前 char
         this._append(charObject.char);
 
@@ -197,7 +157,7 @@ export class ToToken extends Transform {
         return;
       }
 
-      // 如果遇到小数点
+      // 遇到小数点
       if (charObject.char.match(/\./)) {
         // 保存当前 char
         this._append(charObject.char);
@@ -211,20 +171,29 @@ export class ToToken extends Transform {
         return;
       }
 
-      // 如果如果遇到 [a-zA-Z_]
-      if (charObject.char.match(/[a-zA-Z_]/)) {
-        // 保存当前 char
-        this._append(charObject.char);
-
-        // 保存 token 起始 offset
-        this._offset = charObject.offset;
-
-        // 进入 identifier 输入状态
-        this._state = 'identifier';
-
+      // 遇到冒号
+      if (charObject.char === ':') {
+        this._emitSingleToken(charObject, tokenClasses.columnToken);
         return;
       }
     },
+
+    // 这些回调都可以以编程的方式自动写入，但我为了代码易读性不这么写
+    t: (charObj) => this._expectOnly(charObj, 'r', 'tr'),
+    tr: (charObj) => this._expectOnly(charObj, 'u', 'tru'),
+    tru: (charObj) => this._expectOnly(charObj, 'e', 'true'),
+    true: (charObj) => this._emitToken(charObj, tokenClasses.trueToken),
+
+    f: (cObj) => this._expectOnly(cObj, 'a', 'fa'),
+    fa: (cObj) => this._expectOnly(cObj, 'l', 'fal'),
+    fal: (cObj) => this._expectOnly(cObj, 's', 'fals'),
+    fals: (cObj) => this._expectOnly(cObj, 'e', 'false'),
+    false: (cObj) => this._emitToken(cObj, tokenClasses.falseToken),
+
+    n: (charObj) => this._expectOnly(charObj, 'u', 'nu'),
+    nu: (charObj) => this._expectOnly(charObj, 'l', 'nul'),
+    nul: (charObj) => this._expectOnly(charObj, 'l', 'null'),
+    null: (charObj) => this._emitToken(charObj, tokenClasses.nullToken),
 
     // 在 number 输入状态下
     number: (charObject) => {
@@ -257,19 +226,6 @@ export class ToToken extends Transform {
       } else {
         // 对于所有其他使得 float 输入状态中止的输入
         this._emitToken(charObject, tokenClasses.number);
-      }
-    },
-
-    // 在 identifier 输入状态下
-    identifier: (charObject) => {
-      if (charObject.char.match(/[a-zA-Z0-9_]/)) {
-        // 如果遇到 identifier 其余 char
-
-        // 吸收
-        this._append(charObject.char);
-      } else {
-        // 对于所有其他使得 identifier 输入状态中止的输入
-        this._emitToken(charObject, tokenClasses.identifier);
       }
     },
 
@@ -329,87 +285,25 @@ export class ToToken extends Transform {
       // 立马回到 string 状态
       this._state = 'string';
     },
-
-    // 等于号输入模式，此模式下将又可能输出单等于号、双等于号或者仨等于号
-    equalSign: (charObj) => {
-      if (charObj.char !== '=') {
-        this._charBuffer.push(charObj);
-
-        const singleEqual = tokenClasses.assignToken;
-        const doubleEqual = tokenClasses.doubleEqualSign;
-        // 当前 parser 对于仨等于号 token 还没有对应的语法规则去消化
-        // const tripleEqual = tokenClasses.tripleEqualSign;
-        const tokenType =
-          this._content.length === 1 ? singleEqual : doubleEqual;
-
-        const token: TypedToken = {
-          offset: this._offset,
-          content: this._content,
-          type: tokenType,
-        };
-
-        this._content = '';
-        this._state = 'start';
-        this.push(token);
-        return;
-      }
-
-      this._append(charObj.char);
-    },
-
-    // 小于号 < 及其后续
-    lessThanAndThen: (charObj) => {
-      if (charObj.char === '=') {
-        this._append('=');
-        const token: TypedToken = {
-          offset: this._offset,
-          content: this._content,
-          type: tokenClasses.lessThanOrEqualSign,
-        };
-        this._content = '';
-        this._state = 'start';
-        this.push(token);
-      } else {
-        this._charBuffer.push(charObj);
-        const token: TypedToken = {
-          offset: this._offset,
-          content: this._content,
-          type: tokenClasses.lessThanSign,
-        };
-        this._content = '';
-        this._state = 'start';
-        this.push(token);
-      }
-    },
-
-    // 大于号 > 及其后续
-    greaterThanAndThen: (charObj) => {
-      if (charObj.char === '=') {
-        this._append('=');
-        const token: TypedToken = {
-          offset: this._offset,
-          content: this._content,
-          type: tokenClasses.greaterThanOrEqualTo,
-        };
-        this._content = '';
-        this._state = 'start';
-        this.push(token);
-      } else {
-        this._charBuffer.push(charObj);
-        const token: TypedToken = {
-          offset: this._offset,
-          content: this._content,
-          type: tokenClasses.greaterThanSign,
-        };
-        this._content = '';
-        this._state = 'start';
-        this.push(token);
-      }
-    },
   };
 
   constructor() {
     super({ objectMode: true });
+  }
+
+  /** 期待单个字符否则退出 */
+  private _expectOnly(
+    charObj: CharObject,
+    char: string,
+    nextState: State,
+  ): void {
+    if (charObj.char === char) {
+      this._append(charObj.char);
+      this._state = nextState;
+    } else {
+      console.error(`Unexpected symbol in tokenizing`);
+      process.exit(1);
+    }
   }
 
   /** 吸收 char */

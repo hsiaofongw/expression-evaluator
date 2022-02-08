@@ -432,7 +432,7 @@ export const syntaxConfiguration: SyntaxConfiguration = {
   symbols: allSymbols,
   rules: allRules,
   specialSymbol: {
-    entrySymbol: allSymbols.start,
+    entrySymbol: allSymbols.json,
     epsilonSymbol: allSymbols.epsilon,
     endOfFileSymbol: allSymbols.endOfFile,
   },

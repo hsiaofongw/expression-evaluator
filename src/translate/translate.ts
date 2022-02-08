@@ -1,26 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { Node, NonTerminalNode } from 'src/parser/interfaces';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { NonTerminalNode, TerminalNode } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
-import {
-  AssignSymbol,
-  DivideSymbol,
-  EqualQSymbol,
-  GreaterThanOrEqualSymbol,
-  GreaterThanSymbol,
-  LessThanOrEqualSymbol,
-  LessThanSymbol,
-  MinusSymbol,
-  NegativeSymbol,
-  NumberSymbol,
-  PlusSymbol,
-  PowerSymbol,
-  RemainderSymbol,
-  StringSymbol,
-  SymbolSymbol,
-  TimesSymbol,
-} from './config';
-import { ExpressionNode } from './interfaces';
 
 type Evaluator = (node: NonTerminalNode) => void;
 type EvaluatorMap = Record<string, Evaluator>;
@@ -28,237 +9,143 @@ type EvaluatorMap = Record<string, Evaluator>;
 const doNothing = (_: any) => {};
 
 export class ExpressionTranslate extends Transform {
-  _nodeStack: ExpressionNode[] = [];
+  _nodeStack: any[] = [];
 
   _evaluatorMap: EvaluatorMap = {
-    "S -> S' CMP_0": (node) => this._evaluateEveryChild(node),
+    'JSON -> OBJ': (n) => this._evaluate(n.children[0] as NonTerminalNode),
 
-    "CMP_0 -> == S' CMP_0": (node) => this._reduce(node, EqualQSymbol, 1, 2),
-
-    'CMP_0 -> ε': doNothing,
-
-    "S' -> E CMP_2": (node) => this._evaluateEveryChild(node),
-
-    'L -> ε': doNothing,
-
-    "L -> S L'": (node) => this._reduceByAppend(node, 0, 1),
-
-    "L' -> , S L'": (node) => this._reduceByAppend(node, 1, 2),
-
-    "L' -> ε": doNothing,
-
-    'CMP_2 -> > E CMP_2': (node) => this._reduce(node, GreaterThanSymbol, 1, 2),
-
-    'CMP_2 -> < E CMP_2': (node) => this._reduce(node, LessThanSymbol, 1, 2),
-
-    'CMP_2 -> >= E CMP_2': (node) =>
-      this._reduce(node, GreaterThanOrEqualSymbol, 1, 2),
-
-    'CMP_2 -> <= E CMP_2': (node) =>
-      this._reduce(node, LessThanOrEqualSymbol, 1, 2),
-
-    'CMP_2 -> ε': doNothing,
-
-    "E -> T E'": (node) => this._evaluateEveryChild(node),
-
-    "E' -> '+' T E'": (node) => this._reduce(node, PlusSymbol, 1, 2),
-
-    "E' -> '-' T E'": (node) => this._reduce(node, MinusSymbol, 1, 2),
-
-    "E' -> ε": doNothing,
-
-    "T -> REM_0 T'": (node) => this._evaluateEveryChild(node),
-
-    "T' -> '*' REM_0 T'": (node) => this._reduce(node, TimesSymbol, 1, 2),
-
-    "T' -> '/' REM_0 T'": (node) => this._reduce(node, DivideSymbol, 1, 2),
-
-    "T' -> ε": doNothing,
-
-    'REM_0 -> NEG REM_1': (node) => this._evaluateEveryChild(node),
-
-    'REM_1 -> % NEG REM_1': (node) => this._reduce(node, RemainderSymbol, 1, 2),
-    'REM_1 -> ε': doNothing,
-
-    'NEG -> - POW_0': (node) => {
-      this._evaluate(node.children[1]);
-      const theValue = this._popNode();
-      const negativeNode: ExpressionNode = {
-        head: NegativeSymbol,
-        nodeType: 'nonTerminal',
-        children: [theValue],
-      };
-      this._pushNode(negativeNode);
+    'OBJ -> { KV_LIST }': (n) => {
+      this._pushNode({});
+      this._evaluate(n.children[1] as NonTerminalNode);
     },
 
-    'NEG -> POW_0': (node) => this._evaluateEveryChild(node),
+    'JSON -> ARY': (n) => this._evaluate(n.children[0] as NonTerminalNode),
 
-    'POW_0 -> F POW_1': (node) => this._evaluateEveryChild(node),
-    'POW_1 -> ^ F POW_1': (node) => this._reduce(node, PowerSymbol, 1, 2),
-    'POW_1 -> ε': doNothing,
+    'ARY -> [ VAL_LIST ]': (n) => {
+      this._pushNode([]);
+      this._evaluate(n.children[1] as NonTerminalNode);
+    },
 
-    "F -> F' P": (node) => this._evaluateEveryChild(node),
+    'VAL -> ATOM': (n) => this._evaluate(n.children[0] as NonTerminalNode),
 
-    "F' -> ( E )": (node) => this._evaluate(node.children[1]),
+    'VAL -> JSON': (n) => this._evaluate(n.children[0] as NonTerminalNode),
 
-    "F' -> number": (node) => {
-      const v1 = node.children[0];
-      if (v1.type === 'terminal' && v1.token) {
-        const value = parseFloat(v1.token?.content ?? '0');
-        const numberNode: ExpressionNode = {
-          head: NumberSymbol,
-          nodeType: 'terminal',
-          expressionType: 'number',
-          value: value,
-        };
-        this._pushNode(numberNode);
+    'ATOM -> str': (n) => {
+      if (n.children[0].type === 'terminal') {
+        const content = n.children[0].token.content ?? '';
+        this._pushNode(content);
       }
     },
 
-    "F' -> id": (node) => {
-      const v1 = node.children[0];
-      if (v1.type === 'terminal' && v1.token) {
-        const identifier = v1.token.content;
-        const symbolNode: ExpressionNode = {
-          head: SymbolSymbol,
-          nodeType: 'terminal',
-          expressionType: 'symbol',
-          value: identifier,
-        };
-        this._pushNode(symbolNode);
+    'ATOM -> BOOL': (n) => this._evaluate(n.children[0] as NonTerminalNode),
+
+    'ATOM -> num': (n) => {
+      if (n.children[0].type === 'terminal') {
+        const sNum = n.children[0].token.content ?? '0';
+        let num = 0;
+        if (sNum.includes('.')) {
+          num = parseFloat(sNum);
+        } else {
+          num = parseInt(sNum);
+        }
+        this._pushNode(num);
       }
     },
 
-    "F' -> str": (node) => {
-      const v1 = node.children[0];
-      if (v1.type === 'terminal') {
-        const stringContent = v1.token.content ?? '';
-        const stringNode: ExpressionNode = {
-          head: StringSymbol,
-          nodeType: 'terminal',
-          expressionType: 'string',
-          value: stringContent,
-        };
-        this._pushNode(stringNode);
-      }
+    'ATOM -> null': (_) => this._pushNode(null),
+
+    'VAL_LIST -> VAL VAL_LIST_E': (n) => this._appendValIntoList(n, 0, 1),
+
+    'VAL_LIST -> eps': doNothing,
+
+    'VAL_LIST_E -> , VAL VAL_LIST_E': (n) => this._appendValIntoList(n, 1, 2),
+
+    'VAL_LIST_E -> eps': doNothing,
+
+    'KV -> str : VAL': (n) => this._appendKeyValue(n, 0, 2),
+
+    'KV_LIST -> KV KV_LIST_E': (n) => this._evaluateEveryChild(n),
+
+    'KV_LIST -> eps': doNothing,
+
+    'KV_LIST_E -> , KV KV_LIST_E': (n) => {
+      const v1 = n.children[1] as NonTerminalNode;
+      const v2 = n.children[2] as NonTerminalNode;
+      this._evaluate(v1);
+      this._evaluate(v2);
     },
 
-    'P -> [ L ] P': (node) => {
-      const previousNode: ExpressionNode = this._popNode();
-      const functionNode: ExpressionNode = {
-        head: previousNode,
-        nodeType: 'nonTerminal',
-        children: [],
-      };
-      this._pushNode(functionNode);
-      this._evaluate(node.children[1]);
-      this._evaluate(node.children[3]);
-    },
+    'KV_LIST_E -> eps': doNothing,
 
-    'P -> = S': (node) => {
-      const leftValueNode = this._popNode();
-      const assignNode: ExpressionNode = {
-        head: AssignSymbol,
-        nodeType: 'nonTerminal',
-        children: [leftValueNode],
-      };
+    'BOOL -> true': (_) => this._pushNode(true),
 
-      this._evaluate(node.children[1]);
-      const rightValue = this._popNode();
-      assignNode.children.push(rightValue);
-
-      this._pushNode(assignNode);
-    },
-
-    'P -> ε': (_) => {},
+    'BOOL -> false': (_) => this._pushNode(false),
   };
 
   constructor() {
     super({ objectMode: true });
   }
 
-  private _reduce(
-    node: Node,
-    head: ExpressionNode,
-    currIdx: number,
-    nextIdx: number,
-  ): void {
-    if (node.type === 'nonTerminal') {
-      const prev = this._popNode();
-      this._evaluate(node.children[currIdx]);
-      const current = this._popNode();
-
-      const reduced: ExpressionNode = {
-        nodeType: 'nonTerminal',
-        head: head,
-        children: [prev, current],
-      };
-
-      this._pushNode(reduced);
-
-      this._evaluate(node.children[nextIdx]);
-    }
+  private _evaluateEveryChild(node: NonTerminalNode): void {
+    node.children.forEach((child) => this._evaluate(child as NonTerminalNode));
   }
 
-  private _reduceByAppend(
-    node: NonTerminalNode,
-    currIdx: number,
-    nextIdx: number,
-  ): void {
-    const prev = this._popNode();
-    if (prev.nodeType === 'nonTerminal') {
-      this._evaluate(node.children[currIdx]);
-      const current = this._popNode();
-      const appended: ExpressionNode = {
-        nodeType: 'nonTerminal',
-        head: prev.head,
-        children: [...prev.children, current],
-      };
-      this._pushNode(appended);
-      this._evaluate(node.children[nextIdx]);
-    }
-  }
-
-  private _evaluateEveryChild(node: Node): void {
-    if (node.type === 'nonTerminal') {
-      node.children.forEach((child) => this._evaluate(child));
-    }
-  }
-
-  private _pushNode(node: ExpressionNode): void {
+  private _pushNode(node: any): void {
     this._nodeStack.push(node);
   }
 
-  private _popNode(): ExpressionNode {
-    return this._nodeStack.pop() as ExpressionNode;
+  private _popNode(): any {
+    return this._nodeStack.pop();
   }
 
-  private _evaluate(node: Node): void {
-    if (node.type === 'nonTerminal') {
-      const evaluator = this._evaluatorMap[node.ruleName];
-      if (typeof evaluator === 'function') {
-        evaluator(node);
-      } else {
-        console.error(`No evaluator`);
-        console.error({ node });
-        process.exit(1);
-      }
+  private _evaluate(node: NonTerminalNode): void {
+    const evaluator = this._evaluatorMap[node.ruleName];
+    if (typeof evaluator === 'function') {
+      evaluator(node);
     } else {
-      console.error(`Try evaluate a terminal node`);
+      console.error(`No evaluator`);
       console.error({ node });
       process.exit(1);
     }
   }
 
+  private _appendKeyValue(
+    n: NonTerminalNode,
+    keyIdx: number,
+    valIdx: number,
+  ): void {
+    const obj = this._popNode();
+    const v1 = n.children[keyIdx] as TerminalNode;
+    const v2 = n.children[valIdx] as NonTerminalNode;
+    const key = v1.token.content;
+    this._evaluate(v2);
+    const val = this._popNode();
+    obj[key] = val;
+    this._pushNode(obj);
+  }
+
+  private _appendValIntoList(
+    node: NonTerminalNode,
+    valIdx: number,
+    nextIdx: number,
+  ): void {
+    const valNode = node.children[valIdx] as NonTerminalNode;
+    const nextNode = node.children[nextIdx] as NonTerminalNode;
+    this._evaluate(valNode);
+    const val = this._popNode();
+    const ary = this._popNode() as any[];
+    ary.push(val);
+    this._pushNode(ary);
+    this._evaluate(nextNode);
+  }
+
   _transform(
-    node: Node,
+    node: NonTerminalNode,
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    if (node.type === 'nonTerminal') {
-      this._evaluate(node);
-      this.push(this._nodeStack.pop());
-    }
+    this._evaluate(node);
+    this.push(this._nodeStack.pop());
     callback();
   }
 }
