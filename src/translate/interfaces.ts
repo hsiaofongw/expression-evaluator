@@ -30,47 +30,51 @@ export type TerminalNode = {
 
 export type NonTerminalNode = {
   nodeType: 'nonTerminal';
-  children: ExpressionNode[];
+  children: Expr[];
 };
 
-export type ExpressionNode = (TerminalNode | NonTerminalNode) & {
-  head: ExpressionNode;
+export type Expr = (TerminalNode | NonTerminalNode) & {
+  head: Expr;
 };
 
 export interface IEvaluateContext {
   /** 求值，最终的求值结果在栈顶 */
-  evaluate(node: ExpressionNode): void;
+  evaluate(node: Expr): void;
 
   /** 弹出栈顶的那个值（如果有） */
-  popNode(): ExpressionNode;
+  popNode(): Expr;
 
   /** 将一个值入栈 */
-  pushNode(node: ExpressionNode): void;
+  pushNode(node: Expr): void;
 
   /** 模式匹配 */
-  matchQ(node: ExpressionNode, pattern: ExpressionNode): boolean;
+  matchQ(node: Expr, pattern: Expr): boolean;
 }
 
 export type Definition = {
-  pattern: ExpressionNode;
-  action: (node: ExpressionNode, context: IEvaluateContext) => void;
+  pattern: Expr;
+  action: (node: Expr, context: IEvaluateContext) => void;
 };
 
 export type PatternMatchResult =
   | { pass: false }
-  | { pass: true; name?: string; result: ExpressionNode[] };
+  | { pass: true; name?: string; exprs: Expr[] };
 
 export type SuccessfulSequenceMatchResult = {
   pass: true;
-  result: Record<string, ExpressionNode[]>;
+  result: Record<string, Expr[]>;
 };
 export type SequenceMatchResult =
   | { pass: false }
   | SuccessfulSequenceMatchResult;
 
 export type PatternAction = {
-  forPattern: (pattern: ExpressionNode) => boolean;
+  forPattern: (pattern: Expr) => boolean;
 
   // will modify sequenceList in place, and return does the sequence pass this pattern
-  action: (sequenceList: ExpressionNode[]) => PatternMatchResult;
+  action: (
+    sequenceList: Expr[],
+    pattern: Expr,
+    context: IEvaluateContext,
+  ) => PatternMatchResult;
 };

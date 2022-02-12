@@ -20,7 +20,7 @@ import {
   SymbolSymbol,
   TimesSymbol,
 } from './config';
-import { ExpressionNode } from './interfaces';
+import { Expr } from './interfaces';
 
 type Evaluator = (node: NonTerminalNode) => void;
 type EvaluatorMap = Record<string, Evaluator>;
@@ -28,7 +28,7 @@ type EvaluatorMap = Record<string, Evaluator>;
 const doNothing = (_: any) => {};
 
 export class ExpressionTranslate extends Transform {
-  _nodeStack: ExpressionNode[] = [];
+  _nodeStack: Expr[] = [];
 
   _evaluatorMap: EvaluatorMap = {
     "S -> S' CMP_0": (node) => this._evaluateEveryChild(node),
@@ -83,7 +83,7 @@ export class ExpressionTranslate extends Transform {
     'NEG -> - POW_0': (node) => {
       this._evaluate(node.children[1]);
       const theValue = this._popNode();
-      const negativeNode: ExpressionNode = {
+      const negativeNode: Expr = {
         head: NegativeSymbol,
         nodeType: 'nonTerminal',
         children: [theValue],
@@ -105,7 +105,7 @@ export class ExpressionTranslate extends Transform {
       const v1 = node.children[0];
       if (v1.type === 'terminal' && v1.token) {
         const value = parseFloat(v1.token?.content ?? '0');
-        const numberNode: ExpressionNode = {
+        const numberNode: Expr = {
           head: NumberSymbol,
           nodeType: 'terminal',
           expressionType: 'number',
@@ -119,7 +119,7 @@ export class ExpressionTranslate extends Transform {
       const v1 = node.children[0];
       if (v1.type === 'terminal' && v1.token) {
         const identifier = v1.token.content;
-        const symbolNode: ExpressionNode = {
+        const symbolNode: Expr = {
           head: SymbolSymbol,
           nodeType: 'terminal',
           expressionType: 'symbol',
@@ -133,7 +133,7 @@ export class ExpressionTranslate extends Transform {
       const v1 = node.children[0];
       if (v1.type === 'terminal') {
         const stringContent = v1.token.content ?? '';
-        const stringNode: ExpressionNode = {
+        const stringNode: Expr = {
           head: StringSymbol,
           nodeType: 'terminal',
           expressionType: 'string',
@@ -144,8 +144,8 @@ export class ExpressionTranslate extends Transform {
     },
 
     'P -> [ L ] P': (node) => {
-      const previousNode: ExpressionNode = this._popNode();
-      const functionNode: ExpressionNode = {
+      const previousNode: Expr = this._popNode();
+      const functionNode: Expr = {
         head: previousNode,
         nodeType: 'nonTerminal',
         children: [],
@@ -157,7 +157,7 @@ export class ExpressionTranslate extends Transform {
 
     'P -> = S': (node) => {
       const leftValueNode = this._popNode();
-      const assignNode: ExpressionNode = {
+      const assignNode: Expr = {
         head: AssignSymbol,
         nodeType: 'nonTerminal',
         children: [leftValueNode],
@@ -179,7 +179,7 @@ export class ExpressionTranslate extends Transform {
 
   private _reduce(
     node: Node,
-    head: ExpressionNode,
+    head: Expr,
     currIdx: number,
     nextIdx: number,
   ): void {
@@ -188,7 +188,7 @@ export class ExpressionTranslate extends Transform {
       this._evaluate(node.children[currIdx]);
       const current = this._popNode();
 
-      const reduced: ExpressionNode = {
+      const reduced: Expr = {
         nodeType: 'nonTerminal',
         head: head,
         children: [prev, current],
@@ -209,7 +209,7 @@ export class ExpressionTranslate extends Transform {
     if (prev.nodeType === 'nonTerminal') {
       this._evaluate(node.children[currIdx]);
       const current = this._popNode();
-      const appended: ExpressionNode = {
+      const appended: Expr = {
         nodeType: 'nonTerminal',
         head: prev.head,
         children: [...prev.children, current],
@@ -225,12 +225,12 @@ export class ExpressionTranslate extends Transform {
     }
   }
 
-  private _pushNode(node: ExpressionNode): void {
+  private _pushNode(node: Expr): void {
     this._nodeStack.push(node);
   }
 
-  private _popNode(): ExpressionNode {
-    return this._nodeStack.pop() as ExpressionNode;
+  private _popNode(): Expr {
+    return this._nodeStack.pop() as Expr;
   }
 
   private _evaluate(node: Node): void {

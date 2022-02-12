@@ -1,12 +1,12 @@
 import { Transform, TransformCallback } from 'stream';
-import { ExpressionNode } from './interfaces';
+import { Expr } from './interfaces';
 
 export class ExpressionNodeSerialize extends Transform {
   constructor() {
     super({ objectMode: true });
   }
 
-  private _nodeToString(node: ExpressionNode): string {
+  private _nodeToString(node: Expr): string {
     if (node.nodeType === 'terminal') {
       return node.value.toString();
     } else {
@@ -18,7 +18,7 @@ export class ExpressionNodeSerialize extends Transform {
   }
 
   _transform(
-    node: ExpressionNode,
+    node: Expr,
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
