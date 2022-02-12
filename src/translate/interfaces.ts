@@ -51,7 +51,18 @@ export interface IEvaluateContext {
   matchQ(node: ExpressionNode, pattern: ExpressionNode): boolean;
 }
 
-export type ExpressionNodeEvaluator = {
+export type Definition = {
   pattern: ExpressionNode;
   action: (node: ExpressionNode, context: IEvaluateContext) => void;
+};
+
+export type PatternMatchResult =
+  | { pass: false }
+  | { pass: true; result: ExpressionNode[] };
+
+export type PatternAction = {
+  forPattern: ExpressionNode;
+
+  // will modify sequenceList in place, and return does the sequence pass this pattern
+  action: (sequenceList: ExpressionNode[]) => PatternMatchResult;
 };

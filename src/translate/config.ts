@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { ExpressionNode } from './interfaces';
+import { ExpressionNode, PatternAction } from './interfaces';
 
 // function ListNode(): FunctionNode {
 //   return { type: 'function', nodeType: 'nonTerminal', head: { type: 'identifier', nodeType: 'terminal', value: 'List' }, children: [] };
@@ -74,3 +74,86 @@ export const PowerSymbol = NodeFactory.makeSymbol('Power');
 
 // 字符串符号
 export const StringSymbol = NodeFactory.makeSymbol('String');
+
+// Blank 符号
+export const BlankSymbol = NodeFactory.makeSymbol('Blank');
+
+// BlankSequence 符号
+export const BlankSequenceSymbol = NodeFactory.makeSymbol('BlankSequence');
+
+// BlankSequenceNull 符号
+export const BlankSequenceNullSymbol =
+  NodeFactory.makeSymbol('BlankSequenceNull');
+
+// 返回一个 Blank Pattern
+export function Blank(): ExpressionNode {
+  return {
+    nodeType: 'nonTerminal',
+    head: BlankSymbol,
+    children: [],
+  };
+}
+
+// 返回一个 BlankSequence Pattern
+export function BlankSequence(): ExpressionNode {
+  return {
+    nodeType: 'nonTerminal',
+    head: BlankSequenceSymbol,
+    children: [],
+  };
+}
+
+// 返回一个 BlankSequenceNull Pattern
+export function BlankSequenceNull(): ExpressionNode {
+  return {
+    nodeType: 'nonTerminal',
+    head: BlankSequenceNullSymbol,
+    children: [],
+  };
+}
+
+export const patternActions: PatternAction[] = [
+  {
+    forPattern: Blank(),
+    action: (seq: ExpressionNode[]) => {
+      if (seq.length === 0) {
+        return { pass: false };
+      } else {
+        const expr = seq.shift() as ExpressionNode;
+        return { pass: true, result: [expr] };
+      }
+    },
+  },
+  {
+    forPattern: BlankSequence(),
+    action: (seq: ExpressionNode[]) => {
+      if (seq.length === 0) {
+        return { pass: false };
+      } else {
+        const result: ExpressionNode[] = [];
+
+        while (seq.length > 0) {
+          const expr = seq.shift() as ExpressionNode;
+          result.push(expr);
+        }
+        return { pass: true, result };
+      }
+    },
+  },
+  {
+    forPattern: BlankSequenceNull(),
+    action: (seq: ExpressionNode[]) => {
+      if (seq.length === 0) {
+        return { pass: true, result: [] };
+      } else {
+        const result: ExpressionNode[] = [];
+
+        while (seq.length > 0) {
+          const expr = seq.shift() as ExpressionNode;
+          result.push(expr);
+        }
+        return { pass: true, result };
+      }
+    },
+  },
+];
