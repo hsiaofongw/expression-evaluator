@@ -2,11 +2,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Transform } from 'stream';
 import { patternActions } from './config';
-import { Definition, ExpressionNode, IEvaluateContext } from './interfaces';
+import {
+  Definition,
+  ExpressionNode,
+  IEvaluateContext,
+  SequenceMatchResult,
+  SuccessfulSequenceMatchResult,
+} from './interfaces';
 
 type ComparePair = { lhs: ExpressionNode[]; rhs: ExpressionNode[] };
 
-class ExprHelper {
+export class ExprHelper {
   /** 返回两个 terminal 节点是否相等 */
   public static isTerminalEqual(
     expr1: ExpressionNode,
@@ -58,41 +64,83 @@ class ExprHelper {
     );
   }
 
-  public static sequenceMatch(
-    sequence: ExpressionNode[],
-    patterns: ExpressionNode[],
+  /** 直接全等判定：不求值，直接对比两个表达式的各个部分 */
+  public static rawEqualQ(
+    expr1: ExpressionNode,
+    expr2: ExpressionNode,
   ): boolean {
-    const comparePairs: ComparePair[] = [{ lhs: sequence, rhs: patterns }];
+    const pairs: ComparePair[] = [{ lhs: [expr1], rhs: [expr2] }];
+    while (pairs.length > 0) {
+      const { lhs, rhs } = pairs.pop() as ComparePair;
+      while (lhs.length > 0 && rhs.length > 0) {
+        const p = lhs.shift();
+        const q = rhs.shift();
+
+        if (p.nodeType === 'terminal' && q.nodeType === 'terminal') {
+          const isEqual = ExprHelper.isTerminalEqual(p, q);
+          if (!isEqual) {
+            return false;
+          }
+        } else if (
+          p.nodeType === 'nonTerminal' &&
+          q.nodeType === 'nonTerminal'
+        ) {
+          pairs.push({ lhs: [...p.children], rhs: [...q.children] });
+          pairs.push({ lhs: [p.head], rhs: [q.head] });
+        } else {
+          return false;
+        }
+      }
+
+      if (lhs.length !== 0 || rhs.length !== 0) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  public static patternMatch(
+    expr: ExpressionNode,
+    pattern: ExpressionNode,
+  ): SequenceMatchResult {
+    const comparePairs: ComparePair[] = [{ lhs: [expr], rhs: [pattern] }];
+    const namedResult: SuccessfulSequenceMatchResult['result'] = {};
 
     while (comparePairs.length) {
-      const comparePair = comparePairs.pop() as ComparePair;
-      const sequence = comparePair.lhs;
-      const patterns = comparePair.rhs;
+      const pair = comparePairs.pop() as ComparePair;
 
-      while (sequence.length > 0 && patterns.length > 0) {
-        const expr = sequence.shift() as ExpressionNode;
-        const pattern = patterns.shift() as ExpressionNode;
+      while (pair.lhs.length > 0 && pair.rhs.length > 0) {
+        const expr = pair.lhs.shift() as ExpressionNode;
+        const pattern = pair.rhs.shift() as ExpressionNode;
 
         if (pattern.nodeType === 'terminal') {
-          return ExprHelper.isTerminalEqual(expr, pattern);
+          const isSymbolEqual = ExprHelper.isTerminalEqual(expr, pattern);
+          if (isSymbolEqual) {
+            continue;
+          } else {
+            return { pass: false };
+          }
         } else {
           const patternAction = patternActions.find((pa) =>
-            ExprHelper.l1Compare(pattern, pa.forPattern),
+            pa.forPattern(pattern),
           );
           if (patternAction) {
-            sequence.unshift(expr);
-            const result = patternAction.action(sequence);
+            pair.lhs.unshift(expr);
+            const result = patternAction.action(pair.lhs);
             if (result.pass === false) {
-              return false;
-            } else {
-              continue;
+              return { pass: false };
+            }
+
+            if (result.name) {
+              namedResult[result.name] = result.result;
             }
           } else {
             const exprHeadSeq: ExpressionNode[] = [expr.head];
             const subPatternHeadSeq: ExpressionNode[] = [pattern.head];
 
             if (expr.nodeType === 'terminal') {
-              return false;
+              return { pass: false };
             } else {
               const exprBodySeq: ExpressionNode[] = [...expr.children];
               const subPatternBodySeq: ExpressionNode[] = [...pattern.children];
@@ -106,12 +154,12 @@ class ExprHelper {
         }
       }
 
-      if (sequence.length !== 0 || patterns.length !== 0) {
-        return false;
+      if (pair.lhs.length !== 0 || pair.rhs.length !== 0) {
+        return { pass: false };
       }
     }
 
-    return true;
+    return { pass: true, result: namedResult };
   }
 }
 

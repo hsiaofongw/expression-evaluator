@@ -58,10 +58,18 @@ export type Definition = {
 
 export type PatternMatchResult =
   | { pass: false }
-  | { pass: true; result: ExpressionNode[] };
+  | { pass: true; name?: string; result: ExpressionNode[] };
+
+export type SuccessfulSequenceMatchResult = {
+  pass: true;
+  result: Record<string, ExpressionNode[]>;
+};
+export type SequenceMatchResult =
+  | { pass: false }
+  | SuccessfulSequenceMatchResult;
 
 export type PatternAction = {
-  forPattern: ExpressionNode;
+  forPattern: (pattern: ExpressionNode) => boolean;
 
   // will modify sequenceList in place, and return does the sequence pass this pattern
   action: (sequenceList: ExpressionNode[]) => PatternMatchResult;

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
+import { ExprHelper } from './evaluate';
 import { ExpressionNode, PatternAction } from './interfaces';
 
 // function ListNode(): FunctionNode {
@@ -114,7 +115,8 @@ export function BlankSequenceNull(): ExpressionNode {
 
 export const patternActions: PatternAction[] = [
   {
-    forPattern: Blank(),
+    forPattern: (pattern: ExpressionNode) =>
+      ExprHelper.l1Compare(pattern, Blank()),
     action: (seq: ExpressionNode[]) => {
       if (seq.length === 0) {
         return { pass: false };
@@ -125,7 +127,8 @@ export const patternActions: PatternAction[] = [
     },
   },
   {
-    forPattern: BlankSequence(),
+    forPattern: (pattern: ExpressionNode) =>
+      ExprHelper.l1Compare(pattern, BlankSequence()),
     action: (seq: ExpressionNode[]) => {
       if (seq.length === 0) {
         return { pass: false };
@@ -141,7 +144,8 @@ export const patternActions: PatternAction[] = [
     },
   },
   {
-    forPattern: BlankSequenceNull(),
+    forPattern: (pattern: ExpressionNode) =>
+      ExprHelper.l1Compare(pattern, BlankSequenceNull()),
     action: (seq: ExpressionNode[]) => {
       if (seq.length === 0) {
         return { pass: true, result: [] };
