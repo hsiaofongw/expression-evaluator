@@ -76,8 +76,8 @@ export const PowerSymbol = NodeFactory.makeSymbol('Power');
 // 字符串符号
 export const StringSymbol = NodeFactory.makeSymbol('String');
 
-// List 符号
-export const ListSymbol = NodeFactory.makeSymbol('List');
+// Sequence 符号
+export const SequenceSymbol = NodeFactory.makeSymbol('Sequence');
 
 // Head 符号
 export const HeadSymbol = NodeFactory.makeSymbol('Head');
@@ -135,11 +135,11 @@ export function NamedPattern(identifier: string, pattern: Expr): Expr {
   };
 }
 
-// 返回一个 List
-export function List(children: Expr[]): Expr {
+// 返回一个 Sequence
+export function Sequence(children: Expr[]): Expr {
   return {
     nodeType: 'nonTerminal',
-    head: ListSymbol,
+    head: SequenceSymbol,
     children,
   };
 }

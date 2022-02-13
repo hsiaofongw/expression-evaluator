@@ -3,9 +3,10 @@
 import { Transform } from 'stream';
 import {
   builtInDefinitions,
-  List,
+  Sequence,
   NodeFactory,
   patternActions,
+  SequenceSymbol,
 } from './config';
 import {
   Definition,
@@ -239,6 +240,27 @@ export class Evaluator extends Transform implements IEvaluateContext {
     return undefined;
   }
 
+  /** 将表达式中的 Sequence 展开 */
+  private _flattenSequence(expr: Expr): void {
+    if (expr.nodeType === 'nonTerminal') {
+      const children: Expr[] = [];
+      for (const child of expr.children) {
+        if (
+          child.nodeType === 'nonTerminal' &&
+          ExprHelper.l0Compare(child.head, SequenceSymbol)
+        ) {
+          for (const item of child.children) {
+            children.push(item);
+          }
+        } else {
+          children.push(child);
+        }
+      }
+
+      expr.children = children;
+    }
+  }
+
   /** 对表达式进行求值，如果有规则，按规则来，如果没有，原样返回（到栈顶） */
   public evaluate(expr: Expr): void {
     const definitionAndMatchResult = this._findDefinition(expr);
@@ -253,7 +275,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
     for (const symbolName in matchResult) {
       keyValuePairs.push({
         pattern: NodeFactory.makeSymbol(symbolName),
-        value: List(matchResult[symbolName]),
+        value: Sequence(matchResult[symbolName]),
       });
     }
     // 传入实参
