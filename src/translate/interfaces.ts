@@ -37,6 +37,8 @@ export type Expr = (TerminalNode | NonTerminalNode) & {
   head: Expr;
 };
 
+export type KeyValuePair = { pattern: Expr; value: Expr };
+
 export interface IEvaluateContext {
   /** 求值，最终的求值结果在栈顶 */
   evaluate(node: Expr): void;
@@ -47,8 +49,11 @@ export interface IEvaluateContext {
   /** 将一个值入栈 */
   pushNode(node: Expr): void;
 
-  /** 模式匹配 */
-  matchQ(node: Expr, pattern: Expr): boolean;
+  /** 立即赋值 */
+  assign(keyValuePairs: KeyValuePair[]): void;
+
+  /** 延迟赋值 */
+  assignDelayed(keyValuePairs: KeyValuePair[]): void;
 }
 
 export type Definition = {

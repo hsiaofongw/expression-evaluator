@@ -76,6 +76,9 @@ export const PowerSymbol = NodeFactory.makeSymbol('Power');
 // 字符串符号
 export const StringSymbol = NodeFactory.makeSymbol('String');
 
+// List 符号
+export const ListSymbol = NodeFactory.makeSymbol('List');
+
 // Head 符号
 export const HeadSymbol = NodeFactory.makeSymbol('Head');
 
@@ -129,6 +132,15 @@ export function NamedPattern(identifier: string, pattern: Expr): Expr {
     nodeType: 'nonTerminal',
     head: PatternSymbol,
     children: [NodeFactory.makeSymbol(identifier), pattern],
+  };
+}
+
+// 返回一个 List
+export function List(children: Expr[]): Expr {
+  return {
+    nodeType: 'nonTerminal',
+    head: ListSymbol,
+    children,
   };
 }
 
@@ -269,7 +281,7 @@ export const builtInDefinitions: Definition[] = [
     },
   },
 
-  // 直接全等判定
+  // 立即赋值语句
   {
     pattern: {
       nodeType: 'nonTerminal',
