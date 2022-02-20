@@ -79,6 +79,9 @@ export const StringSymbol = NodeFactory.makeSymbol('String');
 // Sequence 符号
 export const SequenceSymbol = NodeFactory.makeSymbol('Sequence');
 
+// List 符号
+export const ListSymbol = NodeFactory.makeSymbol('List');
+
 // Head 符号
 export const HeadSymbol = NodeFactory.makeSymbol('Head');
 
