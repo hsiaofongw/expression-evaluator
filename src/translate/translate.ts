@@ -10,6 +10,7 @@ import {
   GreaterThanSymbol,
   LessThanOrEqualSymbol,
   LessThanSymbol,
+  ListSymbol,
   MinusSymbol,
   NegativeSymbol,
   NumberSymbol,
@@ -141,6 +142,17 @@ export class ExpressionTranslate extends Transform {
         };
         this._pushNode(stringNode);
       }
+    },
+
+    "F' -> { L }": (node) => {
+      const list = node.children[1];
+      const listNode: Expr = {
+        head: ListSymbol,
+        nodeType: 'nonTerminal',
+        children: [],
+      };
+      this._pushNode(listNode);
+      this._evaluate(list);
     },
 
     'P -> [ L ] P': (node) => {
