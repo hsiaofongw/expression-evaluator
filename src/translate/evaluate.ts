@@ -19,6 +19,11 @@ import {
 
 type ComparePair = { lhs: Expr[]; rhs: Expr[] };
 
+type DefinitionAndMatchResult = {
+  definition: Definition;
+  matchResult: SuccessfulSequenceMatchResult;
+};
+
 export class ExprHelper {
   /** 返回两个 terminal 节点是否相等 */
   public static isTerminalEqual(expr1: Expr, expr2: Expr): boolean {
@@ -199,12 +204,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
    *
    * 如果找不到，返回 undefined
    */
-  private _findDefinition(expr: Expr):
-    | {
-        definition: Definition;
-        patternMatchResult: SuccessfulSequenceMatchResult;
-      }
-    | undefined {
+  private _findDefinition(expr: Expr): DefinitionAndMatchResult | undefined {
     // 从栈顶找到栈底
     for (let i = 0; i < this._userDefinitionStack.length; i++) {
       const defStack =
@@ -219,7 +219,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
           this,
         );
         if (matchResult.pass) {
-          return { definition, patternMatchResult: matchResult };
+          return { definition, matchResult: matchResult };
         }
       }
     }
@@ -233,7 +233,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
         this,
       );
       if (matchResult.pass) {
-        return { definition, patternMatchResult: matchResult };
+        return { definition, matchResult: matchResult };
       }
     }
 
@@ -261,6 +261,27 @@ export class Evaluator extends Transform implements IEvaluateContext {
     }
   }
 
+  private _applyDefinition(def: DefinitionAndMatchResult): void {
+    // 取出当前表达式
+    const expr = this.popNode() as Expr;
+
+    // 传入实参
+    const keyValuePairs: KeyValuePair[] = [];
+    for (const symbolName in def.matchResult.result) {
+      keyValuePairs.push({
+        pattern: NodeFactory.makeSymbol(symbolName),
+        value: Sequence(def.matchResult.result[symbolName]),
+      });
+    }
+    this._assignImmediately(keyValuePairs);
+
+    // 求值
+    def.definition.action(expr, this);
+
+    // 恢复现场
+    this._undoLastAssign();
+  }
+
   /** 对表达式进行求值，如果有规则，按规则来，如果没有，原样返回（到栈顶） */
   public evaluate(expr: Expr): void {
     const definitionAndMatchResult = this._findDefinition(expr);
@@ -269,26 +290,24 @@ export class Evaluator extends Transform implements IEvaluateContext {
       return;
     }
 
-    const definition = definitionAndMatchResult.definition;
-    const matchResult = definitionAndMatchResult.patternMatchResult.result;
-    const keyValuePairs: KeyValuePair[] = [];
-    for (const symbolName in matchResult) {
-      keyValuePairs.push({
-        pattern: NodeFactory.makeSymbol(symbolName),
-        value: Sequence(matchResult[symbolName]),
-      });
+    const evaluateList: Expr[] = [expr];
+    while (evaluateList.length > 0) {
+      const expr = evaluateList.pop() as Expr;
+      this.pushNode(expr);
+
+      if (expr.nodeType === 'terminal') {
+        if (expr.expressionType === 'symbol') {
+          const definition = this._findDefinition(expr);
+          if (definition) {
+            this._applyDefinition(definition);
+          }
+        } else {
+        }
+      }
     }
-    // 传入实参
-    this._assignImmediately(keyValuePairs);
-
-    // 求值
-    definition.action(expr, this);
-    const value = this.popNode() as Expr;
-
-    // 恢复现场
-    this._undoLastAssign();
 
     // 输出结果
+    const value = this.popNode() as Expr;
     this.push(value);
   }
 
