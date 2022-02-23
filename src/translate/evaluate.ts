@@ -18,6 +18,8 @@ import {
 } from './interfaces';
 
 type ComparePair = { lhs: Expr[]; rhs: Expr[] };
+type PointerPair = { lPtr: number; rPtr: number };
+type Pair = { lhs: Expr[]; rhs: Expr[]; queue: PointerPair[] };
 
 type DefinitionAndMatchResult = {
   definition: Definition;
@@ -98,6 +100,59 @@ export class ExprHelper {
     }
 
     return true;
+  }
+
+  public static patternMatchNew(
+    expr: Expr,
+    pattern: Expr,
+    context: IEvaluateContext,
+  ): SequenceMatchResult {
+    const cmpStack: Pair[] = [
+      { lhs: [expr], rhs: [pattern], queue: [{ lPtr: 0, rPtr: 0 }] },
+    ];
+    const namedResult: SuccessfulSequenceMatchResult['result'] = {};
+
+    while (cmpStack.length) {
+      const pair = cmpStack.pop() as Pair;
+      const lhs = pair.lhs;
+      const rhs = pair.rhs;
+      const queue = pair.queue;
+      let pass = false;
+      while (queue.length) {
+        const ptrPair = queue.shift() as PointerPair;
+        while (ptrPair.lPtr < lhs.length && ptrPair.rPtr < rhs.length) {
+          const lHead = lhs[ptrPair.lPtr];
+          const rHead = rhs[ptrPair.rPtr];
+          if (rHead.nodeType === 'terminal') {
+            if (ExprHelper.rawEqualQ([lHead], [rHead])) {
+              ptrPair.lPtr = ptrPair.lPtr + 1;
+              ptrPair.rPtr = ptrPair.rPtr + 1;
+              continue;
+            } else {
+              break;
+            }
+          } else {
+            /**
+             * if pattern:
+             *   if backtrack pattern:
+             *     push sth into the queue, any queue item succedd will lead whole queue succeed,
+             *    which will then cause cmpStack.Top advance
+             *   else:
+             *     do a single pattern match, if faile, shift the queue
+             * else:
+             *   push sth into the cmpStack top
+             */
+          }
+        }
+
+        if (ptrPair.lPtr === lhs.length && ptrPair.rPtr === rhs.length) {
+          pass = true;
+          break;
+        }
+      }
+    }
+
+    return { result: namedResult, pass: true };
   }
 
   public static patternMatch(
