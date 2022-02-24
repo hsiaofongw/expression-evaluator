@@ -123,7 +123,7 @@ export class ExprHelper {
         while (ptrPair.lPtr < lhs.length && ptrPair.rPtr < rhs.length) {
           const lHead = lhs[ptrPair.lPtr];
           const rHead = rhs[ptrPair.rPtr];
-          if (rHead.nodeType === 'terminal') {
+          if (lHead.nodeType === 'terminal' && rHead.nodeType === 'terminal') {
             if (ExprHelper.rawEqualQ([lHead], [rHead])) {
               ptrPair.lPtr = ptrPair.lPtr + 1;
               ptrPair.rPtr = ptrPair.rPtr + 1;
@@ -131,17 +131,35 @@ export class ExprHelper {
             } else {
               break;
             }
+          } else if (rHead.nodeType === 'nonTerminal') {
+            if (
+              rHead.head.nodeType === 'terminal' &&
+              rHead.head.expressionType === 'symbol'
+            ) {
+              const patternHead = rHead.head;
+              const ptrSblName = patternHead.value;
+
+              // 如果 pattern 匹配上了应该 continue, 提前跳过下面的一些代码
+
+
+            }
+
+            if (lHead.nodeType === 'terminal') {
+              break;
+            }
+
+            cmpStack.push({
+              lhs: [...lHead.children],
+              rhs: [...rHead.children],
+              queue: [{ lPtr: 0, rPtr: 0 }],
+            });
+            cmpStack.push({
+              lhs: [lHead.head],
+              rhs: [rHead.head],
+              queue: [{ lPtr: 0, rPtr: 0 }],
+            });
           } else {
-            /**
-             * if pattern:
-             *   if backtrack pattern:
-             *     push sth into the queue, any queue item succedd will lead whole queue succeed,
-             *    which will then cause cmpStack.Top advance
-             *   else:
-             *     do a single pattern match, if faile, shift the queue
-             * else:
-             *   push sth into the cmpStack top
-             */
+            break;
           }
         }
 
