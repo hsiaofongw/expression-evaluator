@@ -102,34 +102,41 @@ export class ExprHelper {
     i: number,
     j: number,
   ): PatternMatchResult {
-    if (lhs.length === rhs.length && lhs.length === 0) {
-      return { pass: true, namedResult: {} };
+    const lLength = lhs.length - i;
+    const rLength = rhs.length - j;
+    if (lLength === rLength && lLength === 0) {
+      // 当 lhs 和 rhs 都为 0 长时，不匹配
+      return { pass: false };
     }
 
+    // 当遇到形如 Pattern[symbol, expr] 的 Pattern 时，如果匹配，则保存匹配结果
     const namedResult: Record<string, Expr[]> = {};
-    function match(
-      name: string | undefined,
-      exprs: Expr[],
-    ): { conflict: boolean } {
+
+    function isConflict(name: string | undefined, exprs: Expr[]): boolean {
       if (name) {
-        if (namedResult[name] === undefined) {
-          namedResult[name] = exprs;
-          return { conflict: false };
-        } else {
-          const lastTimeMatchedExprs = namedResult[name];
-          if (lastTimeMatchedExprs.length === exprs.length) {
-            return {
-              conflict: !ExprHelper.rawEqualQ(lastTimeMatchedExprs, exprs),
-            };
-          } else {
-            return { conflict: true };
+        if (namedResult[name]) {
+          if (namedResult[name].length === exprs.length) {
+            if (exprs.length === 0) {
+              return true;
+            }
+
+            if (ExprHelper.rawEqualQ(namedResult[name], exprs)) {
+              return true;
+            }
           }
         }
-      } else {
-        return { conflict: false };
+      }
+
+      return false;
+    }
+
+    function match(name: string | undefined, exprs: Expr[]): void {
+      if (name) {
+        namedResult[name] = exprs;
       }
     }
 
+    // 各自遍历 lhs 队列和 rhs 队列
     while (i < lhs.length && j < rhs.length) {
       const l = lhs[i];
 
@@ -157,10 +164,10 @@ export class ExprHelper {
       if (r.nodeType === 'terminal') {
         const equal = ExprHelper.rawEqualQ([l], [r]);
         if (equal) {
-          const compareLast = match(currentPatternName, [l]);
-          if (compareLast.conflict) {
+          if (isConflict(currentPatternName, [l])) {
             return { pass: false };
           }
+          match(currentPatternName, [l]);
           i = i + 1;
           j = j + 1;
           continue;
@@ -177,10 +184,10 @@ export class ExprHelper {
             // Blank[...] like
             if (r.children.length === 0) {
               // Blank[]
-              const compareLast = match(currentPatternName, [l]);
-              if (compareLast.conflict) {
+              if (isConflict(currentPatternName, [l])) {
                 return { pass: false };
               }
+              match(currentPatternName, [l]);
               i = i + 1;
               j = j + 1;
               continue;
@@ -194,22 +201,24 @@ export class ExprHelper {
                 0,
               );
               if (matchHead.pass) {
+                // l.head is fully equal to expectHead
                 for (const key in matchHead.namedResult) {
                   const value = matchHead.namedResult[key];
-                  const compareLast = match(currentPatternName, value);
-                  if (compareLast.conflict) {
+                  if (isConflict(currentPatternName, value)) {
                     return { pass: false };
                   }
+                  match(currentPatternName, value);
                 }
-                const compareLast = match(currentPatternName, [l.head]);
-                if (compareLast.conflict) {
+                if (isConflict(currentPatternName, [l.head])) {
                   return { pass: false };
                 }
+                match(currentPatternName, [l.head]);
 
                 i = i + 1;
                 j = j + 1;
                 continue;
               } else {
+                // l.head is by no means like expectHead
                 return { pass: false };
               }
             } else {
@@ -220,6 +229,22 @@ export class ExprHelper {
             // BlankSequence[...] like
             if (r.children.length === 0) {
               // BlankSequence[]
+              for (let maxI = lhs.length - 1; maxI >= i + 1; maxI = maxI - 1) {
+                const restMatch = ExprHelper.patternMatchRecursive(
+                  lhs,
+                  rhs,
+                  maxI,
+                  j + 1,
+                );
+                if (restMatch.pass) {
+
+                }
+              }
+            } else if (r.children.length === 1) {
+              // BlankSequence[h]
+            } else {
+              // BlankSequence[x,y,z,...]
+              return { pass: false };
             }
           }
         }
@@ -227,7 +252,7 @@ export class ExprHelper {
     }
 
     if (i === lhs.length && j === rhs.length) {
-      return { pass: true, namedResult: {} };
+      return { pass: true, namedResult: namedResult };
     } else {
       return { pass: false };
     }
