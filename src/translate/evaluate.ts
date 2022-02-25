@@ -114,16 +114,17 @@ export class ExprHelper {
 
     while (cmpStack.length) {
       const pair = cmpStack.pop() as Pair;
-      const lhs = pair.lhs;
-      const rhs = pair.rhs;
       const queue = pair.queue;
       let pass = false;
-      while (queue.length) {
+      while (queue.length > 0 && pass === false) {
         const ptrPair = queue.shift() as PointerPair;
-        while (ptrPair.lPtr < lhs.length && ptrPair.rPtr < rhs.length) {
-          const lHead = lhs[ptrPair.lPtr];
-          const rHead = rhs[ptrPair.rPtr];
-          if (lHead.nodeType === 'terminal' && rHead.nodeType === 'terminal') {
+        while (
+          ptrPair.lPtr < pair.lhs.length &&
+          ptrPair.rPtr < pair.rhs.length
+        ) {
+          const lHead = pair.lhs[ptrPair.lPtr];
+          const rHead = pair.rhs[ptrPair.rPtr];
+          if (rHead.nodeType === 'terminal') {
             if (ExprHelper.rawEqualQ([lHead], [rHead])) {
               ptrPair.lPtr = ptrPair.lPtr + 1;
               ptrPair.rPtr = ptrPair.rPtr + 1;
@@ -131,7 +132,11 @@ export class ExprHelper {
             } else {
               break;
             }
-          } else if (rHead.nodeType === 'nonTerminal') {
+          } else {
+            if (lHead.nodeType === 'terminal') {
+              break;
+            }
+
             if (
               rHead.head.nodeType === 'terminal' &&
               rHead.head.expressionType === 'symbol'
@@ -139,13 +144,13 @@ export class ExprHelper {
               const patternHead = rHead.head;
               const ptrSblName = patternHead.value;
 
+              if (ptrSblName === 'Blank') {
+              }
+
+              if (ptrSblName === 'BlankSequence') {
+              }
+
               // 如果 pattern 匹配上了应该 continue, 提前跳过下面的一些代码
-
-
-            }
-
-            if (lHead.nodeType === 'terminal') {
-              break;
             }
 
             cmpStack.push({
@@ -158,14 +163,16 @@ export class ExprHelper {
               rhs: [rHead.head],
               queue: [{ lPtr: 0, rPtr: 0 }],
             });
-          } else {
-            break;
           }
+
+          break;
         }
 
-        if (ptrPair.lPtr === lhs.length && ptrPair.rPtr === rhs.length) {
+        if (
+          ptrPair.lPtr === pair.lhs.length &&
+          ptrPair.rPtr === pair.rhs.length
+        ) {
           pass = true;
-          break;
         }
       }
     }
