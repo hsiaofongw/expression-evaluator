@@ -61,17 +61,10 @@ export type Definition = {
   action: (node: Expr, context: IEvaluateContext) => void;
 };
 
-export type PatternMatchResult =
-  | { pass: false }
-  | { pass: true; name?: string; exprs: Expr[] };
+export type NoMatchResult = { pass: false };
+export type MatchResult = { pass: true; namedResult: Record<string, Expr[]> };
 
-export type SuccessfulSequenceMatchResult = {
-  pass: true;
-  result: Record<string, Expr[]>;
-};
-export type SequenceMatchResult =
-  | { pass: false }
-  | SuccessfulSequenceMatchResult;
+export type PatternMatchResult = NoMatchResult | MatchResult;
 
 export type PatternAction = {
   forPattern: (pattern: Expr) => boolean;

@@ -13,18 +13,12 @@ import {
   Expr,
   IEvaluateContext,
   KeyValuePair,
-  SequenceMatchResult,
-  SuccessfulSequenceMatchResult,
+  PatternMatchResult,
 } from './interfaces';
 
 type ComparePair = { lhs: Expr[]; rhs: Expr[] };
 type PointerPair = { lPtr: number; rPtr: number };
 type Pair = { lhs: Expr[]; rhs: Expr[]; queue: PointerPair[] };
-
-type DefinitionAndMatchResult = {
-  definition: Definition;
-  matchResult: SuccessfulSequenceMatchResult;
-};
 
 export class ExprHelper {
   /** 返回两个 terminal 节点是否相等 */
@@ -102,348 +96,329 @@ export class ExprHelper {
     return true;
   }
 
-  public static patternMatchNew(
-    expr: Expr,
-    pattern: Expr,
-    context: IEvaluateContext,
-  ): SequenceMatchResult {
-    const cmpStack: Pair[] = [
-      { lhs: [expr], rhs: [pattern], queue: [{ lPtr: 0, rPtr: 0 }] },
-    ];
-    const namedResult: SuccessfulSequenceMatchResult['result'] = {};
+  public static patternMatchRecursive(
+    lhs: Expr[],
+    rhs: Expr[],
+    i: number,
+    j: number,
+  ): PatternMatchResult {
+    if (lhs.length === rhs.length && lhs.length === 0) {
+      return { pass: true, namedResult: {} };
+    }
 
-    while (cmpStack.length) {
-      const pair = cmpStack.pop() as Pair;
-      const queue = pair.queue;
-      let pass = false;
-      while (queue.length > 0 && pass === false) {
-        const ptrPair = queue.shift() as PointerPair;
-        while (
-          ptrPair.lPtr < pair.lhs.length &&
-          ptrPair.rPtr < pair.rhs.length
-        ) {
-          const lHead = pair.lhs[ptrPair.lPtr];
-          const rHead = pair.rhs[ptrPair.rPtr];
-          if (rHead.nodeType === 'terminal') {
-            if (ExprHelper.rawEqualQ([lHead], [rHead])) {
-              ptrPair.lPtr = ptrPair.lPtr + 1;
-              ptrPair.rPtr = ptrPair.rPtr + 1;
-              continue;
-            } else {
-              break;
-            }
+    const namedResult: Record<string, Expr[]> = {};
+    function match(
+      name: string | undefined,
+      exprs: Expr[],
+    ): { conflict: boolean } {
+      if (name) {
+        if (namedResult[name] === undefined) {
+          namedResult[name] = exprs;
+          return { conflict: false };
+        } else {
+          const lastTimeMatchedExprs = namedResult[name];
+          if (lastTimeMatchedExprs.length === exprs.length) {
+            return {
+              conflict: !ExprHelper.rawEqualQ(lastTimeMatchedExprs, exprs),
+            };
           } else {
-            if (lHead.nodeType === 'terminal') {
-              break;
-            }
-
-            if (
-              rHead.head.nodeType === 'terminal' &&
-              rHead.head.expressionType === 'symbol'
-            ) {
-              const patternHead = rHead.head;
-              const ptrSblName = patternHead.value;
-
-              if (ptrSblName === 'Blank') {
-              }
-
-              if (ptrSblName === 'BlankSequence') {
-              }
-
-              // 如果 pattern 匹配上了应该 continue, 提前跳过下面的一些代码
-            }
-
-            cmpStack.push({
-              lhs: [...lHead.children],
-              rhs: [...rHead.children],
-              queue: [{ lPtr: 0, rPtr: 0 }],
-            });
-            cmpStack.push({
-              lhs: [lHead.head],
-              rhs: [rHead.head],
-              queue: [{ lPtr: 0, rPtr: 0 }],
-            });
+            return { conflict: true };
           }
-
-          break;
         }
-
-        if (
-          ptrPair.lPtr === pair.lhs.length &&
-          ptrPair.rPtr === pair.rhs.length
-        ) {
-          pass = true;
-        }
+      } else {
+        return { conflict: false };
       }
     }
 
-    return { result: namedResult, pass: true };
-  }
+    while (i < lhs.length && j < rhs.length) {
+      const l = lhs[i];
 
-  public static patternMatch(
-    expr: Expr,
-    pattern: Expr,
-    context: IEvaluateContext,
-  ): SequenceMatchResult {
-    const comparePairs: ComparePair[] = [{ lhs: [expr], rhs: [pattern] }];
-    const namedResult: SuccessfulSequenceMatchResult['result'] = {};
+      // 处理 r 形如 Pattern[x, expr] 的情形
+      let r = rhs[j];
+      let currentPatternName: undefined | string = undefined;
+      if (r.nodeType === 'nonTerminal') {
+        const head = r.head;
+        if (
+          head.nodeType === 'terminal' &&
+          head.expressionType === 'symbol' &&
+          head.value === 'Pattern'
+        ) {
+          if (r.children.length === 2) {
+            const v1 = r.children[0];
+            const v2 = r.children[1];
+            if (v1.nodeType === 'terminal' && v1.expressionType === 'symbol') {
+              currentPatternName = v1.value;
+              r = v2;
+            }
+          }
+        }
+      }
 
-    while (comparePairs.length) {
-      const pair = comparePairs.pop() as ComparePair;
-
-      while (pair.lhs.length > 0 && pair.rhs.length > 0) {
-        const expr = pair.lhs.shift() as Expr;
-        const pattern = pair.rhs.shift() as Expr;
-
-        if (pattern.nodeType === 'terminal') {
-          const isSymbolEqual = ExprHelper.isTerminalEqual(expr, pattern);
-          if (isSymbolEqual) {
-            continue;
-          } else {
+      if (r.nodeType === 'terminal') {
+        const equal = ExprHelper.rawEqualQ([l], [r]);
+        if (equal) {
+          const compareLast = match(currentPatternName, [l]);
+          if (compareLast.conflict) {
             return { pass: false };
           }
+          i = i + 1;
+          j = j + 1;
+          continue;
         } else {
-          const patternAction = patternActions.find((pa) =>
-            pa.forPattern(pattern),
-          );
-          if (patternAction) {
-            pair.lhs.unshift(expr);
-            const matchResult = patternAction.action(
-              pair.lhs,
-              pattern,
-              context,
-            );
-            if (matchResult.pass === false) {
-              return { pass: false };
-            }
-
-            if (matchResult.name && namedResult[matchResult.name]) {
-              if (
-                !ExprHelper.rawEqualQ(
-                  matchResult.exprs,
-                  namedResult[matchResult.name],
-                )
-              ) {
+          return { pass: false };
+        }
+      } else {
+        // r.nodeType === 'nonTerminal'
+        if (
+          r.head.nodeType === 'terminal' &&
+          r.head.expressionType === 'symbol'
+        ) {
+          if (r.head.value === 'Blank') {
+            // Blank[...] like
+            if (r.children.length === 0) {
+              // Blank[]
+              const compareLast = match(currentPatternName, [l]);
+              if (compareLast.conflict) {
                 return { pass: false };
               }
-            }
+              i = i + 1;
+              j = j + 1;
+              continue;
+            } else if (r.children.length === 1) {
+              // Blank[h]
+              const expectHead = r.children[0];
+              const matchHead = ExprHelper.patternMatchRecursive(
+                [l.head],
+                [expectHead],
+                0,
+                0,
+              );
+              if (matchHead.pass) {
+                for (const key in matchHead.namedResult) {
+                  const value = matchHead.namedResult[key];
+                  const compareLast = match(currentPatternName, value);
+                  if (compareLast.conflict) {
+                    return { pass: false };
+                  }
+                }
+                const compareLast = match(currentPatternName, [l.head]);
+                if (compareLast.conflict) {
+                  return { pass: false };
+                }
 
-            if (matchResult.name) {
-              namedResult[matchResult.name] = matchResult.exprs;
-            }
-          } else {
-            const exprHeadSeq: Expr[] = [expr.head];
-            const subPatternHeadSeq: Expr[] = [pattern.head];
-
-            if (expr.nodeType === 'terminal') {
-              return { pass: false };
+                i = i + 1;
+                j = j + 1;
+                continue;
+              } else {
+                return { pass: false };
+              }
             } else {
-              const exprBodySeq: Expr[] = [...expr.children];
-              const subPatternBodySeq: Expr[] = [...pattern.children];
-
-              // 先分别比较 head, 再分别比较 body, 入栈的顺序反过来
-              // 先比较 head 能更快收敛
-              comparePairs.push({ lhs: exprBodySeq, rhs: subPatternBodySeq });
-              comparePairs.push({ lhs: exprHeadSeq, rhs: subPatternHeadSeq });
+              // Blank[xxx,yyy,...]
+              return { pass: false };
+            }
+          } else if (r.head.value === 'BlankSequence') {
+            // BlankSequence[...] like
+            if (r.children.length === 0) {
+              // BlankSequence[]
             }
           }
         }
       }
-
-      if (pair.lhs.length !== 0 || pair.rhs.length !== 0) {
-        return { pass: false };
-      }
     }
 
-    return { pass: true, result: namedResult };
+    if (i === lhs.length && j === rhs.length) {
+      return { pass: true, namedResult: {} };
+    } else {
+      return { pass: false };
+    }
   }
 }
 
-export class Evaluator extends Transform implements IEvaluateContext {
-  private _exprStack: Expr[] = [];
-  private _builtInDefinitions: Definition[] = builtInDefinitions;
-  private _userDefinitionStack: Definition[][] = [];
+// export class Evaluator extends Transform implements IEvaluateContext {
+//   private _exprStack: Expr[] = [];
+//   private _builtInDefinitions: Definition[] = builtInDefinitions;
+//   private _userDefinitionStack: Definition[][] = [];
 
-  constructor() {
-    super({ objectMode: true });
-    this._exprStack = [];
-  }
+//   constructor() {
+//     super({ objectMode: true });
+//     this._exprStack = [];
+//   }
 
-  public pushNode(n: Expr): void {
-    this._exprStack.push(n);
-  }
+//   public pushNode(n: Expr): void {
+//     this._exprStack.push(n);
+//   }
 
-  public popNode(): Expr {
-    return this._exprStack.pop() as Expr;
-  }
+//   public popNode(): Expr {
+//     return this._exprStack.pop() as Expr;
+//   }
 
-  /**
-   * （后续这块得好好优化，一定有更好的方法）
-   *
-   * 给定一个表达式 expr, 寻找它的重写规则，先在用户定义规则栈里边找，再在系统内置符号栈里边找
-   *
-   * 如果找不到，返回 undefined
-   */
-  private _findDefinition(expr: Expr): DefinitionAndMatchResult | undefined {
-    // 从栈顶找到栈底
-    for (let i = 0; i < this._userDefinitionStack.length; i++) {
-      const defStack =
-        this._userDefinitionStack[this._userDefinitionStack.length - 1 - i];
+//   /**
+//    * （后续这块得好好优化，一定有更好的方法）
+//    *
+//    * 给定一个表达式 expr, 寻找它的重写规则，先在用户定义规则栈里边找，再在系统内置符号栈里边找
+//    *
+//    * 如果找不到，返回 undefined
+//    */
+//   private _findDefinition(expr: Expr): DefinitionAndMatchResult | undefined {
+//     // 从栈顶找到栈底
+//     for (let i = 0; i < this._userDefinitionStack.length; i++) {
+//       const defStack =
+//         this._userDefinitionStack[this._userDefinitionStack.length - 1 - i];
 
-      // 从左到右
-      for (let j = 0; j < defStack.length; j++) {
-        const definition = defStack[j];
-        const matchResult = ExprHelper.patternMatch(
-          expr,
-          definition.pattern,
-          this,
-        );
-        if (matchResult.pass) {
-          return { definition, matchResult: matchResult };
-        }
-      }
-    }
+//       // 从左到右
+//       for (let j = 0; j < defStack.length; j++) {
+//         const definition = defStack[j];
+//         const matchResult = ExprHelper.patternMatch(
+//           expr,
+//           definition.pattern,
+//           this,
+//         );
+//         if (matchResult.pass) {
+//           return { definition, matchResult: matchResult };
+//         }
+//       }
+//     }
 
-    // 系统内置符号顺序关系不大，直接线性搜索
-    for (let i = 0; i < this._builtInDefinitions.length; i++) {
-      const definition = this._builtInDefinitions[i];
-      const matchResult = ExprHelper.patternMatch(
-        expr,
-        definition.pattern,
-        this,
-      );
-      if (matchResult.pass) {
-        return { definition, matchResult: matchResult };
-      }
-    }
+//     // 系统内置符号顺序关系不大，直接线性搜索
+//     for (let i = 0; i < this._builtInDefinitions.length; i++) {
+//       const definition = this._builtInDefinitions[i];
+//       const matchResult = ExprHelper.patternMatch(
+//         expr,
+//         definition.pattern,
+//         this,
+//       );
+//       if (matchResult.pass) {
+//         return { definition, matchResult: matchResult };
+//       }
+//     }
 
-    return undefined;
-  }
+//     return undefined;
+//   }
 
-  /** 将表达式中的 Sequence 展开 */
-  private _flattenSequence(expr: Expr): void {
-    if (expr.nodeType === 'nonTerminal') {
-      const children: Expr[] = [];
-      for (const child of expr.children) {
-        if (
-          child.nodeType === 'nonTerminal' &&
-          ExprHelper.l0Compare(child.head, SequenceSymbol)
-        ) {
-          for (const item of child.children) {
-            children.push(item);
-          }
-        } else {
-          children.push(child);
-        }
-      }
+//   /** 将表达式中的 Sequence 展开 */
+//   private _flattenSequence(expr: Expr): void {
+//     if (expr.nodeType === 'nonTerminal') {
+//       const children: Expr[] = [];
+//       for (const child of expr.children) {
+//         if (
+//           child.nodeType === 'nonTerminal' &&
+//           ExprHelper.l0Compare(child.head, SequenceSymbol)
+//         ) {
+//           for (const item of child.children) {
+//             children.push(item);
+//           }
+//         } else {
+//           children.push(child);
+//         }
+//       }
 
-      expr.children = children;
-    }
-  }
+//       expr.children = children;
+//     }
+//   }
 
-  private _applyDefinition(def: DefinitionAndMatchResult): void {
-    // 取出当前表达式
-    const expr = this.popNode() as Expr;
+//   private _applyDefinition(def: DefinitionAndMatchResult): void {
+//     // 取出当前表达式
+//     const expr = this.popNode() as Expr;
 
-    // 传入实参
-    const keyValuePairs: KeyValuePair[] = [];
-    for (const symbolName in def.matchResult.result) {
-      keyValuePairs.push({
-        pattern: NodeFactory.makeSymbol(symbolName),
-        value: Sequence(def.matchResult.result[symbolName]),
-      });
-    }
-    this._assignImmediately(keyValuePairs);
+//     // 传入实参
+//     const keyValuePairs: KeyValuePair[] = [];
+//     for (const symbolName in def.matchResult.result) {
+//       keyValuePairs.push({
+//         pattern: NodeFactory.makeSymbol(symbolName),
+//         value: Sequence(def.matchResult.result[symbolName]),
+//       });
+//     }
+//     this._assignImmediately(keyValuePairs);
 
-    // 求值
-    def.definition.action(expr, this);
+//     // 求值
+//     def.definition.action(expr, this);
 
-    // 恢复现场
-    this._undoLastAssign();
-  }
+//     // 恢复现场
+//     this._undoLastAssign();
+//   }
 
-  /** 对表达式进行求值，如果有规则，按规则来，如果没有，原样返回（到栈顶） */
-  public evaluate(expr: Expr): void {
-    const definitionAndMatchResult = this._findDefinition(expr);
-    if (!definitionAndMatchResult) {
-      this.pushNode(expr);
-      return;
-    }
+//   /** 对表达式进行求值，如果有规则，按规则来，如果没有，原样返回（到栈顶） */
+//   public evaluate(expr: Expr): void {
+//     const definitionAndMatchResult = this._findDefinition(expr);
+//     if (!definitionAndMatchResult) {
+//       this.pushNode(expr);
+//       return;
+//     }
 
-    const evaluateList: Expr[] = [expr];
-    while (evaluateList.length > 0) {
-      const expr = evaluateList.pop() as Expr;
-      this.pushNode(expr);
+//     const evaluateList: Expr[] = [expr];
+//     while (evaluateList.length > 0) {
+//       const expr = evaluateList.pop() as Expr;
+//       this.pushNode(expr);
 
-      if (expr.nodeType === 'terminal') {
-        if (expr.expressionType === 'symbol') {
-          const definition = this._findDefinition(expr);
-          if (definition) {
-            this._applyDefinition(definition);
-          }
-        } else {
-        }
-      }
-    }
+//       if (expr.nodeType === 'terminal') {
+//         if (expr.expressionType === 'symbol') {
+//           const definition = this._findDefinition(expr);
+//           if (definition) {
+//             this._applyDefinition(definition);
+//           }
+//         } else {
+//         }
+//       }
+//     }
 
-    // 输出结果
-    const value = this.popNode() as Expr;
-    this.push(value);
-  }
+//     // 输出结果
+//     const value = this.popNode() as Expr;
+//     this.push(value);
+//   }
 
-  /** 弹出用户定义栈，相当于撤销最近一次赋值操作 */
-  private _undoLastAssign(): void {
-    this._userDefinitionStack.pop();
-  }
+//   /** 弹出用户定义栈，相当于撤销最近一次赋值操作 */
+//   private _undoLastAssign(): void {
+//     this._userDefinitionStack.pop();
+//   }
 
-  /** 立即赋值，且不对右值进行求值 */
-  private _assignImmediately(keyValuePairs: KeyValuePair[]): void {
-    const defStack: Definition[] = [];
-    for (const pair of keyValuePairs) {
-      const { pattern, value } = pair;
-      defStack.push({
-        pattern: pattern,
-        action: (_, context) => {
-          context.pushNode(value);
-        },
-      });
-    }
-    this._userDefinitionStack.push(defStack);
-  }
+//   /** 立即赋值，且不对右值进行求值 */
+//   private _assignImmediately(keyValuePairs: KeyValuePair[]): void {
+//     const defStack: Definition[] = [];
+//     for (const pair of keyValuePairs) {
+//       const { pattern, value } = pair;
+//       defStack.push({
+//         pattern: pattern,
+//         action: (_, context) => {
+//           context.pushNode(value);
+//         },
+//       });
+//     }
+//     this._userDefinitionStack.push(defStack);
+//   }
 
-  /** 立即赋值，在赋值时就对右表达式进行求值，之后 pattern 将总是被替换为该结果 */
-  public assign(keyValuePairs: KeyValuePair[]): void {
-    const defStack: Definition[] = [];
-    for (const pair of keyValuePairs) {
-      const { pattern, value } = pair;
-      this.evaluate(value);
-      const evaluated = this.popNode() as Expr;
-      defStack.push({
-        pattern: pattern,
-        action: (_, context) => {
-          // 结果值以闭包的形式保存下来了
-          context.pushNode(evaluated);
-        },
-      });
-    }
-    this._userDefinitionStack.push(defStack);
-  }
+//   /** 立即赋值，在赋值时就对右表达式进行求值，之后 pattern 将总是被替换为该结果 */
+//   public assign(keyValuePairs: KeyValuePair[]): void {
+//     const defStack: Definition[] = [];
+//     for (const pair of keyValuePairs) {
+//       const { pattern, value } = pair;
+//       this.evaluate(value);
+//       const evaluated = this.popNode() as Expr;
+//       defStack.push({
+//         pattern: pattern,
+//         action: (_, context) => {
+//           // 结果值以闭包的形式保存下来了
+//           context.pushNode(evaluated);
+//         },
+//       });
+//     }
+//     this._userDefinitionStack.push(defStack);
+//   }
 
-  /** 延迟赋值，每次读取时将重新求值 */
-  public assignDelayed(keyValuePairs: KeyValuePair[]): void {
-    const defStack: Definition[] = [];
-    for (const pair of keyValuePairs) {
-      const { pattern, value } = pair;
-      defStack.push({
-        pattern: pattern,
-        action: (_, context) => {
-          // 原值以闭包的形式保存下来了
-          this.evaluate(value);
-          const evaluated = this.popNode() as Expr;
-          context.pushNode(evaluated);
-        },
-      });
-    }
-    this._userDefinitionStack.push(defStack);
-  }
-}
+//   /** 延迟赋值，每次读取时将重新求值 */
+//   public assignDelayed(keyValuePairs: KeyValuePair[]): void {
+//     const defStack: Definition[] = [];
+//     for (const pair of keyValuePairs) {
+//       const { pattern, value } = pair;
+//       defStack.push({
+//         pattern: pattern,
+//         action: (_, context) => {
+//           // 原值以闭包的形式保存下来了
+//           this.evaluate(value);
+//           const evaluated = this.popNode() as Expr;
+//           context.pushNode(evaluated);
+//         },
+//       });
+//     }
+//     this._userDefinitionStack.push(defStack);
+//   }
+// }
