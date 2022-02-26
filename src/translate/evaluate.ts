@@ -139,6 +139,12 @@ export class ExprHelper {
       return false;
     }
 
+    function absorbNamedResult(incoming: Record<string, Expr[]>): void {
+      for (const key in incoming) {
+        namedResult[key] = incoming[key];
+      }
+    }
+
     function match(name: string | undefined, exprs: Expr[]): void {
       if (name) {
         namedResult[name] = exprs;
@@ -216,13 +222,10 @@ export class ExprHelper {
               }
 
               // l.head is fully equal to expectHead
-              for (const key in matchHead.namedResult) {
-                const value = matchHead.namedResult[key];
-                if (isConflict(currentPatternName, value)) {
-                  return { pass: false };
-                }
-                match(currentPatternName, value);
+              if (isNamedResultConflict(matchHead.namedResult)) {
+                return { pass: false };
               }
+              absorbNamedResult(matchHead.namedResult);
 
               if (isConflict(currentPatternName, [l.head])) {
                 return { pass: false };
@@ -313,8 +316,20 @@ export class ExprHelper {
                 return { pass: false };
               }
 
+              if (isNamedResultConflict(headMatch.namedResult)) {
+                return { pass: false };
+              }
+
+              if (isConflict(currentPatternName, [l.head])) {
+                return { pass: false };
+              }
+
+              // 开始尝试扩张 maxI,
+              // 但是即便在扩张过程结束后 maxI 没有向右扩张一步，也是允许的，
+              // 这是因为刚刚 BlankSequence 至少匹配一个的要求已经得到了保证。
               let maxI = i + 1;
               while (maxI < lhs.length) {
+                // ExprHelper.patternMatchRecursive(lhs, rhs, )
 
                 maxI = maxI + 1;
               }
@@ -327,11 +342,12 @@ export class ExprHelper {
       }
     }
 
-    if (i === lhs.length && j === rhs.length) {
-      return { pass: true, namedResult: namedResult };
-    } else {
+    if (i !== lhs.length || j !== rhs.length) {
+      // 仍有 expr 或者 pattern 没被消化掉
       return { pass: false };
     }
+
+    return { pass: true, namedResult: namedResult };
   }
 }
 
