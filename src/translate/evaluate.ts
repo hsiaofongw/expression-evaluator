@@ -241,6 +241,16 @@ export class ExprHelper {
             // BlankSequence[...] like
             if (r.children.length === 0) {
               // BlankSequence[]
+
+              // At least match one, as BlankSequence[] required
+              const pseudoMatchVal = lhs.slice(i, i + 1);
+              if (isConflict(currentPatternName, pseudoMatchVal)) {
+                // Because of conflict
+                return { pass: false };
+              }
+
+              // We will write matchVal into namedResult later, not now.
+
               let maxI = lhs.length - 1;
               while (maxI >= i + 1) {
                 const restMatch = ExprHelper.patternMatchRecursive(
@@ -278,6 +288,10 @@ export class ExprHelper {
                 }
 
                 maxI = maxI - 1;
+              }
+
+              if (maxI === i) {
+                maxI = i + 1;
               }
 
               const currentPatternVal = lhs.slice(i, maxI);
