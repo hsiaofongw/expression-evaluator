@@ -102,13 +102,6 @@ export class ExprHelper {
     i: number,
     j: number,
   ): PatternMatchResult {
-    const lLength = lhs.length - i;
-    const rLength = rhs.length - j;
-    if (lLength === rLength && lLength === 0) {
-      // 当 lhs 和 rhs 都为 0 长时，不匹配
-      return { pass: false };
-    }
-
     // 当遇到形如 Pattern[symbol, expr] 的 Pattern 时，如果匹配，则保存匹配结果
     const namedResult: Record<string, Expr[]> = {};
 
@@ -123,6 +116,22 @@ export class ExprHelper {
             if (ExprHelper.rawEqualQ(namedResult[name], exprs)) {
               return true;
             }
+          }
+        }
+      }
+
+      return false;
+    }
+
+    function isNamedResultConflict(
+      newNamedResult: Record<string, Expr[]>,
+    ): boolean {
+      for (const key in namedResult) {
+        const oldVal = namedResult[key];
+        const newVal = newNamedResult[key];
+        if (newVal) {
+          if (!ExprHelper.rawEqualQ(oldVal, newVal)) {
+            return true;
           }
         }
       }
@@ -162,18 +171,18 @@ export class ExprHelper {
       }
 
       if (r.nodeType === 'terminal') {
-        const equal = ExprHelper.rawEqualQ([l], [r]);
-        if (equal) {
-          if (isConflict(currentPatternName, [l])) {
-            return { pass: false };
-          }
-          match(currentPatternName, [l]);
-          i = i + 1;
-          j = j + 1;
-          continue;
-        } else {
+        if (!ExprHelper.rawEqualQ([l], [r])) {
           return { pass: false };
         }
+
+        if (isConflict(currentPatternName, [l])) {
+          return { pass: false };
+        }
+
+        match(currentPatternName, [l]);
+        i = i + 1;
+        j = j + 1;
+        continue;
       } else {
         // r.nodeType === 'nonTerminal'
         if (
@@ -200,27 +209,30 @@ export class ExprHelper {
                 0,
                 0,
               );
-              if (matchHead.pass) {
-                // l.head is fully equal to expectHead
-                for (const key in matchHead.namedResult) {
-                  const value = matchHead.namedResult[key];
-                  if (isConflict(currentPatternName, value)) {
-                    return { pass: false };
-                  }
-                  match(currentPatternName, value);
-                }
-                if (isConflict(currentPatternName, [l.head])) {
-                  return { pass: false };
-                }
-                match(currentPatternName, [l.head]);
 
-                i = i + 1;
-                j = j + 1;
-                continue;
-              } else {
+              if (!matchHead.pass) {
                 // l.head is by no means like expectHead
                 return { pass: false };
               }
+
+              // l.head is fully equal to expectHead
+              for (const key in matchHead.namedResult) {
+                const value = matchHead.namedResult[key];
+                if (isConflict(currentPatternName, value)) {
+                  return { pass: false };
+                }
+                match(currentPatternName, value);
+              }
+
+              if (isConflict(currentPatternName, [l.head])) {
+                return { pass: false };
+              }
+
+              match(currentPatternName, [l.head]);
+
+              i = i + 1;
+              j = j + 1;
+              continue;
             } else {
               // Blank[xxx,yyy,...]
               return { pass: false };
@@ -229,19 +241,69 @@ export class ExprHelper {
             // BlankSequence[...] like
             if (r.children.length === 0) {
               // BlankSequence[]
-              for (let maxI = lhs.length - 1; maxI >= i + 1; maxI = maxI - 1) {
+              let maxI = lhs.length - 1;
+              while (maxI >= i + 1) {
                 const restMatch = ExprHelper.patternMatchRecursive(
                   lhs,
                   rhs,
                   maxI,
                   j + 1,
                 );
-                if (restMatch.pass) {
 
+                if (!restMatch.pass) {
+                  continue;
                 }
+
+                if (isNamedResultConflict(restMatch.namedResult)) {
+                  continue;
+                }
+
+                if (!currentPatternName) {
+                  break;
+                }
+
+                const currentPatternValInRestMatch =
+                  restMatch.namedResult[currentPatternName];
+                if (!currentPatternValInRestMatch) {
+                  break;
+                }
+                const currentPatternVal = lhs.slice(i, maxI);
+                if (
+                  ExprHelper.rawEqualQ(
+                    currentPatternVal,
+                    currentPatternValInRestMatch,
+                  )
+                ) {
+                  break;
+                }
+
+                maxI = maxI - 1;
               }
+
+              const currentPatternVal = lhs.slice(i, maxI);
+              match(currentPatternName, currentPatternVal);
             } else if (r.children.length === 1) {
               // BlankSequence[h]
+
+              // BlankSequence[h] 至少要匹配一个，所以先看当前的 lhs 队列第一个的 head 是否符合要求
+              const expectHead = r.children[0];
+
+              const headMatch = ExprHelper.patternMatchRecursive(
+                [l.head],
+                [expectHead],
+                0,
+                0,
+              );
+
+              if (!headMatch.pass) {
+                return { pass: false };
+              }
+
+              let maxI = i + 1;
+              while (maxI < lhs.length) {
+
+                maxI = maxI + 1;
+              }
             } else {
               // BlankSequence[x,y,z,...]
               return { pass: false };
