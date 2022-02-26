@@ -139,6 +139,25 @@ export class ExprHelper {
       return false;
     }
 
+    function isMultipleNamedResultsConflict(
+      namedResults: Record<string, Expr[]>[],
+    ): boolean {
+      const virtualNamedResult: Record<string, Expr[]> = {};
+
+      for (const res of namedResults) {
+        for (const key in res) {
+          if (virtualNamedResult[key]) {
+            if (!ExprHelper.rawEqualQ(virtualNamedResult[key], res[key])) {
+              return true;
+            }
+          }
+          virtualNamedResult[key] = res[key];
+        }
+      }
+
+      return false;
+    }
+
     function absorbNamedResult(incoming: Record<string, Expr[]>): void {
       for (const key in incoming) {
         namedResult[key] = incoming[key];
