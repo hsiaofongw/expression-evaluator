@@ -410,24 +410,40 @@ export class ExprHelper {
             r.children.length === 0
           ) {
             // BlankNullSequence[] like
-            let maxI = i;
-            let minI = i;
+            let maxI = lhs.length;
+            const minI = i + 1;
 
-            // 扩张阶段
-            if (currentPatternName) {
-              if (namedResult[currentPatternName]) {
-                const prevExprs = namedResult[currentPatternName];
-                const currentVal = lhs.slice(i, i + prevExprs.length);
-                if (ExprHelper.rawEqualQ(prevExprs, currentVal)) {
-                  maxI = i + prevExprs.length;
-                  minI = maxI;
-                } else {
-                  return { pass: false };
-                }
+            // 扩张阶段，需要针对 namedResult[currentPatternName] 情形做单独考虑
+            // 事实上，如果 namedResult[currentPatternName] 存在，则也就没有回溯的必要了
+            if (currentPatternName && namedResult[currentPatternName]) {
+              // 之前已经匹配过同样的 pattern, 无回溯
+              const prevExprs = namedResult[currentPatternName];
+              const currentVal = lhs.slice(i, i + prevExprs.length - 1);
+
+              if (!ExprHelper.rawEqualQ(prevExprs, currentVal)) {
+                return { pass: false };
               }
-            } else {
-              maxI = lhs.length;
-              minI = i + 1;
+
+              maxI = i + prevExprs.length;
+              const restMatch = ExprHelper.patternMatchRecursive(
+                lhs,
+                rhs,
+                maxI,
+                j + 1,
+              );
+
+              if (
+                restMatch.pass === false ||
+                isNamedResultConflict(restMatch.namedResult) === true
+              ) {
+                return { pass: false };
+              }
+
+              for (const key in restMatch.namedResult) {
+                namedResult[key] = restMatch.namedResult[key];
+              }
+
+              return { pass: true, namedResult: namedResult };
             }
 
             // 回溯阶段
@@ -439,20 +455,20 @@ export class ExprHelper {
                 j + 1,
               );
 
-              if (!restMatch.pass) {
-                maxI = maxI - 1;
-                continue;
+              if (
+                restMatch.pass &&
+                !isNamedResultConflict(restMatch.namedResult)
+              ) {
+                for (const key in restMatch.namedResult) {
+                  namedResult[key] = restMatch.namedResult[key];
+                }
+                return { pass: true, namedResult };
               }
 
-              if (isNamedResultConflict(restMatch.namedResult)) {
-                maxI = maxI - 1;
-                continue;
-              }
-
-              
-
-              break;
+              maxI = maxI - 1;
             }
+
+            return { pass: false };
           }
         }
       }
