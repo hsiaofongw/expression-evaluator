@@ -143,7 +143,6 @@ export class ExprHelper {
         return { pass: true, namedResult: restMatch.namedResult };
       } else {
         if (
-          pattern.nodeType === 'nonTerminal' &&
           pattern.children.length === 2 &&
           pattern.head.nodeType === 'terminal' &&
           pattern.head.expressionType === 'symbol' &&
@@ -151,6 +150,8 @@ export class ExprHelper {
           pattern.children[0].nodeType === 'terminal' &&
           pattern.children[0].expressionType === 'symbol'
         ) {
+          // as for Pattern[symbol, expr]
+
           const patternName = pattern.children[0].value;
           const patternAlias = rhsPtr.toString();
           const temp = rhs[rhsPtr];
@@ -171,8 +172,43 @@ export class ExprHelper {
 
           reMatch.namedResult[patternName] = reMatch.namedResult[patternAlias];
           return { pass: true, namedResult: reMatch.namedResult };
+        } else if (
+          pattern.children.length === 0 &&
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'Blank'
+        ) {
+          // as for Blank[]
+
+          if (lLength === 0) {
+            return { pass: false };
+          }
+
+          const restMatch = ExprHelper.neo(lhs, rhs, lhsPtr + 1, rhsPtr + 1);
+          if (!restMatch.pass) {
+            return { pass: false };
+          }
+
+          const patternAlias = rhsPtr.toString();
+          restMatch.namedResult[patternAlias] = [lhs[lhsPtr]];
+          return { pass: true, namedResult: restMatch.namedResult };
+        } else if (
+          pattern.children.length === 1 &&
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'Blank'
+        ) {
+          // as for Blank[expr]
+          const tempLhsFirst = lhs[lhsPtr];
+          const tempRhsFirst = rhs[rhsPtr];
+          const expectedHead = pattern.children[0];
+          lhs[lhsPtr] = lhs[lhsPtr].head;
+          rhs[rhsPtr] = expectedHead;
+          const headMatch = ExprHelper.neo(lhs, rhs, lhsPtr, rhsPtr);
+          lhs[lhsPtr] = tempLhsFirst;
+          rhs[rhsPtr] = tempRhsFirst;
+        } else {
         }
-        
       }
     }
 
