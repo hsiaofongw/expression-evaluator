@@ -139,25 +139,6 @@ export class ExprHelper {
       return false;
     }
 
-    function isMultipleNamedResultsConflict(
-      namedResults: Record<string, Expr[]>[],
-    ): boolean {
-      const virtualNamedResult: Record<string, Expr[]> = {};
-
-      for (const res of namedResults) {
-        for (const key in res) {
-          if (virtualNamedResult[key]) {
-            if (!ExprHelper.rawEqualQ(virtualNamedResult[key], res[key])) {
-              return true;
-            }
-          }
-          virtualNamedResult[key] = res[key];
-        }
-      }
-
-      return false;
-    }
-
     function absorbNamedResult(incoming: Record<string, Expr[]>): void {
       for (const key in incoming) {
         namedResult[key] = incoming[key];
@@ -320,37 +301,105 @@ export class ExprHelper {
               match(currentPatternName, currentPatternVal);
             } else if (r.children.length === 1) {
               // BlankSequence[h]
-
-              // BlankSequence[h] 至少要匹配一个，所以先看当前的 lhs 队列第一个的 head 是否符合要求
               const expectHead = r.children[0];
 
-              const headMatch = ExprHelper.patternMatchRecursive(
-                [l.head],
-                [expectHead],
-                0,
-                0,
-              );
-
-              if (!headMatch.pass) {
-                return { pass: false };
+              // 开始进入扩张阶段，先尽可能多地为 BlankSequence[h] 匹配 exprs
+              let maxI = i;
+              const tempNamedResult: Record<string, Expr[]> = {};
+              for (const key in namedResult) {
+                tempNamedResult[key] = namedResult[key];
               }
-
-              if (isNamedResultConflict(headMatch.namedResult)) {
-                return { pass: false };
-              }
-
-              if (isConflict(currentPatternName, [l.head])) {
-                return { pass: false };
-              }
-
-              // 开始尝试扩张 maxI,
-              // 但是即便在扩张过程结束后 maxI 没有向右扩张一步，也是允许的，
-              // 这是因为刚刚 BlankSequence 至少匹配一个的要求已经得到了保证。
-              let maxI = i + 1;
               while (maxI < lhs.length) {
-                // ExprHelper.patternMatchRecursive(lhs, rhs, )
+                const headMatch = ExprHelper.patternMatchRecursive(
+                  [l.head],
+                  [expectHead],
+                  0,
+                  0,
+                );
+
+                if (!headMatch.pass) {
+                  break;
+                }
+
+                let conflict = false;
+                for (const key in headMatch.namedResult) {
+                  if (tempNamedResult[key]) {
+                    if (
+                      !ExprHelper.rawEqualQ(
+                        tempNamedResult[key],
+                        headMatch.namedResult[key],
+                      )
+                    ) {
+                      conflict = true;
+                      break;
+                    }
+                  }
+                  tempNamedResult[key] = headMatch.namedResult[key];
+                }
+
+                if (currentPatternName) {
+                  if (namedResult[currentPatternName]) {
+                    if (
+                      !ExprHelper.rawEqualQ(
+                        namedResult[currentPatternName],
+                        lhs.slice(i, maxI + 1),
+                      )
+                    ) {
+                      conflict = true;
+                    }
+                  }
+                }
+
+                if (conflict) {
+                  break;
+                }
 
                 maxI = maxI + 1;
+              }
+
+              if (maxI === i) {
+                // BlankSequence[h] 至少要匹配一个
+                return { pass: false };
+              }
+
+              // 扩张阶段结束，接下来进入回溯阶段
+              let restMatch: undefined | PatternMatchResult = undefined;
+              while (maxI >= i + 1) {
+                restMatch = ExprHelper.patternMatchRecursive(
+                  lhs,
+                  rhs,
+                  maxI,
+                  j + 1,
+                );
+
+                if (!restMatch.pass) {
+                  maxI = maxI - 1;
+                  continue;
+                }
+
+                if (isNamedResultConflict(restMatch.namedResult)) {
+                  maxI = maxI - 1;
+                  continue;
+                }
+
+                break;
+              }
+
+              if (maxI === i) {
+                // 回溯完毕，无可用路径
+                return { pass: false };
+              }
+
+              if (restMatch !== undefined && restMatch.pass === true) {
+                // type-narrowing
+                for (const key in restMatch.namedResult) {
+                  namedResult[key] = restMatch.namedResult[key];
+                }
+                i = lhs.length;
+                j = j + 1;
+                continue;
+              } else {
+                return { pass: false };
               }
             } else {
               // BlankSequence[x,y,z,...]
