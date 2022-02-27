@@ -199,6 +199,10 @@ export class ExprHelper {
           pattern.head.value === 'Blank'
         ) {
           // as for Blank[expr]
+          if (lLength === 0) {
+            return { pass: false };
+          }
+
           const tempLhsFirst = lhs[lhsPtr];
           const tempRhsFirst = rhs[rhsPtr];
           const expectedHead = pattern.children[0];
@@ -214,6 +218,73 @@ export class ExprHelper {
           const patternAlias = rhsPtr.toString();
           headMatch.namedResult[patternAlias] = [tempLhsFirst];
           return { pass: true, namedResult: headMatch.namedResult };
+        } else if (
+          pattern.children.length === 0 &&
+          pattern.head.nodeType == 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'BlankSequence'
+        ) {
+          // as for BlankSequence[]
+          if (lLength === 0) {
+            return { pass: false };
+          }
+
+          const minLhsPtr = lhsPtr + 1;
+          let maxLhsPtr = lhs.length;
+          while (maxLhsPtr >= minLhsPtr) {
+            const restMatch = ExprHelper.neo(lhs, rhs, maxLhsPtr, rhsPtr + 1);
+
+            if (restMatch.pass) {
+              restMatch.namedResult[rhsPtr.toString()] = lhs.slice(
+                lhsPtr,
+                maxLhsPtr,
+              );
+              return { pass: true, namedResult: restMatch.namedResult };
+            }
+
+            maxLhsPtr = maxLhsPtr - 1;
+          }
+
+          return { pass: false };
+        } else if (
+          pattern.children.length === 1 &&
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'BlankSequence'
+        ) {
+          // as for BlankSequence[h]
+          if (lLength === 0) {
+            return { pass: false };
+          }
+
+          const tempRhsFirst = rhs[rhsPtr];
+          const expectedHead = pattern.children[0];
+          rhs[rhsPtr] = expectedHead;
+          const tempLhsFirst = lhs[lhsPtr];
+          lhs[lhsPtr] = lhs[lhsPtr].head;
+          const match = ExprHelper.neo(lhs, rhs, lhsPtr, rhsPtr);
+          rhs[rhsPtr] = tempRhsFirst;
+          lhs[lhsPtr] = tempLhsFirst;
+
+          if (!match.pass) {
+            return { pass: false };
+          }
+
+          const minLhsPtr = lhsPtr + 1;
+          let maxLhsPtr = minLhsPtr;
+          const shadowLhs = lhs.slice(lhsPtr, lhs.length);
+          shadowLhs[0] = shadowLhs[0].head;
+          const shadowRhs = rhs.slice(rhsPtr, rhs.length);
+          shadowRhs[0] = expectedHead;
+          while (maxLhsPtr < lhs.length) {
+            shadowLhs[maxLhsPtr] = shadowLhs[maxLhsPtr].head;
+            shadowRhs.unshift(expectedHead);
+            const pseudoMatch = ExprHelper.neo(shadowLhs, shadowRhs, lhsPtr, 0);
+            if (!pseudoMatch.pass) {
+              break;
+            }
+            maxLhsPtr = maxLhsPtr + 1;
+          }
         } else {
         }
       }
