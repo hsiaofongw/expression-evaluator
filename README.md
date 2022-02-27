@@ -47,6 +47,8 @@ Here are what I found interesting:
 
 - [Everything Is an Expression - Wolfram Language & System Documentation Center](https://reference.wolfram.com/language/tutorial/Expressions.html) (一切皆表达式)
 
+- [Backtracking in Regular Expressions](https://docs.microsoft.com/en-us/dotnet/standard/base-types/backtracking-in-regular-expressions)（讲正则表达式匹配的，关键点就是「回溯」。）
+
 ## 已实现函数列表 Currently Supported Functions
 
 ```

@@ -177,18 +177,17 @@ export class ExprHelper {
       }
 
       if (r.nodeType === 'terminal') {
-        if (!ExprHelper.rawEqualQ([l], [r])) {
-          return { pass: false };
+        if (
+          ExprHelper.rawEqualQ([l], [r]) &&
+          !isConflict(currentPatternName, [l])
+        ) {
+          i = i + 1;
+          j = j + 1;
+          match(currentPatternName, [l]);
+          continue;
         }
 
-        if (isConflict(currentPatternName, [l])) {
-          return { pass: false };
-        }
-
-        match(currentPatternName, [l]);
-        i = i + 1;
-        j = j + 1;
-        continue;
+        return { pass: false };
       } else {
         // r.nodeType === 'nonTerminal'
         if (
@@ -240,17 +239,15 @@ export class ExprHelper {
           ) {
             // BlankSequence[]
 
-            // At least match one, as BlankSequence[] required
-            const pseudoMatchVal = lhs.slice(i, i + 1);
-            if (isConflict(currentPatternName, pseudoMatchVal)) {
-              // Because of conflict
-              return { pass: false };
-            }
+            // 看同样的 patternName 是否已有匹配，如果已经有匹配的，则没有必要回溯了
+            if (currentPatternName && namedResult[currentPatternName]) {
+              const prevRes = namedResult[currentPatternName];
+              const current = lhs.slice(i, i + prevRes.length);
+              if (!ExprHelper.rawEqualQ(prevRes, current)) {
+                return { pass: false };
+              }
 
-            // We will write matchVal into namedResult later, not now.
-
-            let maxI = lhs.length - 1;
-            while (maxI >= i + 1) {
+              const maxI = Math.min(lhs.length, i + prevRes.length);
               const restMatch = ExprHelper.patternMatchRecursive(
                 lhs,
                 rhs,
@@ -259,41 +256,29 @@ export class ExprHelper {
               );
 
               if (!restMatch.pass) {
-                continue;
+                return { pass: false };
               }
 
               if (isNamedResultConflict(restMatch.namedResult)) {
-                continue;
+                return { pass: false };
               }
 
-              if (!currentPatternName) {
-                break;
-              }
+              absorbNamedResult(restMatch.namedResult);
+              return { pass: true, namedResult };
+            }
 
-              const currentPatternValInRestMatch =
-                restMatch.namedResult[currentPatternName];
-              if (!currentPatternValInRestMatch) {
-                break;
-              }
-              const currentPatternVal = lhs.slice(i, maxI);
-              if (
-                ExprHelper.rawEqualQ(
-                  currentPatternVal,
-                  currentPatternValInRestMatch,
-                )
-              ) {
-                break;
-              }
+            // 进入扩张过程
+            // 不用考虑 currentPatternName 的问题，就当它不存在
+            let maxI = i;
+            while (maxI < lhs.length) {
+              
 
-              maxI = maxI - 1;
+              maxI = maxI + 1;
             }
 
             if (maxI === i) {
-              maxI = i + 1;
+              return { pass: false };
             }
-
-            const currentPatternVal = lhs.slice(i, maxI);
-            match(currentPatternName, currentPatternVal);
           } else if (
             r.head.value === 'BlankSequence' &&
             r.children.length === 1
