@@ -269,16 +269,31 @@ export class ExprHelper {
 
             // 进入扩张过程
             // 不用考虑 currentPatternName 的问题，就当它不存在
-            let maxI = i;
-            while (maxI < lhs.length) {
-              
+            let maxI = lhs.length;
+            const minI = i + 1;
 
-              maxI = maxI + 1;
+            // 进入回溯过程
+            // 需要考虑 currentPatternName 以及 restMatch 的 namedResult 之间可能产生的冲突 (conflicts)
+            while (maxI >= minI) {
+              const restMatch = ExprHelper.patternMatchRecursive(
+                lhs,
+                rhs,
+                maxI,
+                j + 1,
+              );
+
+              if (restMatch.pass) {
+                if (!isNamedResultConflict(restMatch.namedResult)) {
+                  absorbNamedResult(restMatch.namedResult);
+                  return { pass: true, namedResult };
+                }
+              }
+
+              maxI = maxI - 1;
             }
 
-            if (maxI === i) {
-              return { pass: false };
-            }
+            // 用完了所有的回溯路径，却仍然没有匹配到任何东西
+            return { pass: false };
           } else if (
             r.head.value === 'BlankSequence' &&
             r.children.length === 1
