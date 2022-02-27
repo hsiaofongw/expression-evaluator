@@ -207,6 +207,13 @@ export class ExprHelper {
           const headMatch = ExprHelper.neo(lhs, rhs, lhsPtr, rhsPtr);
           lhs[lhsPtr] = tempLhsFirst;
           rhs[rhsPtr] = tempRhsFirst;
+
+          if (!headMatch.pass) {
+            return { pass: false };
+          }
+          const patternAlias = rhsPtr.toString();
+          headMatch.namedResult[patternAlias] = [tempLhsFirst];
+          return { pass: true, namedResult: headMatch.namedResult };
         } else {
         }
       }
