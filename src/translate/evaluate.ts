@@ -19,6 +19,12 @@ import {
 type ComparePair = { lhs: Expr[]; rhs: Expr[] };
 type PointerPair = { lPtr: number; rPtr: number };
 type Pair = { lhs: Expr[]; rhs: Expr[]; queue: PointerPair[] };
+type PatternMatchConfig = {
+  lhs: Expr[];
+  rhs: Expr[];
+  lPtr: number;
+  rPtr: number;
+};
 
 export class ExprHelper {
   /** 返回两个 terminal 节点是否相等 */
@@ -94,6 +100,150 @@ export class ExprHelper {
     }
 
     return true;
+  }
+
+  public static neo(
+    lhs: Expr[],
+    rhs: Expr[],
+    lhsPtr: number,
+    rhsPtr: number,
+  ): PatternMatchResult {
+    const lLength = lhs.length - lhsPtr;
+    const rLength = rhs.length - rhsPtr;
+
+    if (rLength === 0) {
+      if (lLength === 0) {
+        // l == 0 and r == 0
+        return { pass: true, namedResult: {} };
+      } else {
+        // l != 0 and r == 0
+        return { pass: false };
+      }
+    } else {
+      // r != 0
+      const pattern = rhs[0];
+      if (pattern.nodeType === 'terminal') {
+        if (lLength === 0) {
+          return { pass: false };
+        }
+
+        // now we know that lhs has value
+        const l = lhs[lhsPtr];
+        const isEqual = ExprHelper.rawEqualQ([l], [rhs[rhsPtr]]);
+        if (!isEqual) {
+          return { pass: false };
+        }
+
+        const restMatch = ExprHelper.neo(lhs, rhs, lhsPtr + 1, rhsPtr + 1);
+        if (!restMatch.pass) {
+          return { pass: false };
+        }
+
+        restMatch.namedResult[rhsPtr.toString()] = [lhs[lhsPtr]];
+        return { pass: true, namedResult: restMatch.namedResult };
+      } else {
+        if (
+          pattern.nodeType === 'nonTerminal' &&
+          pattern.children.length === 2 &&
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'Pattern' &&
+          pattern.children[0].nodeType === 'terminal' &&
+          pattern.children[0].expressionType === 'symbol'
+        ) {
+          const patternName = pattern.children[0].value;
+          const patternAlias = rhsPtr.toString();
+          const temp = rhs[rhsPtr];
+          rhs[rhsPtr] = pattern.children[1];
+          const reMatch = ExprHelper.neo(lhs, rhs, lhsPtr, rhsPtr);
+          rhs[rhsPtr] = temp;
+          if (!reMatch.pass) {
+            return { pass: false };
+          }
+
+          if (reMatch.namedResult[patternName]) {
+            const currentMatchVal = reMatch.namedResult[patternAlias];
+            const anotherMatchVal = reMatch.namedResult[patternName];
+            if (!ExprHelper.rawEqualQ(currentMatchVal, anotherMatchVal)) {
+              return { pass: false };
+            }
+          }
+
+          reMatch.namedResult[patternName] = reMatch.namedResult[patternAlias];
+          return { pass: true, namedResult: reMatch.namedResult };
+        }
+        
+      }
+    }
+
+    return { pass: false };
+  }
+
+  public static _patternMatch(config: PatternMatchConfig): Expr[][] {
+    let i = config.lPtr;
+    let j = config.rPtr;
+    const lhs = config.lhs;
+    const rhs = config.rhs;
+    const matchedPtrs: number[] = [];
+    while (i < lhs.length && j < rhs.length) {
+      const l = lhs[i];
+      const _r = rhs[j];
+      let r = _r;
+      if (
+        _r.nodeType === 'nonTerminal' &&
+        _r.children.length === 2 &&
+        _r.head.nodeType === 'terminal' &&
+        _r.head.expressionType === 'symbol' &&
+        _r.head.value === 'Pattern'
+      ) {
+        r = _r.children[0];
+      }
+
+      if (r.nodeType === 'terminal') {
+        if (!ExprHelper.rawEqualQ([l], [r])) {
+          return [];
+        }
+
+        i = i + 1;
+        j = j + 1;
+        matchedPtrs.push(j);
+        continue;
+      } else if (
+        r.children.length === 0 &&
+        r.head.nodeType === 'terminal' &&
+        r.head.expressionType === 'symbol' &&
+        r.head.value === 'Blank'
+      ) {
+        // as for Blank[]
+        i = i + 1;
+        j = j + 1;
+        matchedPtrs.push(j);
+        continue;
+      } else if (
+        r.children.length === 1 &&
+        r.head.nodeType === 'terminal' &&
+        r.head.expressionType === 'symbol' &&
+        r.head.value === 'Blank'
+      ) {
+        // as for Blank[x], where x is arbitrary Expr
+        const expectedHead = r.children[0];
+        const inputHead = l.head;
+        const match = ExprHelper._patternMatch({
+          lhs: [inputHead],
+          rhs: [expectedHead],
+          lPtr: 0,
+          rPtr: 0,
+        });
+        if (match.length === 0) {
+          // No backtrack for Blank[x] or Blank[],
+          // since either of them require that match EXACTLY ONE Expr
+          return [];
+        }
+      } else {
+      }
+    }
+
+    return [];
   }
 
   public static patternMatchRecursive(
@@ -284,8 +434,10 @@ export class ExprHelper {
 
               if (restMatch.pass) {
                 if (!isNamedResultConflict(restMatch.namedResult)) {
-                  absorbNamedResult(restMatch.namedResult);
-                  return { pass: true, namedResult };
+                  if (!isConflict(currentPatternName, lhs.slice(i, maxI))) {
+                    absorbNamedResult(restMatch.namedResult);
+                    return { pass: true, namedResult };
+                  }
                 }
               }
 
@@ -298,6 +450,32 @@ export class ExprHelper {
             r.head.value === 'BlankSequence' &&
             r.children.length === 1
           ) {
+            if (currentPatternName && namedResult[currentPatternName]) {
+              const prevRes = namedResult[currentPatternName];
+              const currentVal = lhs.slice(i, i + prevRes.length);
+              if (!ExprHelper.rawEqualQ(prevRes, currentVal)) {
+                return { pass: false };
+              }
+
+              const restMatch = ExprHelper.patternMatchRecursive(
+                lhs,
+                rhs,
+                i + prevRes.length,
+                j + 1,
+              );
+
+              if (!restMatch.pass) {
+                return { pass: false };
+              }
+
+              if (isNamedResultConflict(restMatch.namedResult)) {
+                return { pass: false };
+              }
+
+              absorbNamedResult(restMatch.namedResult);
+              return { pass: true, namedResult };
+            }
+
             // BlankSequence[h]
             const expectHead = r.children[0];
 
@@ -335,17 +513,8 @@ export class ExprHelper {
                 tempNamedResult[key] = headMatch.namedResult[key];
               }
 
-              if (currentPatternName) {
-                if (namedResult[currentPatternName]) {
-                  if (
-                    !ExprHelper.rawEqualQ(
-                      namedResult[currentPatternName],
-                      lhs.slice(i, maxI + 1),
-                    )
-                  ) {
-                    conflict = true;
-                  }
-                }
+              if (tempNamedResult[currentPatternName]) {
+                conflict = true;
               }
 
               if (conflict) {
@@ -362,7 +531,7 @@ export class ExprHelper {
 
             // 扩张阶段结束，接下来进入回溯阶段
             let restMatch: undefined | PatternMatchResult = undefined;
-            while (maxI >= i + 1) {
+            while (maxI >= i) {
               restMatch = ExprHelper.patternMatchRecursive(
                 lhs,
                 rhs,
@@ -370,35 +539,30 @@ export class ExprHelper {
                 j + 1,
               );
 
-              if (!restMatch.pass) {
-                maxI = maxI - 1;
-                continue;
+              if (restMatch.pass) {
+                if (!isNamedResultConflict(restMatch.namedResult)) {
+                  if (!currentPatternName) {
+                    absorbNamedResult(restMatch.namedResult);
+                    return { pass: true, namedResult };
+                  } else {
+                    const currentPatternVal = lhs.slice(i, maxI + 1);
+                    const restPatternVal =
+                      restMatch.namedResult[currentPatternName];
+                    if (
+                      ExprHelper.rawEqualQ(currentPatternVal, restPatternVal)
+                    ) {
+                      absorbNamedResult(restMatch.namedResult);
+                      return { pass: true, namedResult };
+                    }
+                  }
+                }
               }
 
-              if (isNamedResultConflict(restMatch.namedResult)) {
-                maxI = maxI - 1;
-                continue;
-              }
-
-              break;
+              maxI = maxI - 1;
             }
 
-            if (maxI === i) {
-              // 回溯完毕，无可用路径
-              return { pass: false };
-            }
-
-            if (restMatch !== undefined && restMatch.pass === true) {
-              // type-narrowing
-              for (const key in restMatch.namedResult) {
-                namedResult[key] = restMatch.namedResult[key];
-              }
-              i = lhs.length;
-              j = j + 1;
-              continue;
-            } else {
-              return { pass: false };
-            }
+            // 回溯完毕，无可用路径
+            return { pass: false };
           } else if (
             r.head.value === 'BlankNullSequence' &&
             r.children.length === 0
