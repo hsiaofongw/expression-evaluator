@@ -405,6 +405,54 @@ export class ExprHelper {
               // BlankSequence[x,y,z,...]
               return { pass: false };
             }
+          } else if (
+            r.head.value === 'BlankNullSequence' &&
+            r.children.length === 0
+          ) {
+            // BlankNullSequence[] like
+            let maxI = i;
+            let minI = i;
+
+            // 扩张阶段
+            if (currentPatternName) {
+              if (namedResult[currentPatternName]) {
+                const prevExprs = namedResult[currentPatternName];
+                const currentVal = lhs.slice(i, i + prevExprs.length);
+                if (ExprHelper.rawEqualQ(prevExprs, currentVal)) {
+                  maxI = i + prevExprs.length;
+                  minI = maxI;
+                } else {
+                  return { pass: false };
+                }
+              }
+            } else {
+              maxI = lhs.length;
+              minI = i + 1;
+            }
+
+            // 回溯阶段
+            while (maxI >= minI) {
+              const restMatch = ExprHelper.patternMatchRecursive(
+                lhs,
+                rhs,
+                maxI,
+                j + 1,
+              );
+
+              if (!restMatch.pass) {
+                maxI = maxI - 1;
+                continue;
+              }
+
+              if (isNamedResultConflict(restMatch.namedResult)) {
+                maxI = maxI - 1;
+                continue;
+              }
+
+              
+
+              break;
+            }
           }
         }
       }
