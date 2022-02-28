@@ -224,28 +224,34 @@ export class ExprHelper {
           pattern.head.expressionType === 'symbol' &&
           pattern.head.value === 'BlankSequence'
         ) {
-          // as for BlankSequence[]
-          if (lLength === 0) {
+          let lhsPtrOffset = 0;
+          const remainLength = lhs.length - lhsPtr;
+          let matchResult: Record<string, Expr[]> = {};
+          while (lhsPtrOffset < remainLength) {
+            const match = ExprHelper.neo(
+              lhs,
+              rhs,
+              lhsPtr + lhsPtrOffset + 1,
+              rhsPtr + 1,
+            );
+            if (!match.pass) {
+              break;
+            }
+
+            matchResult = match.namedResult;
+            lhsPtrOffset = lhsPtrOffset + 1;
+          }
+
+          if (lhsPtrOffset === 0) {
             return { pass: false };
           }
 
-          const minLhsPtr = lhsPtr + 1;
-          let maxLhsPtr = lhs.length;
-          while (maxLhsPtr >= minLhsPtr) {
-            const restMatch = ExprHelper.neo(lhs, rhs, maxLhsPtr, rhsPtr + 1);
+          matchResult[rhsPtr.toString()] = lhs.slice(
+            lhsPtr,
+            lhsPtr + lhsPtrOffset,
+          );
 
-            if (restMatch.pass) {
-              restMatch.namedResult[rhsPtr.toString()] = lhs.slice(
-                lhsPtr,
-                maxLhsPtr,
-              );
-              return { pass: true, namedResult: restMatch.namedResult };
-            }
-
-            maxLhsPtr = maxLhsPtr - 1;
-          }
-
-          return { pass: false };
+          return { pass: true, namedResult: matchResult };
         } else if (
           pattern.children.length === 1 &&
           pattern.head.nodeType === 'terminal' &&
