@@ -257,34 +257,31 @@ export class ExprHelper {
             return { pass: false };
           }
 
-          const tempRhsFirst = rhs[rhsPtr];
-          const expectedHead = pattern.children[0];
-          rhs[rhsPtr] = expectedHead;
-          const tempLhsFirst = lhs[lhsPtr];
-          lhs[lhsPtr] = lhs[lhsPtr].head;
-          const match = ExprHelper.neo(lhs, rhs, lhsPtr, rhsPtr);
-          rhs[rhsPtr] = tempRhsFirst;
-          lhs[lhsPtr] = tempLhsFirst;
-
-          if (!match.pass) {
+          const expectH = pattern.children[0];
+          const lhsTemp = lhs.slice(lhsPtr, lhs.length);
+          const rhsTemp = rhs.slice(rhsPtr + 1, rhs.length);
+          let tempLhsPtrOffset = 0;
+          let matchResult: Record<string, Expr[]> = {};
+          while (tempLhsPtrOffset < lhsTemp.length) {
+            lhsTemp[tempLhsPtrOffset] = lhsTemp[tempLhsPtrOffset].head;
+            rhsTemp.unshift(expectH);
+            const match = ExprHelper.neo(lhsTemp, rhsTemp, 0, 0);
+            if (!match.pass) {
+              break;
+            }
+            matchResult = match.namedResult;
+            tempLhsPtrOffset = tempLhsPtrOffset + 1;
+          }
+          if (tempLhsPtrOffset === 0) {
             return { pass: false };
           }
 
-          const minLhsPtr = lhsPtr + 1;
-          let maxLhsPtr = minLhsPtr;
-          const shadowLhs = lhs.slice(lhsPtr, lhs.length);
-          shadowLhs[0] = shadowLhs[0].head;
-          const shadowRhs = rhs.slice(rhsPtr, rhs.length);
-          shadowRhs[0] = expectedHead;
-          while (maxLhsPtr < lhs.length) {
-            shadowLhs[maxLhsPtr] = shadowLhs[maxLhsPtr].head;
-            shadowRhs.unshift(expectedHead);
-            const pseudoMatch = ExprHelper.neo(shadowLhs, shadowRhs, lhsPtr, 0);
-            if (!pseudoMatch.pass) {
-              break;
-            }
-            maxLhsPtr = maxLhsPtr + 1;
-          }
+          matchResult[rhsPtr.toString()] = lhs.slice(
+            lhsPtr,
+            lhsPtr + tempLhsPtrOffset,
+          );
+
+          return { pass: true, namedResult: matchResult };
         } else {
         }
       }
