@@ -353,14 +353,10 @@ export const builtInDefinitions: Definition[] = [
     },
     action: (node, context) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-        context.evaluate(node.children[1]);
-        const rightValue = context.popNode();
-        context.assign([
-          {
-            pattern: node.children[0],
-            value: rightValue,
-          },
-        ]);
+        context.assign({
+          pattern: node.children[0],
+          value: node.children[1],
+        });
       } else {
         context.pushNode(node);
       }
@@ -376,12 +372,42 @@ export const builtInDefinitions: Definition[] = [
     },
     action: (node, context) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-        context.assignDelayed([
-          {
-            pattern: node.children[0],
-            value: node.children[1],
-          },
-        ]);
+        context.assignDelayed({
+          pattern: node.children[0],
+          value: node.children[1],
+        });
+      } else {
+        context.pushNode(node);
+      }
+    },
+  },
+
+  // 清除赋值 ClearAssign[x]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: NodeFactory.makeSymbol('ClearAssign'),
+      children: [Blank()],
+    },
+    action: (node, context) => {
+      if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
+        context.clearAssign(node.children[0]);
+      } else {
+        context.pushNode(node);
+      }
+    },
+  },
+
+  // 清除延迟赋值 ClearDelayedAssign[x]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: NodeFactory.makeSymbol('ClearDelayedAssign'),
+      children: [Blank()],
+    },
+    action: (node, context) => {
+      if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
+        context.clearDelayedAssign(node.children[0]);
       } else {
         context.pushNode(node);
       }

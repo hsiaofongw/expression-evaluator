@@ -50,10 +50,16 @@ export interface IEvaluateContext {
   pushNode(node: Expr): void;
 
   /** 立即赋值 */
-  assign(keyValuePairs: KeyValuePair[]): void;
+  assign(keyValuePairs: KeyValuePair): void;
 
   /** 延迟赋值 */
-  assignDelayed(keyValuePairs: KeyValuePair[]): void;
+  assignDelayed(keyValuePairs: KeyValuePair): void;
+
+  /** 清除立即赋值 */
+  clearAssign(pattern: Expr): void;
+
+  /** 清除延迟赋值 */
+  clearDelayedAssign(pattern: Expr): void;
 }
 
 export type Definition = {
