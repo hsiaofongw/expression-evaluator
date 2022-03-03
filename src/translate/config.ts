@@ -29,6 +29,20 @@ export class NodeFactory {
   }
 }
 
+export const True: Expr = {
+  head: SymbolSymbol,
+  nodeType: 'terminal',
+  expressionType: 'boolean',
+  value: true,
+};
+
+export const False: Expr = {
+  head: SymbolSymbol,
+  nodeType: 'terminal',
+  expressionType: 'boolean',
+  value: false,
+};
+
 // 数组符号
 export const NumberSymbol = NodeFactory.makeSymbol('Number');
 
@@ -147,126 +161,39 @@ export function Sequence(children: Expr[]): Expr {
   };
 }
 
-export const patternActions: PatternAction[] = [
-  // Blank[]
-  {
-    forPattern: (pattern: Expr) => ExprHelper.l1Compare(pattern, Blank()),
-    action: (seq: Expr[]) => {
-      if (seq.length === 0) {
-        return { pass: false };
-      } else {
-        const expr = seq.shift() as Expr;
-        return { pass: true, exprs: [expr] };
-      }
-    },
-  },
-
-  // Blank[symbol]
-  {
-    forPattern: (pattern: Expr) => {
-      return (
-        ExprHelper.l0Compare(pattern.head, BlankSymbol) &&
-        pattern.nodeType === 'nonTerminal' &&
-        pattern.children[0] !== undefined &&
-        ExprHelper.isSymbol(pattern.children[0])
-      );
-    },
-    action: (seq, pattern) => {
-      if (pattern.nodeType === 'nonTerminal' && seq.length > 0) {
-        const expr = seq[0];
-        const exprHead = expr.head;
-        const expectedHead = pattern.children[0];
-        if (ExprHelper.l0Compare(exprHead, expectedHead)) {
-          seq.shift();
-          return { pass: true, exprs: [expr] };
-        }
-      }
-
-      return { pass: false };
-    },
-  },
-
-  // Pattern[Blank[symbol], pattern]
-  {
-    forPattern: (pattern: Expr) => {
-      return (
-        ExprHelper.l0Compare(pattern.head, BlankSymbol) &&
-        pattern.nodeType === 'nonTerminal' &&
-        pattern.children.length === 2 &&
-        ExprHelper.isSymbol(pattern.children[0])
-      );
-    },
-    action: (seq, pattern, context) => {
-      if (pattern.nodeType === 'nonTerminal' && pattern.children.length === 2) {
-        const nameExpr = pattern.children[0];
-        if (
-          nameExpr &&
-          nameExpr.nodeType === 'terminal' &&
-          nameExpr.expressionType === 'symbol'
-        ) {
-          const name = nameExpr.value;
-          const subAction = patternActions.find((_action) =>
-            _action.forPattern(pattern.children[1]),
-          );
-          if (subAction) {
-            const matchResult = subAction.action(
-              seq,
-              pattern.children[1],
-              context,
-            );
-            if (!matchResult.pass) {
-              return { pass: false };
-            }
-
-            return { ...matchResult, name: name };
-          }
-        }
-      }
-
-      return { pass: false };
-    },
-  },
-
-  // BlankSequence[]
-  {
-    forPattern: (pattern: Expr) =>
-      ExprHelper.l1Compare(pattern, BlankSequence()),
-    action: (seq: Expr[]) => {
-      if (seq.length === 0) {
-        return { pass: false };
-      } else {
-        const result: Expr[] = [];
-
-        while (seq.length > 0) {
-          const expr = seq.shift() as Expr;
-          result.push(expr);
-        }
-        return { pass: true, exprs: result };
-      }
-    },
-  },
-
-  // BlankSequenceNull[]
-  {
-    forPattern: (pattern: Expr) =>
-      ExprHelper.l1Compare(pattern, BlankSequenceNull()),
-    action: (seq: Expr[]) => {
-      if (seq.length === 0) {
-        return { pass: true, exprs: [] };
-      } else {
-        const result: Expr[] = [];
-
-        while (seq.length > 0) {
-          const expr = seq.shift() as Expr;
-          result.push(expr);
-        }
-        return { pass: true, exprs: result };
-      }
-    },
-  },
-];
-
+// builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
+  // If[cond, trueClause, falseClause]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: NodeFactory.makeSymbol('If'),
+      children: [Blank(), Blank(), Blank()],
+    },
+    action: (node, context) => {
+      if (
+        node.head.nodeType === 'terminal' &&
+        node.head.expressionType === 'symbol' &&
+        node.head.value === 'If' &&
+        node.nodeType === 'nonTerminal' &&
+        node.children.length === 3
+      ) {
+        const condition = node.children[0];
+        const trueClause = node.children[1];
+        const falseClause = node.children[2];
+
+        context.evaluate(condition);
+        const evaluatedCondition = context.popNode();
+        if (ExprHelper.rawEqualQ([True], [evaluatedCondition])) {
+          context.evaluate(trueClause);
+        } else {
+          context.evaluate(falseClause);
+        }
+      } else {
+        context.pushNode(node);
+      }
+    },
+  },
   // Head[x:_] := x 的 头部
   {
     pattern: {
@@ -275,11 +202,16 @@ export const builtInDefinitions: Definition[] = [
       children: [Blank()],
     },
     action: (node, context) => {
-      if (node.nodeType === 'nonTerminal') {
-        if (node.children[0].nodeType === 'nonTerminal') {
-          const x = node.children[0].children[0];
-          context.pushNode(x);
-        }
+      if (
+        node.nodeType === 'nonTerminal' &&
+        node.head.nodeType === 'terminal' &&
+        node.head.expressionType === 'symbol' &&
+        node.head.value === 'Head' &&
+        node.children.length === 1
+      ) {
+        context.evaluate(node.children[0].head);
+      } else {
+        context.pushNode(node);
       }
     },
   },
