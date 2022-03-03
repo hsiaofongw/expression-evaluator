@@ -224,34 +224,36 @@ export class ExprHelper {
           pattern.head.expressionType === 'symbol' &&
           pattern.head.value === 'BlankSequence'
         ) {
-          let lhsPtrOffset = 0;
-          const remainLength = lhs.length - lhsPtr;
-          let matchResult: Record<string, Expr[]> = {};
-          while (lhsPtrOffset < remainLength) {
-            const match = ExprHelper.neo(
+          // as for BlankSequence[]
+          let lhsOffset = 1;
+          let maxMatchLhsOffset: undefined | number = undefined;
+          let matchedResult: Record<string, Expr[]> = {};
+          while (lhsPtr + lhsOffset <= lhs.length) {
+            const restMatch = ExprHelper.neo(
               lhs,
               rhs,
-              lhsPtr + lhsPtrOffset + 1,
+              lhsPtr + lhsOffset,
               rhsPtr + 1,
             );
-            if (!match.pass) {
-              break;
+            if (restMatch.pass) {
+              matchedResult = restMatch.namedResult;
+              maxMatchLhsOffset = lhsOffset;
             }
-
-            matchResult = match.namedResult;
-            lhsPtrOffset = lhsPtrOffset + 1;
+            lhsOffset = lhsOffset + 1;
           }
 
-          if (lhsPtrOffset === 0) {
+          if (!matchedResult) {
             return { pass: false };
           }
 
-          matchResult[rhsPtr.toString()] = lhs.slice(
-            lhsPtr,
-            lhsPtr + lhsPtrOffset,
-          );
+          if (maxMatchLhsOffset) {
+            matchedResult[rhsPtr.toString()] = lhs.slice(
+              lhsPtr,
+              lhsPtr + maxMatchLhsOffset,
+            );
+          }
 
-          return { pass: true, namedResult: matchResult };
+          return { pass: true, namedResult: matchedResult };
         } else if (
           pattern.children.length === 1 &&
           pattern.head.nodeType === 'terminal' &&
