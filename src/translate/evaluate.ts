@@ -359,8 +359,47 @@ export class Evaluator extends Transform implements IEvaluateContext {
     return this._exprStack.pop() as Expr;
   }
 
+  private stripSequenceSymbolFromExpr(node: Expr): void {
+    if (node.nodeType === 'nonTerminal') {
+      if (
+        node.head.nodeType === 'nonTerminal' &&
+        node.head.head.nodeType === 'terminal' &&
+        node.head.head.expressionType === 'symbol' &&
+        node.head.head.value == 'Sequence' &&
+        node.head.children.length === 1
+      ) {
+        node.head = node.head.children[0];
+      }
+
+      const flattenChildren: Expr[] = [];
+      for (let i = 0; i < node.children.length; i++) {
+        const child = node.children[i];
+        if (
+          child.head.nodeType === 'terminal' &&
+          child.nodeType === 'nonTerminal' &&
+          child.head.expressionType === 'symbol' &&
+          child.head.value === 'Sequence'
+        ) {
+          for (const subChild of child.children) {
+            flattenChildren.push(subChild);
+          }
+        } else {
+          flattenChildren.push(child);
+        }
+      }
+      node.children = flattenChildren;
+
+      this.stripSequenceSymbolFromExpr(node.head);
+      for (let i = 0; i < node.children.length; i++) {
+        this.stripSequenceSymbolFromExpr(node.children[i]);
+      }
+    }
+  }
+
   /** 对表达式进行求值，如果有规则，按规则来，如果没有，原样返回（到栈顶） */
   public evaluate(expr: Expr): void {}
+
+  private _standardEvaluate(expr: Expr): void {}
 
   /**
    * 立即赋值，在赋值时就对右表达式进行求值，之后 pattern 将总是被替换为该结果
