@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Transform } from 'stream';
-import { builtInDefinitions, NodeFactory } from './config';
+import { builtInDefinitions, NodeFactory, NothingSymbol } from './config';
 import {
   Definition,
   Expr,
@@ -367,6 +367,8 @@ export class Evaluator extends Transform implements IEvaluateContext {
         context.pushNode(value);
       },
     });
+
+    this.pushNode(value);
   }
 
   /**
@@ -436,5 +438,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
         context.evaluate(originValue);
       },
     });
+
+    this.pushNode(NothingSymbol);
   }
 }

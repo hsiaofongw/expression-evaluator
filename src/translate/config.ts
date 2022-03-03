@@ -102,6 +102,9 @@ export const HeadSymbol = NodeFactory.makeSymbol('Head');
 // Pattern 符号
 export const PatternSymbol = NodeFactory.makeSymbol('Pattern');
 
+// Nothing 符号
+export const NothingSymbol = NodeFactory.makeSymbol('Nothing');
+
 // DirectFullEqualQ 符号
 export const DirectFullEqualQSymbol =
   NodeFactory.makeSymbol('DirectFullEqualQ');
