@@ -317,7 +317,7 @@ export class ExprHelper {
 export class Evaluator extends Transform implements IEvaluateContext {
   private _exprStack: Expr[] = [];
 
-  /** 系统内建定义 */
+  /** 系统内建定义，这里的都是按照非标准求值程序进行 */
   private _builtInDefinitions: Definition[] = builtInDefinitions;
 
   /** 用户使用 Assign 指令下的全局定义 */
@@ -328,11 +328,21 @@ export class Evaluator extends Transform implements IEvaluateContext {
 
   /**
    * 在进行模式匹配得到的定义，例如：
-   * 尝试拿表达式 { a, b } 去匹配 { x_, y_ }, 则会匹配成功，
-   * 并且增加两个「临时」定义，一个是 x, 值为 a, 一个是 y, 值为 b
    *
-   * 须知，临时定义的生存周期是短暂的，在求值过程开始之前和结束之后，
-   * 它都应该是空的，只有在求值过程中，寻找模式进行匹配，并且成功匹配时，定义才会被临时入栈到这里
+   * 假设现在有这样一条定义存在：
+   *
+   * f[x_, y_] := x + y
+   *
+   * 这时我们尝试对表达式
+   *
+   * f[a, b]
+   *
+   * 求值，那么求值器会遍历所有定义，并且发现 f[a, b] 符合 f[x_, y_]，并且得到 x 的值为 a, y 的值为 b,
+   * 那么这个「x 的值为 a, y 的值为 b」这条信息，则会临时记录在 _ephemeralDefinitions 变量中（入栈），
+   *
+   * 然后，求值器会对定义的右边进行求值，求值（递归的）的过程中，求值器还会尝试寻找 x 和 y 的定义，那么求值器就会在 _ephemeralDefinitions 中找到，
+   *
+   * 对定义的右边也就是 x + y 求值完成后，求值器会对 _ephemeralDefinitions 进行一次出栈操作，防止 _ephermeralDefinitions 的内容不断堆积导致内存泄露。
    */
   private _ephemeralDefinitions: Definition[][] = [];
 
