@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Transform } from 'stream';
-import { builtInDefinitions } from './config';
+import { builtInDefinitions, NodeFactory } from './config';
 import {
   Definition,
   Expr,
@@ -373,8 +373,16 @@ export class Evaluator extends Transform implements IEvaluateContext {
    * 清除赋值
    */
   public clearAssign(pattern: Expr): void {
+    const beforeDefCounts = this._userFixedDefinition.length;
     this._userFixedDefinition = this._userFixedDefinition.filter((userDef) => {
       return !Neo.patternMatch([userDef.pattern], [pattern], 0, 0).pass;
+    });
+    const afterDefCounts = this._userFixedDefinition.length;
+    this.pushNode({
+      nodeType: 'terminal',
+      expressionType: 'number',
+      head: NodeFactory.makeSymbol('Integer'),
+      value: afterDefCounts - beforeDefCounts,
     });
   }
 
@@ -401,8 +409,17 @@ export class Evaluator extends Transform implements IEvaluateContext {
    * 来清除它。
    */
   public clearDelayedAssign(pattern: Expr): void {
+    const beforeCounts = this._userDelayedDefinition.length;
     this._userDelayedDefinition = this._userDelayedDefinition.filter((def) => {
       return !Neo.patternMatch([def.pattern], [pattern], 0, 0).pass;
+    });
+    const afterCounts = this._userDelayedDefinition.length;
+
+    this.pushNode({
+      nodeType: 'terminal',
+      expressionType: 'number',
+      head: NodeFactory.makeSymbol('Integer'),
+      value: afterCounts - beforeCounts,
     });
   }
 
