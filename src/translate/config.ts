@@ -125,6 +125,15 @@ export function Blank(): Expr {
   };
 }
 
+// 返回一个 Typed Blank Pattern
+export function TypedBlank(h: Expr): Expr {
+  return {
+    nodeType: 'nonTerminal',
+    head: BlankSymbol,
+    children: [h],
+  };
+}
+
 // 返回一个 BlankSequence Pattern
 export function BlankSequence(): Expr {
   return {
@@ -194,6 +203,7 @@ export const builtInDefinitions: Definition[] = [
       }
     },
   },
+
   // Head[x:_] := x 的 头部
   {
     pattern: {
@@ -216,13 +226,165 @@ export const builtInDefinitions: Definition[] = [
     },
   },
 
-  // 立即赋值语句
+  // Take[expr, number] 访问第几个元素
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: DirectFullEqualQSymbol,
-      children: [NamedPattern('x', Blank()), NamedPattern('y', Blank())],
+      head: NodeFactory.makeSymbol('Take'),
+      children: [Blank(), TypedBlank(NodeFactory.makeSymbol('Integer'))],
     },
-    action: (expr, ctx) => {},
+    action: (node, context) => {
+      if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
+        const expr = node.children[0];
+        const number = node.children[1];
+        if (
+          expr.nodeType === 'nonTerminal' &&
+          number.nodeType === 'terminal' &&
+          number.expressionType === 'number' &&
+          number.value >= 0
+        ) {
+          const index = Math.floor(number.value);
+          if (expr.children.length > index) {
+            context.evaluate(expr.children[index]);
+            return;
+          }
+        }
+      }
+
+      context.pushNode(node);
+    },
+  },
+
+  // Number[x], 待定类型数字，一定要演化成 Real[x] 或者 Integer[x]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: BlankSymbol,
+      children: [NodeFactory.makeSymbol('Number')],
+    },
+    action: (expr, context) => {
+      if (expr.nodeType === 'terminal' && expr.expressionType === 'number') {
+        const value = expr.value;
+        if (Math.floor(value) === value) {
+          // 整数
+          context.pushNode({
+            nodeType: 'terminal',
+            expressionType: 'number',
+            head: NodeFactory.makeSymbol('Integer'),
+            value: value,
+          });
+        } else {
+          // 浮点数
+          context.pushNode({
+            nodeType: 'terminal',
+            expressionType: 'number',
+            head: NodeFactory.makeSymbol('Real'),
+            value: value,
+          });
+        }
+      } else {
+        context.pushNode(expr);
+      }
+    },
+  },
+
+  // 直接相等判断
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: NodeFactory.makeSymbol('RawEqualQ'),
+      children: [Blank(), Blank()],
+    },
+    action: (node, context) => {
+      if (
+        node.head.nodeType === 'terminal' &&
+        node.head.expressionType === 'symbol' &&
+        node.head.value === 'RawEqualQ' &&
+        node.nodeType === 'nonTerminal' &&
+        node.children.length === 2
+      ) {
+        if (ExprHelper.rawEqualQ([node.children[0]], [node.children[1]])) {
+          context.pushNode(True);
+        } else {
+          context.pushNode(False);
+        }
+      } else {
+        context.pushNode(node);
+      }
+    },
+  },
+
+  // 定义相等判断
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: NodeFactory.makeSymbol('EqualQ'),
+      children: [Blank(), Blank()],
+    },
+    action: (node, context) => {
+      if (
+        node.head.nodeType === 'terminal' &&
+        node.head.expressionType === 'symbol' &&
+        node.head.value === 'EqualQ' &&
+        node.nodeType === 'nonTerminal' &&
+        node.children.length === 2
+      ) {
+        context.evaluate(node.children[0]);
+        context.evaluate(node.children[1]);
+        const rhs = context.popNode();
+        const lhs = context.popNode();
+        context.evaluate({
+          nodeType: 'nonTerminal',
+          head: NodeFactory.makeSymbol('RawEqualQ'),
+          children: [lhs, rhs],
+        });
+      } else {
+        context.pushNode(node);
+      }
+    },
+  },
+
+  // 立即赋值 Assign[x, y]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: NodeFactory.makeSymbol('Assign'),
+      children: [Blank(), Blank()],
+    },
+    action: (node, context) => {
+      if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
+        context.evaluate(node.children[1]);
+        const rightValue = context.popNode();
+        context.assign([
+          {
+            pattern: node.children[0],
+            value: rightValue,
+          },
+        ]);
+      } else {
+        context.pushNode(node);
+      }
+    },
+  },
+
+  // 延迟赋值 AssignDelayed[x, y]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: NodeFactory.makeSymbol('AssignDelayed'),
+      children: [Blank(), Blank()],
+    },
+    action: (node, context) => {
+      if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
+        context.assignDelayed([
+          {
+            pattern: node.children[0],
+            value: node.children[1],
+          },
+        ]);
+      } else {
+        context.pushNode(node);
+      }
+    },
   },
 ];
