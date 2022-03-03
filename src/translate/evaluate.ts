@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Expr, PatternMatchResult } from './interfaces';
+import { Transform } from 'stream';
+import { builtInDefinitions } from './config';
+import { Definition, Expr, IEvaluateContext, PatternMatchResult } from './interfaces';
 
 type ComparePair = { lhs: Expr[]; rhs: Expr[] };
 
@@ -306,191 +308,208 @@ export class ExprHelper {
   }
 }
 
-// export class Evaluator extends Transform implements IEvaluateContext {
-//   private _exprStack: Expr[] = [];
-//   private _builtInDefinitions: Definition[] = builtInDefinitions;
-//   private _userDefinitionStack: Definition[][] = [];
+export class Evaluator extends Transform implements IEvaluateContext {
+  private _exprStack: Expr[] = [];
 
-//   constructor() {
-//     super({ objectMode: true });
-//     this._exprStack = [];
-//   }
+  /** 系统内建定义 */
+  private _builtInDefinitions: Definition[] = builtInDefinitions;
 
-//   public pushNode(n: Expr): void {
-//     this._exprStack.push(n);
-//   }
+  /** 用户使用 Assign 指令下的全局定义 */
+  private _userFixedDefinition: Definition[] = [];
 
-//   public popNode(): Expr {
-//     return this._exprStack.pop() as Expr;
-//   }
+  /** 用户使用 AssignDelayed 指令下的全局定义 */
+  private _userDelayedDefinition: Definition[] = [];
 
-//   /**
-//    * （后续这块得好好优化，一定有更好的方法）
-//    *
-//    * 给定一个表达式 expr, 寻找它的重写规则，先在用户定义规则栈里边找，再在系统内置符号栈里边找
-//    *
-//    * 如果找不到，返回 undefined
-//    */
-//   private _findDefinition(expr: Expr): DefinitionAndMatchResult | undefined {
-//     // 从栈顶找到栈底
-//     for (let i = 0; i < this._userDefinitionStack.length; i++) {
-//       const defStack =
-//         this._userDefinitionStack[this._userDefinitionStack.length - 1 - i];
+  /**
+   * 在进行模式匹配得到的定义，例如：
+   * 尝试拿表达式 { a, b } 去匹配 { x_, y_ }, 则会匹配成功，
+   * 并且增加两个「临时」定义，一个是 x, 值为 a, 一个是 y, 值为 b
+   *
+   * 须知，临时定义的生存周期是短暂的，在求值过程开始之前和结束之后，
+   * 它都应该是空的，只有在求值过程中，寻找模式进行匹配，并且成功匹配时，定义才会被临时入栈到这里
+   */
+  private _ephemeralDefinitions: Definition[][] = [];
 
-//       // 从左到右
-//       for (let j = 0; j < defStack.length; j++) {
-//         const definition = defStack[j];
-//         const matchResult = ExprHelper.patternMatch(
-//           expr,
-//           definition.pattern,
-//           this,
-//         );
-//         if (matchResult.pass) {
-//           return { definition, matchResult: matchResult };
-//         }
-//       }
-//     }
+  constructor() {
+    super({ objectMode: true });
+    this._exprStack = [];
+  }
 
-//     // 系统内置符号顺序关系不大，直接线性搜索
-//     for (let i = 0; i < this._builtInDefinitions.length; i++) {
-//       const definition = this._builtInDefinitions[i];
-//       const matchResult = ExprHelper.patternMatch(
-//         expr,
-//         definition.pattern,
-//         this,
-//       );
-//       if (matchResult.pass) {
-//         return { definition, matchResult: matchResult };
-//       }
-//     }
+  public pushNode(n: Expr): void {
+    this._exprStack.push(n);
+  }
 
-//     return undefined;
-//   }
+  public popNode(): Expr {
+    return this._exprStack.pop() as Expr;
+  }
 
-//   /** 将表达式中的 Sequence 展开 */
-//   private _flattenSequence(expr: Expr): void {
-//     if (expr.nodeType === 'nonTerminal') {
-//       const children: Expr[] = [];
-//       for (const child of expr.children) {
-//         if (
-//           child.nodeType === 'nonTerminal' &&
-//           ExprHelper.l0Compare(child.head, SequenceSymbol)
-//         ) {
-//           for (const item of child.children) {
-//             children.push(item);
-//           }
-//         } else {
-//           children.push(child);
-//         }
-//       }
+  /**
+   * （后续这块得好好优化，一定有更好的方法）
+   *
+   * 给定一个表达式 expr, 寻找它的重写规则，先在用户定义规则栈里边找，再在系统内置符号栈里边找
+   *
+   * 如果找不到，返回 undefined
+   */
+  private _findDefinition(expr: Expr): DefinitionAndMatchResult | undefined {
+    // 从栈顶找到栈底
+    for (let i = 0; i < this._userDefinitionStack.length; i++) {
+      const defStack =
+        this._userDefinitionStack[this._userDefinitionStack.length - 1 - i];
 
-//       expr.children = children;
-//     }
-//   }
+      // 从左到右
+      for (let j = 0; j < defStack.length; j++) {
+        const definition = defStack[j];
+        const matchResult = ExprHelper.patternMatch(
+          expr,
+          definition.pattern,
+          this,
+        );
+        if (matchResult.pass) {
+          return { definition, matchResult: matchResult };
+        }
+      }
+    }
 
-//   private _applyDefinition(def: DefinitionAndMatchResult): void {
-//     // 取出当前表达式
-//     const expr = this.popNode() as Expr;
+    // 系统内置符号顺序关系不大，直接线性搜索
+    for (let i = 0; i < this._builtInDefinitions.length; i++) {
+      const definition = this._builtInDefinitions[i];
+      const matchResult = ExprHelper.patternMatch(
+        expr,
+        definition.pattern,
+        this,
+      );
+      if (matchResult.pass) {
+        return { definition, matchResult: matchResult };
+      }
+    }
 
-//     // 传入实参
-//     const keyValuePairs: KeyValuePair[] = [];
-//     for (const symbolName in def.matchResult.result) {
-//       keyValuePairs.push({
-//         pattern: NodeFactory.makeSymbol(symbolName),
-//         value: Sequence(def.matchResult.result[symbolName]),
-//       });
-//     }
-//     this._assignImmediately(keyValuePairs);
+    return undefined;
+  }
 
-//     // 求值
-//     def.definition.action(expr, this);
+  /** 将表达式中的 Sequence 展开 */
+  private _flattenSequence(expr: Expr): void {
+    if (expr.nodeType === 'nonTerminal') {
+      const children: Expr[] = [];
+      for (const child of expr.children) {
+        if (
+          child.nodeType === 'nonTerminal' &&
+          ExprHelper.l0Compare(child.head, SequenceSymbol)
+        ) {
+          for (const item of child.children) {
+            children.push(item);
+          }
+        } else {
+          children.push(child);
+        }
+      }
 
-//     // 恢复现场
-//     this._undoLastAssign();
-//   }
+      expr.children = children;
+    }
+  }
 
-//   /** 对表达式进行求值，如果有规则，按规则来，如果没有，原样返回（到栈顶） */
-//   public evaluate(expr: Expr): void {
-//     const definitionAndMatchResult = this._findDefinition(expr);
-//     if (!definitionAndMatchResult) {
-//       this.pushNode(expr);
-//       return;
-//     }
+  private _applyDefinition(def: DefinitionAndMatchResult): void {
+    // 取出当前表达式
+    const expr = this.popNode() as Expr;
 
-//     const evaluateList: Expr[] = [expr];
-//     while (evaluateList.length > 0) {
-//       const expr = evaluateList.pop() as Expr;
-//       this.pushNode(expr);
+    // 传入实参
+    const keyValuePairs: KeyValuePair[] = [];
+    for (const symbolName in def.matchResult.result) {
+      keyValuePairs.push({
+        pattern: NodeFactory.makeSymbol(symbolName),
+        value: Sequence(def.matchResult.result[symbolName]),
+      });
+    }
+    this._assignImmediately(keyValuePairs);
 
-//       if (expr.nodeType === 'terminal') {
-//         if (expr.expressionType === 'symbol') {
-//           const definition = this._findDefinition(expr);
-//           if (definition) {
-//             this._applyDefinition(definition);
-//           }
-//         } else {
-//         }
-//       }
-//     }
+    // 求值
+    def.definition.action(expr, this);
 
-//     // 输出结果
-//     const value = this.popNode() as Expr;
-//     this.push(value);
-//   }
+    // 恢复现场
+    this._undoLastAssign();
+  }
 
-//   /** 弹出用户定义栈，相当于撤销最近一次赋值操作 */
-//   private _undoLastAssign(): void {
-//     this._userDefinitionStack.pop();
-//   }
+  /** 对表达式进行求值，如果有规则，按规则来，如果没有，原样返回（到栈顶） */
+  public evaluate(expr: Expr): void {
+    const definitionAndMatchResult = this._findDefinition(expr);
+    if (!definitionAndMatchResult) {
+      this.pushNode(expr);
+      return;
+    }
 
-//   /** 立即赋值，且不对右值进行求值 */
-//   private _assignImmediately(keyValuePairs: KeyValuePair[]): void {
-//     const defStack: Definition[] = [];
-//     for (const pair of keyValuePairs) {
-//       const { pattern, value } = pair;
-//       defStack.push({
-//         pattern: pattern,
-//         action: (_, context) => {
-//           context.pushNode(value);
-//         },
-//       });
-//     }
-//     this._userDefinitionStack.push(defStack);
-//   }
+    const evaluateList: Expr[] = [expr];
+    while (evaluateList.length > 0) {
+      const expr = evaluateList.pop() as Expr;
+      this.pushNode(expr);
 
-//   /** 立即赋值，在赋值时就对右表达式进行求值，之后 pattern 将总是被替换为该结果 */
-//   public assign(keyValuePairs: KeyValuePair[]): void {
-//     const defStack: Definition[] = [];
-//     for (const pair of keyValuePairs) {
-//       const { pattern, value } = pair;
-//       this.evaluate(value);
-//       const evaluated = this.popNode() as Expr;
-//       defStack.push({
-//         pattern: pattern,
-//         action: (_, context) => {
-//           // 结果值以闭包的形式保存下来了
-//           context.pushNode(evaluated);
-//         },
-//       });
-//     }
-//     this._userDefinitionStack.push(defStack);
-//   }
+      if (expr.nodeType === 'terminal') {
+        if (expr.expressionType === 'symbol') {
+          const definition = this._findDefinition(expr);
+          if (definition) {
+            this._applyDefinition(definition);
+          }
+        } else {
+        }
+      }
+    }
 
-//   /** 延迟赋值，每次读取时将重新求值 */
-//   public assignDelayed(keyValuePairs: KeyValuePair[]): void {
-//     const defStack: Definition[] = [];
-//     for (const pair of keyValuePairs) {
-//       const { pattern, value } = pair;
-//       defStack.push({
-//         pattern: pattern,
-//         action: (_, context) => {
-//           // 原值以闭包的形式保存下来了
-//           this.evaluate(value);
-//           const evaluated = this.popNode() as Expr;
-//           context.pushNode(evaluated);
-//         },
-//       });
-//     }
-//     this._userDefinitionStack.push(defStack);
-//   }
-// }
+    // 输出结果
+    const value = this.popNode() as Expr;
+    this.push(value);
+  }
+
+  /** 弹出用户定义栈，相当于撤销最近一次赋值操作 */
+  private _undoLastAssign(): void {
+    this._userDefinitionStack.pop();
+  }
+
+  /** 立即赋值，且不对右值进行求值 */
+  private _assignImmediately(keyValuePairs: KeyValuePair[]): void {
+    const defStack: Definition[] = [];
+    for (const pair of keyValuePairs) {
+      const { pattern, value } = pair;
+      defStack.push({
+        pattern: pattern,
+        action: (_, context) => {
+          context.pushNode(value);
+        },
+      });
+    }
+    this._userDefinitionStack.push(defStack);
+  }
+
+  /** 立即赋值，在赋值时就对右表达式进行求值，之后 pattern 将总是被替换为该结果 */
+  public assign(keyValuePairs: KeyValuePair[]): void {
+    const defStack: Definition[] = [];
+    for (const pair of keyValuePairs) {
+      const { pattern, value } = pair;
+      this.evaluate(value);
+      const evaluated = this.popNode() as Expr;
+      defStack.push({
+        pattern: pattern,
+        action: (_, context) => {
+          // 结果值以闭包的形式保存下来了
+          context.pushNode(evaluated);
+        },
+      });
+    }
+    this._userDefinitionStack.push(defStack);
+  }
+
+  /** 延迟赋值，每次读取时将重新求值 */
+  public assignDelayed(keyValuePairs: KeyValuePair[]): void {
+    const defStack: Definition[] = [];
+    for (const pair of keyValuePairs) {
+      const { pattern, value } = pair;
+      defStack.push({
+        pattern: pattern,
+        action: (_, context) => {
+          // 原值以闭包的形式保存下来了
+          this.evaluate(value);
+          const evaluated = this.popNode() as Expr;
+          context.pushNode(evaluated);
+        },
+      });
+    }
+    this._userDefinitionStack.push(defStack);
+  }
+}
