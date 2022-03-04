@@ -458,7 +458,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
 
     const match = this.findDefinition(head, definitions);
     if (match.pass) {
-      this.definitionApply(head, match.definition, match.namedResult);
+      this.applyDefinition(head, match.definition, match.namedResult);
       applyCount = applyCount + 1;
       expr.head = this.popNode();
     }
@@ -468,7 +468,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
         const match = this.findDefinition(expr.children[i], definitions);
         if (match.pass) {
           applyCount = applyCount + 1;
-          this.definitionApply(
+          this.applyDefinition(
             expr.children[i],
             match.definition,
             match.namedResult,
@@ -482,7 +482,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
     let evaluatedExpr = expr;
     if (matchForExpr.pass) {
       applyCount = applyCount + 1;
-      this.definitionApply(
+      this.applyDefinition(
         expr,
         matchForExpr.definition,
         matchForExpr.namedResult,
@@ -501,7 +501,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
     for (const definition of this._builtInDefinitions) {
       const match = Neo.patternMatch([expr], [definition.pattern], 0, 0);
       if (match.pass) {
-        this.definitionApply(expr, definition, match.namedResult);
+        this.applyDefinition(expr, definition, match.namedResult);
         if (!definition.final) {
           this.evaluate(this.popNode());
         }
@@ -510,24 +510,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
     }
   }
 
-  private findDefinitionAndReEvaluate(
-    expr: Expr,
-    definitions: Definition[],
-  ): void {
-    for (const def of definitions) {
-      const match = Neo.patternMatch([expr], [def.pattern], 0, 0);
-      if (match.pass) {
-        this.definitionApply(expr, def, match.namedResult);
-        const evaluated = this.popNode();
-        if (!def.final) {
-          this.evaluate(evaluated);
-        }
-        break;
-      }
-    }
-  }
-
-  private definitionApply(
+  private applyDefinition(
     expr: Expr,
     definition: Definition,
     matchResult: Record<string, Expr[]>,
