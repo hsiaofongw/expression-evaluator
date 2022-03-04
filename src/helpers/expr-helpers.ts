@@ -193,6 +193,62 @@ export class Neo {
           );
 
           return { pass: true, namedResult: matchResult };
+        } else if (
+          pattern.children.length === 0 &&
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'BlankNullSequence'
+        ) {
+          // as for BlankNullSequence[]
+          let lhsOffset = 0;
+          let matchResult: Record<string, Expr[]> | undefined = undefined;
+          while (lhsPtr + lhsOffset < lhs.length) {
+            const matchRest = Neo.patternMatch(
+              lhs,
+              rhs,
+              lhsPtr + lhsOffset,
+              rhsPtr + 1,
+            );
+            if (matchRest.pass) {
+              matchResult = matchRest.namedResult;
+              matchResult[rhsPtr.toString()] = lhs.slice(
+                lhsPtr,
+                lhsPtr + lhsOffset,
+              );
+            }
+
+            lhsOffset = lhsOffset + 1;
+          }
+
+          if (matchResult === undefined) {
+            return { pass: false };
+          } else {
+            return { pass: true, namedResult: matchResult };
+          }
+        } else if (
+          pattern.children.length === 1 &&
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'Verbatim'
+        ) {
+          // as for Verbatim[x]
+          if (lLength === 0) {
+            return { pass: false };
+          }
+
+          const l = lhs[lhsPtr];
+          const isEqual = ExprHelper.rawEqualQ([l], [pattern.children[0]]);
+          if (!isEqual) {
+            return { pass: false };
+          }
+
+          const restMatch = Neo.patternMatch(lhs, rhs, lhsPtr + 1, rhsPtr + 1);
+          if (!restMatch.pass) {
+            return { pass: false };
+          }
+
+          restMatch.namedResult[rhsPtr.toString()] = [l];
+          return { pass: true, namedResult: restMatch.namedResult };
         } else {
           // 这时 pattern 是其他不认识的形式，而且 pattern 是 nonTerminal
           // 所以如果 lhs 第一个是 terminal, 则不匹配
