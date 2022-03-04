@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Transform } from 'stream';
+import { Transform, TransformCallback } from 'stream';
 import {
   builtInDefinitions,
   NodeFactory,
@@ -19,10 +19,42 @@ import {
 import { allSymbols } from './config';
 import { Neo } from 'src/helpers/expr-helpers';
 
-export class Evaluator extends Transform implements IEvaluateContext {
+export class PreEvaluator extends Transform {
   /** 符号名称到符号对象的映射 */
   private _symbolNameMap: Record<string, Expr> = {};
 
+  constructor() {
+    super({ objectMode: true });
+
+    const symbolNameMap: Record<string, Expr> = {};
+    for (const sbl of allSymbols) {
+      if (sbl.nodeType === 'terminal' && sbl.expressionType === 'symbol') {
+        symbolNameMap[sbl.value] = sbl;
+      }
+    }
+    this._symbolNameMap = symbolNameMap;
+  }
+
+  public _transform(
+    expr: Expr,
+    encoding: BufferEncoding,
+    callback: TransformCallback,
+  ): void {
+    const head = expr.head;
+    if (head.nodeType === 'terminal' && head.expressionType === 'symbol') {
+      const symbolName = head.value;
+      const symbolPrototype = this._symbolNameMap[symbolName] as typeof head;
+      if (symbolPrototype.nonStandard) {
+        head.nonStandard = true;
+      }
+    }
+
+    this.push(expr);
+    callback();
+  }
+}
+
+export class Evaluator extends Transform implements IEvaluateContext {
   private _exprStack: Expr[] = [];
 
   /** 系统内建定义，这里的都是按照非标准求值程序进行 */
@@ -57,14 +89,6 @@ export class Evaluator extends Transform implements IEvaluateContext {
   constructor() {
     super({ objectMode: true });
     this._exprStack = [];
-
-    const symbolNameMap: Record<string, Expr> = {};
-    for (const sbl of allSymbols) {
-      if (sbl.nodeType === 'terminal' && sbl.expressionType === 'symbol') {
-        symbolNameMap[sbl.value] = sbl;
-      }
-    }
-    this._symbolNameMap = symbolNameMap;
   }
 
   public pushNode(n: Expr): void {
@@ -117,9 +141,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
   public evaluate(expr: Expr): void {
     const head = expr.head;
     if (head.nodeType === 'terminal' && head.expressionType === 'symbol') {
-      const symbolName = head.value;
-      const headSymbol = this._symbolNameMap[symbolName] as typeof head;
-      if (headSymbol.nonStandard) {
+      if (head.nonStandard) {
         this.nonStandardEvaluate(expr);
         return;
       }
