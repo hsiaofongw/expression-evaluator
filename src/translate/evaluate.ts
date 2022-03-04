@@ -445,20 +445,36 @@ export class Evaluator extends Transform implements IEvaluateContext {
     return { pass: false };
   }
 
-  private standardEvaluate(expr: Expr): void {
-    const head = expr.head;
+  private getDefinitions(): Definition[] {
+    const flattenArguments: Definition[] = [];
+    const stackSize = this._ephemeralDefinitions.length;
+    for (let i = 0; i < this._ephemeralDefinitions.length; i++) {
+      const frame = this._ephemeralDefinitions[stackSize - 1 - i];
+      for (const definition of frame) {
+        flattenArguments.push(definition);
+      }
+    }
 
     const definitions: Definition[] = [
       ...this._builtInDefinitions,
       ...this._userFixedDefinition,
       ...this._userDelayedDefinition,
+      ...flattenArguments,
     ];
 
+    return definitions;
+  }
+
+  private standardEvaluate(expr: Expr): void {
+    const head = expr.head;
+
     let applyCount = 0;
+    let definitions = this.getDefinitions();
 
     const match = this.findDefinition(head, definitions);
     if (match.pass) {
       this.applyDefinition(head, match.definition, match.namedResult);
+      definitions = this.getDefinitions();
       applyCount = applyCount + 1;
       expr.head = this.popNode();
     }
@@ -473,6 +489,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
             match.definition,
             match.namedResult,
           );
+          definitions = this.getDefinitions();
           expr.children[i] = this.popNode();
         }
       }
@@ -487,6 +504,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
         matchForExpr.definition,
         matchForExpr.namedResult,
       );
+      definitions = this.getDefinitions();
       evaluatedExpr = this.popNode();
     }
 
