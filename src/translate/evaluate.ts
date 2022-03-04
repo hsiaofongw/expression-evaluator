@@ -198,7 +198,9 @@ export class Evaluator extends Transform implements IEvaluateContext {
   }
 
   private standardEvaluate(expr: Expr): void {
-    const head = expr.head;
+    const _expr = ExprHelper.shallowCopy(expr);
+
+    const head = _expr.head;
 
     let applyCount = 0;
     let definitions = this.getDefinitions();
@@ -208,31 +210,31 @@ export class Evaluator extends Transform implements IEvaluateContext {
       this.applyDefinition(head, match.definition, match.namedResult);
       definitions = this.getDefinitions();
       applyCount = applyCount + 1;
-      expr.head = this.popNode();
+      _expr.head = this.popNode();
     }
 
-    if (expr.nodeType === 'nonTerminal') {
-      for (let i = 0; i < expr.children.length; i++) {
-        const match = this.findDefinition(expr.children[i], definitions);
+    if (_expr.nodeType === 'nonTerminal') {
+      for (let i = 0; i < _expr.children.length; i++) {
+        const match = this.findDefinition(_expr.children[i], definitions);
         if (match.pass) {
           applyCount = applyCount + 1;
           this.applyDefinition(
-            expr.children[i],
+            _expr.children[i],
             match.definition,
             match.namedResult,
           );
           definitions = this.getDefinitions();
-          expr.children[i] = this.popNode();
+          _expr.children[i] = this.popNode();
         }
       }
     }
 
-    const matchForExpr = this.findDefinition(expr, definitions);
-    let evaluatedExpr = expr;
+    const matchForExpr = this.findDefinition(_expr, definitions);
+    let evaluatedExpr = _expr;
     if (matchForExpr.pass) {
       applyCount = applyCount + 1;
       this.applyDefinition(
-        expr,
+        _expr,
         matchForExpr.definition,
         matchForExpr.namedResult,
       );

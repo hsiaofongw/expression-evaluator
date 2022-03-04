@@ -398,4 +398,13 @@ export class ExprHelper {
       return `${ExprHelper.nodeToString(node.head)}[${childrenDisplay}]`;
     }
   }
+
+  /** 浅复制 */
+  public static shallowCopy(node: Expr): Expr {
+    const newNode: Expr = { ...node } as any;
+    if (newNode.nodeType === 'nonTerminal') {
+      newNode.children = newNode.children.slice();
+    }
+    return newNode;
+  }
 }
