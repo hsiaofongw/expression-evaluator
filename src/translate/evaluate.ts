@@ -17,7 +17,7 @@ import {
   PatternMatchResult,
 } from './interfaces';
 import { allSymbols } from './config';
-import { Neo } from 'src/helpers/expr-helpers';
+import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
 
 export class PreEvaluator extends Transform {
   /** 符号名称到符号对象的映射 */
@@ -97,7 +97,9 @@ export class Evaluator extends Transform implements IEvaluateContext {
     callback: TransformCallback,
   ): void {
     this.evaluate(expr);
-    this.push(this.popNode());
+    const result = this.popNode();
+    this.push(result);
+    callback();
   }
 
   public pushNode(n: Expr): void {
@@ -194,6 +196,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
   }
 
   private standardEvaluate(expr: Expr): void {
+
     const head = expr.head;
 
     let applyCount = 0;
@@ -236,6 +239,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
       evaluatedExpr = this.popNode();
     }
 
+
     if (applyCount > 0) {
       this.evaluate(evaluatedExpr);
     } else {
@@ -251,6 +255,8 @@ export class Evaluator extends Transform implements IEvaluateContext {
         return;
       }
     }
+
+    this.pushNode(expr);
   }
 
   private applyDefinition(
@@ -273,6 +279,8 @@ export class Evaluator extends Transform implements IEvaluateContext {
     this._ephemeralDefinitions.pop();
 
     const evaluated = this.popNode();
+
+
     this.stripSequenceSymbolFromExpr(evaluated);
     this.pushNode(evaluated);
   }

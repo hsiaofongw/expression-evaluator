@@ -386,4 +386,16 @@ export class ExprHelper {
 
     return true;
   }
+
+  /** 序列化 */
+  public static nodeToString(node: Expr): string {
+    if (node.nodeType === 'terminal') {
+      return node.value.toString();
+    } else {
+      const childrenDisplay = node.children
+        .map((_n) => ExprHelper.nodeToString(_n))
+        .join(', ');
+      return `${ExprHelper.nodeToString(node.head)}[${childrenDisplay}]`;
+    }
+  }
 }
