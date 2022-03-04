@@ -1,22 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { ExprHelper } from './evaluate';
+import { ExprHelper } from 'src/helpers/expr-helpers';
 import { Definition, Expr } from './interfaces';
 
-// function ListNode(): FunctionNode {
-//   return { type: 'function', nodeType: 'nonTerminal', head: { type: 'identifier', nodeType: 'terminal', value: 'List' }, children: [] };
-// }
-
 // 符号符号
-export const SymbolSymbol: Expr = {
-  head: null as any,
-  nodeType: 'terminal',
-  expressionType: 'symbol',
-  value: 'Symbol',
-};
+function makeMetaSymbol(): Expr {
+  const metaSymbol: Expr = {
+    head: null as any,
+    nodeType: 'terminal',
+    expressionType: 'symbol',
+    value: 'Symbol',
+  };
+  metaSymbol.head = metaSymbol;
+  return metaSymbol;
+}
 
-// 符号符号的 head 也是符号
-SymbolSymbol.head = SymbolSymbol;
+export const SymbolSymbol: Expr = makeMetaSymbol();
 
 export class NodeFactory {
   public static makeSymbol(name: string, nonStandard?: boolean): Expr {
@@ -135,8 +134,8 @@ export const BlankSequenceSymbol = NodeFactory.makeSymbol(
 );
 
 // BlankSequenceNull 符号
-export const BlankSequenceNullSymbol = NodeFactory.makeSymbol(
-  'BlankSequenceNull',
+export const BlankNullSequenceSymbol = NodeFactory.makeSymbol(
+  'BlankNullSequence',
   true,
 );
 
@@ -182,7 +181,7 @@ export const allSymbols: Expr[] = [
   NothingSymbol,
   BlankSymbol,
   BlankSequenceSymbol,
-  BlankSequenceNullSymbol,
+  BlankNullSequenceSymbol,
   IfSymbol,
   TakeSymbol,
   IntegerSymbol,
@@ -221,7 +220,7 @@ export function BlankSequence(): Expr {
 export function BlankSequenceNull(): Expr {
   return {
     nodeType: 'nonTerminal',
-    head: BlankSequenceNullSymbol,
+    head: BlankNullSequenceSymbol,
     children: [],
   };
 }
