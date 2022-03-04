@@ -44,8 +44,10 @@ export class PreEvaluator extends Transform {
     if (head.nodeType === 'terminal' && head.expressionType === 'symbol') {
       const symbolName = head.value;
       const symbolPrototype = this._symbolNameMap[symbolName] as typeof head;
-      if (symbolPrototype.nonStandard) {
-        head.nonStandard = true;
+      if (symbolPrototype !== undefined) {
+        if (symbolPrototype.nonStandard) {
+          head.nonStandard = true;
+        }
       }
     }
 
@@ -196,7 +198,6 @@ export class Evaluator extends Transform implements IEvaluateContext {
   }
 
   private standardEvaluate(expr: Expr): void {
-
     const head = expr.head;
 
     let applyCount = 0;
@@ -239,7 +240,6 @@ export class Evaluator extends Transform implements IEvaluateContext {
       evaluatedExpr = this.popNode();
     }
 
-
     if (applyCount > 0) {
       this.evaluate(evaluatedExpr);
     } else {
@@ -279,7 +279,6 @@ export class Evaluator extends Transform implements IEvaluateContext {
     this._ephemeralDefinitions.pop();
 
     const evaluated = this.popNode();
-
 
     this.stripSequenceSymbolFromExpr(evaluated);
     this.pushNode(evaluated);
