@@ -249,6 +249,34 @@ export class Neo {
 
           restMatch.namedResult[rhsPtr.toString()] = [l];
           return { pass: true, namedResult: restMatch.namedResult };
+        } else if (
+          pattern.children.length === 0 &&
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'NumberExpressionType'
+        ) {
+          // as for NumberExpressionType[]
+          // 匹配所有 expressionType 为 Number 的 Expr
+          if (lLength === 0) {
+            return { pass: false };
+          }
+
+          const l = lhs[lhsPtr];
+          if (l.nodeType === 'nonTerminal') {
+            return { pass: false };
+          }
+
+          if (l.expressionType !== 'number') {
+            return { pass: false };
+          }
+
+          const restMatch = Neo.patternMatch(lhs, rhs, lhsPtr + 1, rhsPtr + 1);
+          if (!restMatch.pass) {
+            return { pass: false };
+          }
+
+          restMatch.namedResult[rhsPtr.toString()] = [l];
+          return { pass: true, namedResult: restMatch.namedResult };
         } else {
           // 这时 pattern 是其他不认识的形式，而且 pattern 是 nonTerminal
           // 所以如果 lhs 第一个是 terminal, 则不匹配

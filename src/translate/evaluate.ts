@@ -91,6 +91,15 @@ export class Evaluator extends Transform implements IEvaluateContext {
     this._exprStack = [];
   }
 
+  public _transform(
+    expr: Expr,
+    encoding: BufferEncoding,
+    callback: TransformCallback,
+  ): void {
+    this.evaluate(expr);
+    this.push(this.popNode());
+  }
+
   public pushNode(n: Expr): void {
     this._exprStack.push(n);
   }
@@ -239,9 +248,6 @@ export class Evaluator extends Transform implements IEvaluateContext {
       const match = Neo.patternMatch([expr], [definition.pattern], 0, 0);
       if (match.pass) {
         this.applyDefinition(expr, definition, match.namedResult);
-        if (!definition.final) {
-          this.evaluate(this.popNode());
-        }
         return;
       }
     }

@@ -106,6 +106,9 @@ export const RemainderSymbol = NodeFactory.makeSymbol('Remainder');
 // 幂次运算符号
 export const PowerSymbol = NodeFactory.makeSymbol('Power');
 
+// 一元自然指数幂符号
+export const ESymbol = NodeFactory.makeSymbol('E');
+
 // 字符串符号
 export const StringSymbol = NodeFactory.makeSymbol('String', true);
 
@@ -126,6 +129,18 @@ export const NothingSymbol = NodeFactory.makeSymbol('Nothing');
 
 // Blank 符号
 export const BlankSymbol = NodeFactory.makeSymbol('Blank', true);
+
+// NumberExpressionType 符号
+export const NumberExpressionTypeSymbol = NodeFactory.makeSymbol(
+  'NumberExpressionType',
+  true,
+);
+
+// 自然对数符号
+export const LnSymbol = NodeFactory.makeSymbol('Ln');
+
+// 对数符号
+export const LogSymbol = NodeFactory.makeSymbol('Log');
 
 // BlankSequence 符号
 export const BlankSequenceSymbol = NodeFactory.makeSymbol(
@@ -187,6 +202,10 @@ export const allSymbols: Expr[] = [
   IntegerSymbol,
   RealSymbol,
   RawEqualQSymbol,
+  NumberExpressionTypeSymbol,
+  ESymbol,
+  LnSymbol,
+  LogSymbol,
 ];
 
 // 返回一个 Blank Pattern
@@ -243,6 +262,85 @@ export function Sequence(children: Expr[]): Expr {
   };
 }
 
+// 返回一个 NumberExpressionType[]
+export function NumberExpressionType(): Expr {
+  return {
+    nodeType: 'nonTerminal',
+    head: NumberExpressionTypeSymbol,
+    children: [],
+  };
+}
+
+// 返回一个数值型一元运算 Pattern
+class UnaryOperationPatternFactory {
+  public static makePattern(
+    headExpr: Expr,
+    valueFunction: (a: number) => number,
+  ): Definition {
+    return {
+      pattern: {
+        nodeType: 'nonTerminal',
+        head: headExpr,
+        children: [NumberExpressionType()],
+      },
+      action: (node, context) => {
+        if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
+          const v1 = node.children[0];
+          if (v1.nodeType === 'terminal' && v1.expressionType === 'number') {
+            context.pushNode({
+              nodeType: 'terminal',
+              expressionType: 'number',
+              head: NumberSymbol,
+              value: valueFunction(v1.value),
+            });
+          }
+        }
+
+        context.pushNode(node);
+      },
+    };
+  }
+}
+
+// 返回一个数值型二元运算 Pattern
+class BinaryOperationPatternFactory {
+  public static makePattern(
+    headExpr: Expr,
+    valueFunction: (a: number, b: number) => number,
+  ): Definition {
+    return {
+      pattern: {
+        nodeType: 'nonTerminal',
+        head: headExpr,
+        children: [NumberExpressionType(), NumberExpressionType()],
+      },
+      action: (node, context) => {
+        if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
+          const v1 = node.children[0];
+          const v2 = node.children[1];
+          if (
+            v1.nodeType === 'terminal' &&
+            v1.expressionType === 'number' &&
+            v2.nodeType === 'terminal' &&
+            v2.expressionType === 'number'
+          ) {
+            const a = v1.value;
+            const b = v2.value;
+            context.pushNode({
+              nodeType: 'terminal',
+              expressionType: 'number',
+              value: valueFunction(a, b),
+              head: NumberSymbol,
+            });
+            return;
+          }
+        }
+        context.pushNode(node);
+      },
+    };
+  }
+}
+
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
   // If[cond, trueClause, falseClause], 走特殊求值流程
@@ -275,7 +373,6 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
-    final: true,
   },
 
   // Head[x:_] := x 的 头部, 走特殊求值流程
@@ -298,7 +395,6 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
-    final: true,
   },
 
   // Take[expr_, number_Integer] 访问第几个元素
@@ -436,7 +532,6 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
-    final: true,
   },
 
   // 延迟赋值 AssignDelayed[lhs, rhs], 走特殊求值流程，
@@ -457,7 +552,6 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
-    final: true,
   },
 
   // 清除赋值 ClearAssign[x]
@@ -474,7 +568,6 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
-    final: true,
   },
 
   // 清除延迟赋值 ClearDelayedAssign[x]
@@ -491,6 +584,34 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
-    final: true,
   },
+
+  // 二元加法
+  BinaryOperationPatternFactory.makePattern(PlusSymbol, (a, b) => a + b),
+
+  // 二元减法
+  BinaryOperationPatternFactory.makePattern(MinusSymbol, (a, b) => a - b),
+
+  // 二元乘法
+  BinaryOperationPatternFactory.makePattern(TimesSymbol, (a, b) => a * b),
+
+  // 二元除法
+  BinaryOperationPatternFactory.makePattern(DivideSymbol, (a, b) => a / b),
+
+  // 二元取余数
+  BinaryOperationPatternFactory.makePattern(RemainderSymbol, (a, b) => a % b),
+
+  // 二元指数运算
+  BinaryOperationPatternFactory.makePattern(RemainderSymbol, (a, b) =>
+    Math.pow(a, b),
+  ),
+
+  // 一元取负数运算
+  UnaryOperationPatternFactory.makePattern(NegativeSymbol, (a) => 0 - a),
+
+  // 一元自然指数运算
+  UnaryOperationPatternFactory.makePattern(ESymbol, (a) => Math.exp(a)),
+
+  // 一元自然对数运算
+  UnaryOperationPatternFactory.makePattern(LnSymbol, (a) => Math.log(a)),
 ];

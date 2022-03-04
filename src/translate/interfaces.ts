@@ -74,9 +74,6 @@ export type Definition = {
 
   /** 该条规则如何改写被应用的表达式 */
   action: (node: Expr, context: IEvaluateContext) => void;
-
-  /** 特殊求值流程标记，如果为 true, 则一个表达式再被应用于该条规则后，就不会再经过标准求值流程了。 */
-  final?: boolean;
 };
 
 export type NoMatchResult = { pass: false };
