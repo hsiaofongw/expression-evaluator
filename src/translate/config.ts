@@ -15,6 +15,7 @@ function makeMetaSymbol(): Expr {
   return metaSymbol;
 }
 
+/** 元符号 */
 export const SymbolSymbol: Expr = makeMetaSymbol();
 
 export class NodeFactory {
@@ -47,172 +48,135 @@ export const False: Expr = {
   value: false,
 };
 
-// 数值符号
-export const NumberSymbol = NodeFactory.makeSymbol('Number', true);
+export const allSymbolsMap = {
+  // 元符号
+  SymbolSymbol: SymbolSymbol,
 
-// 赋值符号
-export const AssignSymbol = NodeFactory.makeSymbol('Assign', true);
+  // 数值符号
+  NumberSymbol: NodeFactory.makeSymbol('Number', true),
 
-// 延迟赋值符号
-export const AssignDelayedSymbol = NodeFactory.makeSymbol(
-  'AssignDelayed',
-  true,
-);
+  // 赋值符号
+  AssignSymbol: NodeFactory.makeSymbol('Assign', true),
 
-// 清除赋值符号
-export const ClearAssignSymbol = NodeFactory.makeSymbol('ClearAssign', true);
+  // 延迟赋值符号
+  AssignDelayedSymbol: NodeFactory.makeSymbol('AssignDelayed', true),
 
-// 清除延迟赋值
-export const ClearDelayedAssign = NodeFactory.makeSymbol(
-  'ClearDelayedAssign',
-  true,
-);
+  // 清除赋值符号
+  ClearAssignSymbol: NodeFactory.makeSymbol('ClearAssign', true),
 
-// 取负符号
-export const NegativeSymbol = NodeFactory.makeSymbol('Negative');
+  // 清除延迟赋值
+  ClearDelayedAssignSymbol: NodeFactory.makeSymbol('ClearDelayedAssign', true),
 
-// 相等判断符号
-export const EqualQSymbol = NodeFactory.makeSymbol('EqualQ');
+  // 取负符号
+  NegativeSymbol: NodeFactory.makeSymbol('Negative'),
 
-// 严格大于判定符号
-export const GreaterThanSymbol = NodeFactory.makeSymbol('GreaterThan');
+  // 相等判断符号
+  EqualQSymbol: NodeFactory.makeSymbol('EqualQ'),
 
-// 严格小于判定符号
-export const LessThanSymbol = NodeFactory.makeSymbol('LessThan');
+  // 严格大于判定符号
+  GreaterThanSymbol: NodeFactory.makeSymbol('GreaterThan'),
 
-// 严格不小于判定符号
-export const GreaterThanOrEqualSymbol = NodeFactory.makeSymbol(
-  'GreaterThanOrEqualSymbol',
-);
+  // 严格小于判定符号
+  LessThanSymbol: NodeFactory.makeSymbol('LessThan'),
 
-// 严格不大于判定符号
-export const LessThanOrEqualSymbol = NodeFactory.makeSymbol('LessThanOrEqual');
+  // 严格不小于判定符号
+  GreaterThanOrEqualSymbol: NodeFactory.makeSymbol('GreaterThanOrEqualSymbol'),
 
-// 相加符号
-export const PlusSymbol = NodeFactory.makeSymbol('Plus');
+  // 严格不大于判定符号
+  LessThanOrEqualSymbol: NodeFactory.makeSymbol('LessThanOrEqual'),
 
-// 相减符号
-export const MinusSymbol = NodeFactory.makeSymbol('Minus');
+  // 相加符号
+  PlusSymbol: NodeFactory.makeSymbol('Plus'),
 
-// 相乘符号
-export const TimesSymbol = NodeFactory.makeSymbol('Times');
+  // 相减符号
+  MinusSymbol: NodeFactory.makeSymbol('Minus'),
 
-// 相除符号
-export const DivideSymbol = NodeFactory.makeSymbol('Divide');
+  // 相乘符号
+  TimesSymbol: NodeFactory.makeSymbol('Times'),
 
-// 取余数符号
-export const RemainderSymbol = NodeFactory.makeSymbol('Remainder');
+  // 相除符号
+  DivideSymbol: NodeFactory.makeSymbol('Divide'),
 
-// 幂次运算符号
-export const PowerSymbol = NodeFactory.makeSymbol('Power');
+  // 取余数符号
+  RemainderSymbol: NodeFactory.makeSymbol('Remainder'),
 
-// 一元自然指数幂符号
-export const ESymbol = NodeFactory.makeSymbol('E');
+  // 幂次运算符号
+  PowerSymbol: NodeFactory.makeSymbol('Power'),
 
-// 字符串符号
-export const StringSymbol = NodeFactory.makeSymbol('String', true);
+  // 一元自然指数幂符号
+  ESymbol: NodeFactory.makeSymbol('E'),
 
-// Sequence 符号
-export const SequenceSymbol = NodeFactory.makeSymbol('Sequence');
+  // 字符串符号
+  StringSymbol: NodeFactory.makeSymbol('String', true),
 
-// List 符号
-export const ListSymbol = NodeFactory.makeSymbol('List');
+  // Sequence 符号
+  SequenceSymbol: NodeFactory.makeSymbol('Sequence'),
 
-// Head 符号
-export const HeadSymbol = NodeFactory.makeSymbol('Head', true);
+  // List 符号
+  ListSymbol: NodeFactory.makeSymbol('List'),
 
-// Pattern 符号
-export const PatternSymbol = NodeFactory.makeSymbol('Pattern', true);
+  // Head 符号
+  HeadSymbol: NodeFactory.makeSymbol('Head', true),
 
-// Nothing 符号
-export const NothingSymbol = NodeFactory.makeSymbol('Nothing');
+  // Pattern 符号
+  PatternSymbol: NodeFactory.makeSymbol('Pattern', true),
 
-// Blank 符号
-export const BlankSymbol = NodeFactory.makeSymbol('Blank', true);
+  // Nothing 符号
+  NothingSymbol: NodeFactory.makeSymbol('Nothing'),
 
-// NumberExpressionType 符号
-export const NumberExpressionTypeSymbol = NodeFactory.makeSymbol(
-  'NumberExpressionType',
-  true,
-);
+  // Blank 符号
+  BlankSymbol: NodeFactory.makeSymbol('Blank', true),
 
-// 自然对数符号
-export const LnSymbol = NodeFactory.makeSymbol('Ln');
+  // NumberExpressionType 符号
+  NumberExpressionTypeSymbol: NodeFactory.makeSymbol(
+    'NumberExpressionType',
+    true,
+  ),
 
-// 对数符号
-export const LogSymbol = NodeFactory.makeSymbol('Log');
+  // 自然对数符号
+  LnSymbol: NodeFactory.makeSymbol('Ln'),
 
-// BlankSequence 符号
-export const BlankSequenceSymbol = NodeFactory.makeSymbol(
-  'BlankSequence',
-  true,
-);
+  // 对数符号
+  LogSymbol: NodeFactory.makeSymbol('Log'),
 
-// BlankSequenceNull 符号
-export const BlankNullSequenceSymbol = NodeFactory.makeSymbol(
-  'BlankNullSequence',
-  true,
-);
+  // BlankSequence 符号
+  BlankSequenceSymbol: NodeFactory.makeSymbol('BlankSequence', true),
 
-// If 符号
-export const IfSymbol = NodeFactory.makeSymbol('If', true);
+  // BlankSequenceNull 符号
+  BlankNullSequenceSymbol: NodeFactory.makeSymbol('BlankNullSequence', true),
 
-// Take 符号
-export const TakeSymbol = NodeFactory.makeSymbol('Take', true);
+  // If 符号
+  IfSymbol: NodeFactory.makeSymbol('If', true),
 
-// Integer 符号
-export const IntegerSymbol = NodeFactory.makeSymbol('Integer', true);
+  // Take 符号
+  TakeSymbol: NodeFactory.makeSymbol('Take', true),
 
-// Real 符号
-export const RealSymbol = NodeFactory.makeSymbol('Real', true);
+  // Integer 符号
+  IntegerSymbol: NodeFactory.makeSymbol('Integer', true),
 
-// RawEqualQ 符号
-export const RawEqualQSymbol = NodeFactory.makeSymbol('RawEqualQ', true);
+  // Real 符号
+  RealSymbol: NodeFactory.makeSymbol('Real', true),
+
+  // RawEqualQ 符号
+  RawEqualQSymbol: NodeFactory.makeSymbol('RawEqualQ', true),
+};
+
+function makeAllSymbolsList(): Expr[] {
+  const allSymbolsList: Expr[] = [];
+  for (const key in allSymbolsMap) {
+    allSymbolsList.push(allSymbolsMap[key]);
+  }
+  return allSymbolsList;
+}
 
 // 全体符号集
-export const allSymbols: Expr[] = [
-  SymbolSymbol,
-  NumberSymbol,
-  AssignSymbol,
-  AssignDelayedSymbol,
-  ClearAssignSymbol,
-  ClearDelayedAssign,
-  NegativeSymbol,
-  EqualQSymbol,
-  GreaterThanSymbol,
-  LessThanSymbol,
-  GreaterThanOrEqualSymbol,
-  LessThanOrEqualSymbol,
-  PlusSymbol,
-  MinusSymbol,
-  TimesSymbol,
-  DivideSymbol,
-  PowerSymbol,
-  StringSymbol,
-  SequenceSymbol,
-  ListSymbol,
-  HeadSymbol,
-  PatternSymbol,
-  NothingSymbol,
-  BlankSymbol,
-  BlankSequenceSymbol,
-  BlankNullSequenceSymbol,
-  IfSymbol,
-  TakeSymbol,
-  IntegerSymbol,
-  RealSymbol,
-  RawEqualQSymbol,
-  NumberExpressionTypeSymbol,
-  ESymbol,
-  LnSymbol,
-  LogSymbol,
-];
+export const allSymbols: Expr[] = makeAllSymbolsList();
 
 // 返回一个 Blank Pattern
 export function Blank(): Expr {
   return {
     nodeType: 'nonTerminal',
-    head: BlankSymbol,
+    head: allSymbolsMap.BlankSymbol,
     children: [],
   };
 }
@@ -221,7 +185,7 @@ export function Blank(): Expr {
 export function TypedBlank(h: Expr): Expr {
   return {
     nodeType: 'nonTerminal',
-    head: BlankSymbol,
+    head: allSymbolsMap.BlankSymbol,
     children: [h],
   };
 }
@@ -230,7 +194,7 @@ export function TypedBlank(h: Expr): Expr {
 export function BlankSequence(): Expr {
   return {
     nodeType: 'nonTerminal',
-    head: BlankSequenceSymbol,
+    head: allSymbolsMap.BlankSequenceSymbol,
     children: [],
   };
 }
@@ -239,7 +203,7 @@ export function BlankSequence(): Expr {
 export function BlankSequenceNull(): Expr {
   return {
     nodeType: 'nonTerminal',
-    head: BlankNullSequenceSymbol,
+    head: allSymbolsMap.BlankNullSequenceSymbol,
     children: [],
   };
 }
@@ -248,7 +212,7 @@ export function BlankSequenceNull(): Expr {
 export function NamedPattern(identifier: string, pattern: Expr): Expr {
   return {
     nodeType: 'nonTerminal',
-    head: PatternSymbol,
+    head: allSymbolsMap.PatternSymbol,
     children: [NodeFactory.makeSymbol(identifier), pattern],
   };
 }
@@ -257,7 +221,7 @@ export function NamedPattern(identifier: string, pattern: Expr): Expr {
 export function Sequence(children: Expr[]): Expr {
   return {
     nodeType: 'nonTerminal',
-    head: SequenceSymbol,
+    head: allSymbolsMap.SequenceSymbol,
     children,
   };
 }
@@ -266,7 +230,7 @@ export function Sequence(children: Expr[]): Expr {
 export function NumberExpressionType(): Expr {
   return {
     nodeType: 'nonTerminal',
-    head: NumberExpressionTypeSymbol,
+    head: allSymbolsMap.NumberExpressionTypeSymbol,
     children: [],
   };
 }
@@ -290,7 +254,7 @@ class UnaryOperationPatternFactory {
             context.pushNode({
               nodeType: 'terminal',
               expressionType: 'number',
-              head: NumberSymbol,
+              head: allSymbolsMap.NumberSymbol,
               value: valueFunction(v1.value),
             });
           }
@@ -330,7 +294,7 @@ class BinaryOperationPatternFactory {
               nodeType: 'terminal',
               expressionType: 'number',
               value: valueFunction(a, b),
-              head: NumberSymbol,
+              head: allSymbolsMap.NumberSymbol,
             });
             return;
           }
@@ -347,7 +311,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: IfSymbol,
+      head: allSymbolsMap.IfSymbol,
       children: [Blank(), Blank(), Blank()],
     },
     action: (node, context) => {
@@ -379,7 +343,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: HeadSymbol,
+      head: allSymbolsMap.HeadSymbol,
       children: [Blank()],
     },
     action: (node, context) => {
@@ -401,8 +365,8 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: TakeSymbol,
-      children: [Blank(), TypedBlank(IntegerSymbol)],
+      head: allSymbolsMap.TakeSymbol,
+      children: [Blank(), TypedBlank(allSymbolsMap.IntegerSymbol)],
     },
     action: (node, context) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -430,8 +394,8 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: BlankSymbol,
-      children: [NumberSymbol],
+      head: allSymbolsMap.BlankSymbol,
+      children: [allSymbolsMap.NumberSymbol],
     },
     action: (expr, context) => {
       if (expr.nodeType === 'terminal' && expr.expressionType === 'number') {
@@ -441,7 +405,7 @@ export const builtInDefinitions: Definition[] = [
           context.pushNode({
             nodeType: 'terminal',
             expressionType: 'number',
-            head: IntegerSymbol,
+            head: allSymbolsMap.IntegerSymbol,
             value: value,
           });
         } else {
@@ -449,7 +413,7 @@ export const builtInDefinitions: Definition[] = [
           context.pushNode({
             nodeType: 'terminal',
             expressionType: 'number',
-            head: RealSymbol,
+            head: allSymbolsMap.RealSymbol,
             value: value,
           });
         }
@@ -463,7 +427,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: RawEqualQSymbol,
+      head: allSymbolsMap.RawEqualQSymbol,
       children: [Blank(), Blank()],
     },
     action: (node, context) => {
@@ -489,7 +453,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: EqualQSymbol,
+      head: allSymbolsMap.EqualQSymbol,
       children: [Blank(), Blank()],
     },
     action: (node, context) => {
@@ -519,7 +483,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: AssignSymbol,
+      head: allSymbolsMap.AssignSymbol,
       children: [Blank(), Blank()],
     },
     action: (node, context) => {
@@ -539,7 +503,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: AssignDelayedSymbol,
+      head: allSymbolsMap.AssignDelayedSymbol,
       children: [Blank(), Blank()],
     },
     action: (node, context) => {
@@ -558,7 +522,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: ClearAssignSymbol,
+      head: allSymbolsMap.ClearAssignSymbol,
       children: [Blank()],
     },
     action: (node, context) => {
@@ -574,7 +538,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: ClearDelayedAssign,
+      head: allSymbolsMap.ClearDelayedAssignSymbol,
       children: [Blank()],
     },
     action: (node, context) => {
@@ -587,31 +551,54 @@ export const builtInDefinitions: Definition[] = [
   },
 
   // 二元加法
-  BinaryOperationPatternFactory.makePattern(PlusSymbol, (a, b) => a + b),
+  BinaryOperationPatternFactory.makePattern(
+    allSymbolsMap.PlusSymbol,
+    (a, b) => a + b,
+  ),
 
   // 二元减法
-  BinaryOperationPatternFactory.makePattern(MinusSymbol, (a, b) => a - b),
+  BinaryOperationPatternFactory.makePattern(
+    allSymbolsMap.MinusSymbol,
+    (a, b) => a - b,
+  ),
 
   // 二元乘法
-  BinaryOperationPatternFactory.makePattern(TimesSymbol, (a, b) => a * b),
+  BinaryOperationPatternFactory.makePattern(
+    allSymbolsMap.TimesSymbol,
+    (a, b) => a * b,
+  ),
 
   // 二元除法
-  BinaryOperationPatternFactory.makePattern(DivideSymbol, (a, b) => a / b),
+  BinaryOperationPatternFactory.makePattern(
+    allSymbolsMap.DivideSymbol,
+    (a, b) => a / b,
+  ),
 
   // 二元取余数
-  BinaryOperationPatternFactory.makePattern(RemainderSymbol, (a, b) => a % b),
+  BinaryOperationPatternFactory.makePattern(
+    allSymbolsMap.RemainderSymbol,
+    (a, b) => a % b,
+  ),
 
   // 二元指数运算
-  BinaryOperationPatternFactory.makePattern(RemainderSymbol, (a, b) =>
-    Math.pow(a, b),
+  BinaryOperationPatternFactory.makePattern(
+    allSymbolsMap.RemainderSymbol,
+    (a, b) => Math.pow(a, b),
   ),
 
   // 一元取负数运算
-  UnaryOperationPatternFactory.makePattern(NegativeSymbol, (a) => 0 - a),
+  UnaryOperationPatternFactory.makePattern(
+    allSymbolsMap.NegativeSymbol,
+    (a) => 0 - a,
+  ),
 
   // 一元自然指数运算
-  UnaryOperationPatternFactory.makePattern(ESymbol, (a) => Math.exp(a)),
+  UnaryOperationPatternFactory.makePattern(allSymbolsMap.ESymbol, (a) =>
+    Math.exp(a),
+  ),
 
   // 一元自然对数运算
-  UnaryOperationPatternFactory.makePattern(LnSymbol, (a) => Math.log(a)),
+  UnaryOperationPatternFactory.makePattern(allSymbolsMap.LnSymbol, (a) =>
+    Math.log(a),
+  ),
 ];

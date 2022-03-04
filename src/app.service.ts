@@ -6,7 +6,7 @@ import { LL1PredictiveParser, ToTerminalNode } from './parser/parser';
 import { stdin, stdout } from 'process';
 import { ExpressionTranslate } from './translate/translate';
 import { ExpressionNodeSerialize } from './translate/serialize';
-import { PreEvaluator } from './translate/evaluate';
+import { Evaluator, PreEvaluator } from './translate/evaluate';
 
 @Injectable()
 export class AppService {
@@ -28,6 +28,7 @@ export class AppService {
     const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
     const translate = new ExpressionTranslate();
     const preEvaluate = new PreEvaluator();
+    const evaluate = new Evaluator();
     const serialize = new ExpressionNodeSerialize();
 
     toChars
@@ -36,6 +37,7 @@ export class AppService {
       .pipe(parse)
       .pipe(translate)
       .pipe(preEvaluate)
+      .pipe(evaluate)
       .pipe(serialize);
 
     serialize.on('data', (datum) => {
