@@ -1,6 +1,12 @@
 export type SymbolExpressionType = {
+  /** 表达式类型：符号 */
   expressionType: 'symbol';
+
+  /** 符号名 */
   value: string;
+
+  /** 是否按照非标准程序求值 */
+  nonStandard?: boolean;
 };
 
 export type StringExpressionType = {
@@ -63,22 +69,17 @@ export interface IEvaluateContext {
 }
 
 export type Definition = {
+  /** 该条规则可被应用于何种模式 */
   pattern: Expr;
+
+  /** 该条规则如何改写被应用的表达式 */
   action: (node: Expr, context: IEvaluateContext) => void;
+
+  /** 特殊求值流程标记，如果为 true, 则一个表达式再被应用于该条规则后，就不会再经过标准求值流程了。 */
+  final?: boolean;
 };
 
 export type NoMatchResult = { pass: false };
 export type MatchResult = { pass: true; namedResult: Record<string, Expr[]> };
 
 export type PatternMatchResult = NoMatchResult | MatchResult;
-
-export type PatternAction = {
-  forPattern: (pattern: Expr) => boolean;
-
-  // will modify sequenceList in place, and return does the sequence pass this pattern
-  action: (
-    sequenceList: Expr[],
-    pattern: Expr,
-    context: IEvaluateContext,
-  ) => PatternMatchResult;
-};

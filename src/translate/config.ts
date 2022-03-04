@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { ExprHelper } from './evaluate';
-import { Definition, Expr, PatternAction } from './interfaces';
+import { Definition, Expr } from './interfaces';
 
 // function ListNode(): FunctionNode {
 //   return { type: 'function', nodeType: 'nonTerminal', head: { type: 'identifier', nodeType: 'terminal', value: 'List' }, children: [] };
@@ -19,13 +19,18 @@ export const SymbolSymbol: Expr = {
 SymbolSymbol.head = SymbolSymbol;
 
 export class NodeFactory {
-  public static makeSymbol(name: string): Expr {
-    return {
+  public static makeSymbol(name: string, nonStandard?: boolean): Expr {
+    const sbl: Expr = {
       head: SymbolSymbol,
       nodeType: 'terminal',
       expressionType: 'symbol',
       value: name,
+      nonStandard: false,
     };
+    if (nonStandard) {
+      sbl.nonStandard = true;
+    }
+    return sbl;
   }
 }
 
@@ -43,11 +48,26 @@ export const False: Expr = {
   value: false,
 };
 
-// 数组符号
-export const NumberSymbol = NodeFactory.makeSymbol('Number');
+// 数值符号
+export const NumberSymbol = NodeFactory.makeSymbol('Number', true);
 
 // 赋值符号
-export const AssignSymbol = NodeFactory.makeSymbol('Assign');
+export const AssignSymbol = NodeFactory.makeSymbol('Assign', true);
+
+// 延迟赋值符号
+export const AssignDelayedSymbol = NodeFactory.makeSymbol(
+  'AssignDelayed',
+  true,
+);
+
+// 清除赋值符号
+export const ClearAssignSymbol = NodeFactory.makeSymbol('ClearAssign', true);
+
+// 清除延迟赋值
+export const ClearDelayedAssign = NodeFactory.makeSymbol(
+  'ClearDelayedAssign',
+  true,
+);
 
 // 取负符号
 export const NegativeSymbol = NodeFactory.makeSymbol('Negative');
@@ -88,7 +108,7 @@ export const RemainderSymbol = NodeFactory.makeSymbol('Remainder');
 export const PowerSymbol = NodeFactory.makeSymbol('Power');
 
 // 字符串符号
-export const StringSymbol = NodeFactory.makeSymbol('String');
+export const StringSymbol = NodeFactory.makeSymbol('String', true);
 
 // Sequence 符号
 export const SequenceSymbol = NodeFactory.makeSymbol('Sequence');
@@ -97,27 +117,78 @@ export const SequenceSymbol = NodeFactory.makeSymbol('Sequence');
 export const ListSymbol = NodeFactory.makeSymbol('List');
 
 // Head 符号
-export const HeadSymbol = NodeFactory.makeSymbol('Head');
+export const HeadSymbol = NodeFactory.makeSymbol('Head', true);
 
 // Pattern 符号
-export const PatternSymbol = NodeFactory.makeSymbol('Pattern');
+export const PatternSymbol = NodeFactory.makeSymbol('Pattern', true);
 
 // Nothing 符号
 export const NothingSymbol = NodeFactory.makeSymbol('Nothing');
 
-// DirectFullEqualQ 符号
-export const DirectFullEqualQSymbol =
-  NodeFactory.makeSymbol('DirectFullEqualQ');
-
 // Blank 符号
-export const BlankSymbol = NodeFactory.makeSymbol('Blank');
+export const BlankSymbol = NodeFactory.makeSymbol('Blank', true);
 
 // BlankSequence 符号
-export const BlankSequenceSymbol = NodeFactory.makeSymbol('BlankSequence');
+export const BlankSequenceSymbol = NodeFactory.makeSymbol(
+  'BlankSequence',
+  true,
+);
 
 // BlankSequenceNull 符号
-export const BlankSequenceNullSymbol =
-  NodeFactory.makeSymbol('BlankSequenceNull');
+export const BlankSequenceNullSymbol = NodeFactory.makeSymbol(
+  'BlankSequenceNull',
+  true,
+);
+
+// If 符号
+export const IfSymbol = NodeFactory.makeSymbol('If', true);
+
+// Take 符号
+export const TakeSymbol = NodeFactory.makeSymbol('Take', true);
+
+// Integer 符号
+export const IntegerSymbol = NodeFactory.makeSymbol('Integer', true);
+
+// Real 符号
+export const RealSymbol = NodeFactory.makeSymbol('Real', true);
+
+// RawEqualQ 符号
+export const RawEqualQSymbol = NodeFactory.makeSymbol('RawEqualQ', true);
+
+// 全体符号集
+export const allSymbols: Expr[] = [
+  SymbolSymbol,
+  NumberSymbol,
+  AssignSymbol,
+  AssignDelayedSymbol,
+  ClearAssignSymbol,
+  ClearDelayedAssign,
+  NegativeSymbol,
+  EqualQSymbol,
+  GreaterThanSymbol,
+  LessThanSymbol,
+  GreaterThanOrEqualSymbol,
+  LessThanOrEqualSymbol,
+  PlusSymbol,
+  MinusSymbol,
+  TimesSymbol,
+  DivideSymbol,
+  PowerSymbol,
+  StringSymbol,
+  SequenceSymbol,
+  ListSymbol,
+  HeadSymbol,
+  PatternSymbol,
+  NothingSymbol,
+  BlankSymbol,
+  BlankSequenceSymbol,
+  BlankSequenceNullSymbol,
+  IfSymbol,
+  TakeSymbol,
+  IntegerSymbol,
+  RealSymbol,
+  RawEqualQSymbol,
+];
 
 // 返回一个 Blank Pattern
 export function Blank(): Expr {
@@ -175,11 +246,11 @@ export function Sequence(children: Expr[]): Expr {
 
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
-  // If[cond, trueClause, falseClause]
+  // If[cond, trueClause, falseClause], 走特殊求值流程
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: NodeFactory.makeSymbol('If'),
+      head: IfSymbol,
       children: [Blank(), Blank(), Blank()],
     },
     action: (node, context) => {
@@ -205,9 +276,10 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
+    final: true,
   },
 
-  // Head[x:_] := x 的 头部
+  // Head[x:_] := x 的 头部, 走特殊求值流程
   {
     pattern: {
       nodeType: 'nonTerminal',
@@ -227,14 +299,15 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
+    final: true,
   },
 
-  // Take[expr, number] 访问第几个元素
+  // Take[expr_, number_Integer] 访问第几个元素
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: NodeFactory.makeSymbol('Take'),
-      children: [Blank(), TypedBlank(NodeFactory.makeSymbol('Integer'))],
+      head: TakeSymbol,
+      children: [Blank(), TypedBlank(IntegerSymbol)],
     },
     action: (node, context) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -263,7 +336,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: BlankSymbol,
-      children: [NodeFactory.makeSymbol('Number')],
+      children: [NumberSymbol],
     },
     action: (expr, context) => {
       if (expr.nodeType === 'terminal' && expr.expressionType === 'number') {
@@ -273,7 +346,7 @@ export const builtInDefinitions: Definition[] = [
           context.pushNode({
             nodeType: 'terminal',
             expressionType: 'number',
-            head: NodeFactory.makeSymbol('Integer'),
+            head: IntegerSymbol,
             value: value,
           });
         } else {
@@ -281,7 +354,7 @@ export const builtInDefinitions: Definition[] = [
           context.pushNode({
             nodeType: 'terminal',
             expressionType: 'number',
-            head: NodeFactory.makeSymbol('Real'),
+            head: RealSymbol,
             value: value,
           });
         }
@@ -295,7 +368,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: NodeFactory.makeSymbol('RawEqualQ'),
+      head: RawEqualQSymbol,
       children: [Blank(), Blank()],
     },
     action: (node, context) => {
@@ -321,7 +394,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: NodeFactory.makeSymbol('EqualQ'),
+      head: EqualQSymbol,
       children: [Blank(), Blank()],
     },
     action: (node, context) => {
@@ -347,11 +420,11 @@ export const builtInDefinitions: Definition[] = [
     },
   },
 
-  // 立即赋值 Assign[x, y]
+  // 立即赋值 Assign[lhs, rhs], 走特殊求值流程，避免再对 lhs 求值
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: NodeFactory.makeSymbol('Assign'),
+      head: AssignSymbol,
       children: [Blank(), Blank()],
     },
     action: (node, context) => {
@@ -364,13 +437,15 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
+    final: true,
   },
 
-  // 延迟赋值 AssignDelayed[x, y]
+  // 延迟赋值 AssignDelayed[lhs, rhs], 走特殊求值流程，
+  // 这是因为在 AssignDelayed 下面，lhs 和 rhs 都不宜被求值，毕竟 AssignDelayed 的含义是「延迟赋值」。
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: NodeFactory.makeSymbol('AssignDelayed'),
+      head: AssignDelayedSymbol,
       children: [Blank(), Blank()],
     },
     action: (node, context) => {
@@ -383,13 +458,14 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
+    final: true,
   },
 
   // 清除赋值 ClearAssign[x]
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: NodeFactory.makeSymbol('ClearAssign'),
+      head: ClearAssignSymbol,
       children: [Blank()],
     },
     action: (node, context) => {
@@ -399,13 +475,14 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
+    final: true,
   },
 
   // 清除延迟赋值 ClearDelayedAssign[x]
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: NodeFactory.makeSymbol('ClearDelayedAssign'),
+      head: ClearDelayedAssign,
       children: [Blank()],
     },
     action: (node, context) => {
@@ -415,5 +492,6 @@ export const builtInDefinitions: Definition[] = [
         context.pushNode(node);
       }
     },
+    final: true,
   },
 ];

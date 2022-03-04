@@ -12,8 +12,11 @@ import {
   Expr,
   IEvaluateContext,
   KeyValuePair,
+  MatchResult,
+  NoMatchResult,
   PatternMatchResult,
 } from './interfaces';
+import { allSymbols } from './config';
 
 type ComparePair = { lhs: Expr[]; rhs: Expr[] };
 
@@ -320,6 +323,9 @@ export class ExprHelper {
 }
 
 export class Evaluator extends Transform implements IEvaluateContext {
+  /** 符号名称到符号对象的映射 */
+  private _symbolNameMap: Record<string, Expr> = {};
+
   private _exprStack: Expr[] = [];
 
   /** 系统内建定义，这里的都是按照非标准求值程序进行 */
@@ -354,6 +360,14 @@ export class Evaluator extends Transform implements IEvaluateContext {
   constructor() {
     super({ objectMode: true });
     this._exprStack = [];
+
+    const symbolNameMap: Record<string, Expr> = {};
+    for (const sbl of allSymbols) {
+      if (sbl.nodeType === 'terminal' && sbl.expressionType === 'symbol') {
+        symbolNameMap[sbl.value] = sbl;
+      }
+    }
+    this._symbolNameMap = symbolNameMap;
   }
 
   public pushNode(n: Expr): void {
@@ -402,10 +416,98 @@ export class Evaluator extends Transform implements IEvaluateContext {
     }
   }
 
-  /** 对表达式进行求值，如果有规则，按规则来，如果没有，原样返回（到栈顶） */
-  public evaluate(x: Expr): void {
-    this.findDefinitionAndReEvaluate(x, this._builtInDefinitions);
-    this.standardEvaluate(x);
+  /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
+  public evaluate(expr: Expr): void {
+    const head = expr.head;
+    if (head.nodeType === 'terminal' && head.expressionType === 'symbol') {
+      const symbolName = head.value;
+      const headSymbol = this._symbolNameMap[symbolName] as typeof head;
+      if (headSymbol.nonStandard) {
+        this.nonStandardEvaluate(expr);
+        return;
+      }
+    }
+
+    this.standardEvaluate(expr);
+  }
+
+  private findDefinition(
+    expr: Expr,
+    definitions: Definition[],
+  ): NoMatchResult | (MatchResult & { definition: Definition }) {
+    for (const definition of definitions) {
+      const match = Neo.patternMatch([expr], [definition.pattern], 0, 0);
+      if (match.pass) {
+        return { ...match, definition: definition };
+      }
+    }
+
+    return { pass: false };
+  }
+
+  private standardEvaluate(expr: Expr): void {
+    const head = expr.head;
+
+    const definitions: Definition[] = [
+      ...this._builtInDefinitions,
+      ...this._userFixedDefinition,
+      ...this._userDelayedDefinition,
+    ];
+
+    let applyCount = 0;
+
+    const match = this.findDefinition(head, definitions);
+    if (match.pass) {
+      this.definitionApply(head, match.definition, match.namedResult);
+      applyCount = applyCount + 1;
+      expr.head = this.popNode();
+    }
+
+    if (expr.nodeType === 'nonTerminal') {
+      for (let i = 0; i < expr.children.length; i++) {
+        const match = this.findDefinition(expr.children[i], definitions);
+        if (match.pass) {
+          applyCount = applyCount + 1;
+          this.definitionApply(
+            expr.children[i],
+            match.definition,
+            match.namedResult,
+          );
+          expr.children[i] = this.popNode();
+        }
+      }
+    }
+
+    const matchForExpr = this.findDefinition(expr, definitions);
+    let evaluatedExpr = expr;
+    if (matchForExpr.pass) {
+      applyCount = applyCount + 1;
+      this.definitionApply(
+        expr,
+        matchForExpr.definition,
+        matchForExpr.namedResult,
+      );
+      evaluatedExpr = this.popNode();
+    }
+
+    if (applyCount > 0) {
+      this.evaluate(evaluatedExpr);
+    } else {
+      this.pushNode(evaluatedExpr);
+    }
+  }
+
+  private nonStandardEvaluate(expr: Expr): void {
+    for (const definition of this._builtInDefinitions) {
+      const match = Neo.patternMatch([expr], [definition.pattern], 0, 0);
+      if (match.pass) {
+        this.definitionApply(expr, definition, match.namedResult);
+        if (!definition.final) {
+          this.evaluate(this.popNode());
+        }
+        return;
+      }
+    }
   }
 
   private findDefinitionAndReEvaluate(
@@ -417,7 +519,9 @@ export class Evaluator extends Transform implements IEvaluateContext {
       if (match.pass) {
         this.definitionApply(expr, def, match.namedResult);
         const evaluated = this.popNode();
-        this.evaluate(evaluated);
+        if (!def.final) {
+          this.evaluate(evaluated);
+        }
         break;
       }
     }
@@ -446,8 +550,6 @@ export class Evaluator extends Transform implements IEvaluateContext {
     this.stripSequenceSymbolFromExpr(evaluated);
     this.pushNode(evaluated);
   }
-
-  private standardEvaluate(expr: Expr): void {}
 
   /**
    * 立即赋值，在赋值时就对右表达式进行求值，之后 pattern 将总是被替换为该结果
