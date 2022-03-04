@@ -4,8 +4,8 @@ import { Transform, TransformCallback } from 'stream';
 import {
   builtInDefinitions,
   NodeFactory,
-  NothingSymbol,
   Sequence,
+  allSymbolsMap,
 } from './config';
 import {
   Definition,
@@ -364,6 +364,6 @@ export class Evaluator extends Transform implements IEvaluateContext {
       },
     });
 
-    this.pushNode(NothingSymbol);
+    this.pushNode(allSymbolsMap.NothingSymbol);
   }
 }

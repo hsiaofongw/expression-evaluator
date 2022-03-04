@@ -2,25 +2,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { Node, NonTerminalNode } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
-import {
-  AssignSymbol,
-  DivideSymbol,
-  EqualQSymbol,
-  GreaterThanOrEqualSymbol,
-  GreaterThanSymbol,
-  LessThanOrEqualSymbol,
-  LessThanSymbol,
-  ListSymbol,
-  MinusSymbol,
-  NegativeSymbol,
-  NumberSymbol,
-  PlusSymbol,
-  PowerSymbol,
-  RemainderSymbol,
-  StringSymbol,
-  SymbolSymbol,
-  TimesSymbol,
-} from './config';
+import { allSymbolsMap } from './config';
 import { Expr } from './interfaces';
 
 type Evaluator = (node: NonTerminalNode) => void;
@@ -34,7 +16,8 @@ export class ExpressionTranslate extends Transform {
   _evaluatorMap: EvaluatorMap = {
     "S -> S' CMP_0": (node) => this._evaluateEveryChild(node),
 
-    "CMP_0 -> == S' CMP_0": (node) => this._reduce(node, EqualQSymbol, 1, 2),
+    "CMP_0 -> == S' CMP_0": (node) =>
+      this._reduce(node, allSymbolsMap.EqualQSymbol, 1, 2),
 
     'CMP_0 -> ε': doNothing,
 
@@ -48,44 +31,51 @@ export class ExpressionTranslate extends Transform {
 
     "L' -> ε": doNothing,
 
-    'CMP_2 -> > E CMP_2': (node) => this._reduce(node, GreaterThanSymbol, 1, 2),
+    'CMP_2 -> > E CMP_2': (node) =>
+      this._reduce(node, allSymbolsMap.GreaterThanSymbol, 1, 2),
 
-    'CMP_2 -> < E CMP_2': (node) => this._reduce(node, LessThanSymbol, 1, 2),
+    'CMP_2 -> < E CMP_2': (node) =>
+      this._reduce(node, allSymbolsMap.LessThanSymbol, 1, 2),
 
     'CMP_2 -> >= E CMP_2': (node) =>
-      this._reduce(node, GreaterThanOrEqualSymbol, 1, 2),
+      this._reduce(node, allSymbolsMap.GreaterThanOrEqualSymbol, 1, 2),
 
     'CMP_2 -> <= E CMP_2': (node) =>
-      this._reduce(node, LessThanOrEqualSymbol, 1, 2),
+      this._reduce(node, allSymbolsMap.LessThanOrEqualSymbol, 1, 2),
 
     'CMP_2 -> ε': doNothing,
 
     "E -> T E'": (node) => this._evaluateEveryChild(node),
 
-    "E' -> '+' T E'": (node) => this._reduce(node, PlusSymbol, 1, 2),
+    "E' -> '+' T E'": (node) =>
+      this._reduce(node, allSymbolsMap.PlusSymbol, 1, 2),
 
-    "E' -> '-' T E'": (node) => this._reduce(node, MinusSymbol, 1, 2),
+    "E' -> '-' T E'": (node) =>
+      this._reduce(node, allSymbolsMap.MinusSymbol, 1, 2),
 
     "E' -> ε": doNothing,
 
     "T -> REM_0 T'": (node) => this._evaluateEveryChild(node),
 
-    "T' -> '*' REM_0 T'": (node) => this._reduce(node, TimesSymbol, 1, 2),
+    "T' -> '*' REM_0 T'": (node) =>
+      this._reduce(node, allSymbolsMap.TimesSymbol, 1, 2),
 
-    "T' -> '/' REM_0 T'": (node) => this._reduce(node, DivideSymbol, 1, 2),
+    "T' -> '/' REM_0 T'": (node) =>
+      this._reduce(node, allSymbolsMap.DivideSymbol, 1, 2),
 
     "T' -> ε": doNothing,
 
     'REM_0 -> NEG REM_1': (node) => this._evaluateEveryChild(node),
 
-    'REM_1 -> % NEG REM_1': (node) => this._reduce(node, RemainderSymbol, 1, 2),
+    'REM_1 -> % NEG REM_1': (node) =>
+      this._reduce(node, allSymbolsMap.RemainderSymbol, 1, 2),
     'REM_1 -> ε': doNothing,
 
     'NEG -> - POW_0': (node) => {
       this._evaluate(node.children[1]);
       const theValue = this._popNode();
       const negativeNode: Expr = {
-        head: NegativeSymbol,
+        head: allSymbolsMap.NegativeSymbol,
         nodeType: 'nonTerminal',
         children: [theValue],
       };
@@ -95,7 +85,8 @@ export class ExpressionTranslate extends Transform {
     'NEG -> POW_0': (node) => this._evaluateEveryChild(node),
 
     'POW_0 -> F POW_1': (node) => this._evaluateEveryChild(node),
-    'POW_1 -> ^ F POW_1': (node) => this._reduce(node, PowerSymbol, 1, 2),
+    'POW_1 -> ^ F POW_1': (node) =>
+      this._reduce(node, allSymbolsMap.PowerSymbol, 1, 2),
     'POW_1 -> ε': doNothing,
 
     "F -> F' P": (node) => this._evaluateEveryChild(node),
@@ -107,7 +98,7 @@ export class ExpressionTranslate extends Transform {
       if (v1.type === 'terminal' && v1.token) {
         const value = parseFloat(v1.token?.content ?? '0');
         const numberNode: Expr = {
-          head: NumberSymbol,
+          head: allSymbolsMap.NumberSymbol,
           nodeType: 'terminal',
           expressionType: 'number',
           value: value,
@@ -121,7 +112,7 @@ export class ExpressionTranslate extends Transform {
       if (v1.type === 'terminal' && v1.token) {
         const identifier = v1.token.content;
         const symbolNode: Expr = {
-          head: SymbolSymbol,
+          head: allSymbolsMap.SymbolSymbol,
           nodeType: 'terminal',
           expressionType: 'symbol',
           value: identifier,
@@ -135,7 +126,7 @@ export class ExpressionTranslate extends Transform {
       if (v1.type === 'terminal') {
         const stringContent = v1.token.content ?? '';
         const stringNode: Expr = {
-          head: StringSymbol,
+          head: allSymbolsMap.StringSymbol,
           nodeType: 'terminal',
           expressionType: 'string',
           value: stringContent,
@@ -147,7 +138,7 @@ export class ExpressionTranslate extends Transform {
     "F' -> { L }": (node) => {
       const list = node.children[1];
       const listNode: Expr = {
-        head: ListSymbol,
+        head: allSymbolsMap.ListSymbol,
         nodeType: 'nonTerminal',
         children: [],
       };
@@ -170,7 +161,7 @@ export class ExpressionTranslate extends Transform {
     'P -> = S': (node) => {
       const leftValueNode = this._popNode();
       const assignNode: Expr = {
-        head: AssignSymbol,
+        head: allSymbolsMap.AssignSymbol,
         nodeType: 'nonTerminal',
         children: [leftValueNode],
       };
