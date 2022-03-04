@@ -1,570 +1,513 @@
 import { ArrayHelper } from 'src/helpers/to-array';
 import { SyntaxSymbol, ProductionRule } from './interfaces';
 
-// S
-const start: SyntaxSymbol = {
-  id: 'start',
-  name: 'Start',
-  description: '开始符号',
-  type: 'nonTerminal',
-  displayName: 'S',
-  zhName: '开始',
-};
-
-const value: SyntaxSymbol = {
-  id: 'value',
-  name: 'Value',
-  description: '值符号',
-  type: 'nonTerminal',
-  displayName: "S'",
-  zhName: '值',
-};
-
-const cmp0: SyntaxSymbol = {
-  id: 'cmp0',
-  name: 'CMP_0',
-  description: '比较层级 0',
-  type: 'nonTerminal',
-  displayName: 'CMP_0',
-  zhName: '比较_0',
-};
-
-const cmp1: SyntaxSymbol = {
-  id: 'cmp1',
-  name: 'CMP_1',
-  description: '比较层级 1',
-  type: 'nonTerminal',
-  displayName: 'CMP_1',
-  zhName: '比较_1',
-};
-
-const cmp2: SyntaxSymbol = {
-  id: 'cmp2',
-  name: 'CMP_2',
-  description: '比较层级 2',
-  type: 'nonTerminal',
-  displayName: 'CMP_2',
-  zhName: '比较_2',
-};
-
-// str
-const stringSymbol: SyntaxSymbol = {
-  id: 'string',
-  name: 'String',
-  description: '字符串符号',
-  type: 'terminal',
-  definition: { tokenClassName: 'string' },
-  displayName: 'str',
-  zhName: '字符串',
-};
-
-// A
-const array: SyntaxSymbol = {
-  id: 'array',
-  name: 'Array',
-  description: '数组符号',
-  type: 'nonTerminal',
-  displayName: 'A',
-  zhName: '数组',
-};
-
-// L
-const list: SyntaxSymbol = {
-  id: 'list',
-  name: 'List',
-  description: '列表符号',
-  type: 'nonTerminal',
-  displayName: 'L',
-  zhName: '列表',
-};
-
-// L'
-const listExpand: SyntaxSymbol = {
-  id: 'listExpand',
-  name: 'ListExpand',
-  description: '列表第二项及以后',
-  type: 'nonTerminal',
-  displayName: "L'",
-  zhName: '列表余项',
-};
-
-// E
-const expression: SyntaxSymbol = {
-  id: 'expression',
-  name: 'Expression',
-  description: '表达式符号',
-  type: 'nonTerminal',
-  displayName: 'E',
-  zhName: '表达式',
-};
-
-// ε
-const epsilon: SyntaxSymbol = {
-  id: 'epsilon',
-  name: 'Epsilon',
-  description: '空符号',
-  zhName: '空',
-  type: 'terminal',
-  displayName: 'ε',
-  definition: {
-    tokenClassName: '',
+export const allSymbols: Record<string, SyntaxSymbol> = {
+  // S
+  start: {
+    id: 'start',
+    name: 'Start',
+    description: '开始符号',
+    type: 'nonTerminal',
+    displayName: 'S',
+    zhName: '开始',
   },
-};
 
-// number
-const number: SyntaxSymbol = {
-  id: 'number',
-  name: 'Number',
-  description: '数值符号',
-  type: 'terminal',
-  displayName: 'num',
-  definition: {
-    tokenClassName: 'digits',
+  value: {
+    id: 'value',
+    name: 'Value',
+    description: '值符号',
+    type: 'nonTerminal',
+    displayName: "S'",
+    zhName: '值',
   },
-  zhName: '数值',
-};
 
-// E'
-const expressionExpand: SyntaxSymbol = {
-  id: 'expressionExpand',
-  name: 'ExpressionExpand',
-  description: '表达式（辅助符号）',
-  type: 'nonTerminal',
-  displayName: "E'",
-  zhName: '表达式余项',
-};
-
-// T
-const term: SyntaxSymbol = {
-  id: 'term',
-  name: 'Term',
-  description: '可加项符号',
-  type: 'nonTerminal',
-  displayName: 'T',
-  zhName: '可加项',
-};
-
-// T'
-const termExpand: SyntaxSymbol = {
-  id: 'termExpand',
-  name: 'TermExpand',
-  description: '可加项余项符号（辅助符号）',
-  type: 'nonTerminal',
-  displayName: "T'",
-  zhName: '可加项余项',
-};
-
-// F
-const factor: SyntaxSymbol = {
-  id: 'factor',
-  name: 'Factor',
-  description: '因子符号（可乘项）',
-  type: 'nonTerminal',
-  displayName: 'F',
-  zhName: '因子',
-};
-
-// F'
-const factorExpand: SyntaxSymbol = {
-  id: 'factorExpand',
-  name: 'FactorExpand',
-  description: '因子余项符号（辅助符号）',
-  type: 'nonTerminal',
-  displayName: "F'",
-  zhName: '因子余项',
-};
-
-// P
-const parametersPart: SyntaxSymbol = {
-  id: 'parametersPart',
-  name: 'ParametersPart',
-  description: '标识符右侧可选参数部分',
-  type: 'nonTerminal',
-  displayName: 'P',
-  zhName: '函数参数部分',
-};
-
-// REM_0
-const remainder: SyntaxSymbol = {
-  id: 'rem0',
-  name: 'Remainder',
-  description: '余数运算',
-  type: 'nonTerminal',
-  displayName: 'REM_0',
-  zhName: '余数运算',
-};
-
-// REM_1
-const remainderExpand: SyntaxSymbol = {
-  id: 'rem1',
-  name: 'RemainderExpand',
-  description: '余数运算余项',
-  type: 'nonTerminal',
-  displayName: 'REM_1',
-  zhName: '余数运算余项',
-};
-
-// NEG
-const negFactor: SyntaxSymbol = {
-  id: 'negFactor',
-  name: 'NegativeFactor',
-  description: '可能为负数的项',
-  type: 'nonTerminal',
-  displayName: 'NEG',
-  zhName: '可能为负项',
-};
-
-// POW_0
-const powerFactor: SyntaxSymbol = {
-  id: 'powerFactor',
-  name: 'PowerFactor',
-  description: '幂次项',
-  type: 'nonTerminal',
-  displayName: 'POW_0',
-  zhName: '幂次项',
-};
-
-// POW_1
-const powerFactorExpand: SyntaxSymbol = {
-  id: 'powerFactorExpand',
-  name: 'PowerFactorExpand',
-  description: '幂次项余项',
-  type: 'nonTerminal',
-  displayName: 'POW_1',
-  zhName: '幂次项余项',
-};
-
-// '='
-const singleEqualSign: SyntaxSymbol = {
-  id: 'singleEqual',
-  name: 'SingleEqual',
-  description: '赋值符号',
-  type: 'terminal',
-  displayName: '=',
-  definition: {
-    tokenClassName: 'singleEqual',
+  cmp0: {
+    id: 'cmp0',
+    name: 'CMP_0',
+    description: '比较层级 0',
+    type: 'nonTerminal',
+    displayName: 'CMP_0',
+    zhName: '比较_0',
   },
-  zhName: '赋值号',
-};
 
-// '+'
-const plus: SyntaxSymbol = {
-  id: 'plus',
-  name: 'Plus',
-  description: '加号',
-  type: 'terminal',
-  displayName: '+',
-  definition: {
-    tokenClassName: 'plus',
+  cmp1: {
+    id: 'cmp1',
+    name: 'CMP_1',
+    description: '比较层级 1',
+    type: 'nonTerminal',
+    displayName: 'CMP_1',
+    zhName: '比较_1',
   },
-  zhName: '加号',
-};
 
-// '-'
-const minus: SyntaxSymbol = {
-  id: 'minus',
-  name: 'Minus',
-  description: '减号',
-  type: 'terminal',
-  displayName: '-',
-  definition: {
-    tokenClassName: 'minus',
+  cmp2: {
+    id: 'cmp2',
+    name: 'CMP_2',
+    description: '比较层级 2',
+    type: 'nonTerminal',
+    displayName: 'CMP_2',
+    zhName: '比较_2',
   },
-  zhName: '减号',
-};
 
-// '*'
-const times: SyntaxSymbol = {
-  id: 'times',
-  name: 'times',
-  description: '乘号',
-  type: 'terminal',
-  displayName: '*',
-  definition: {
-    tokenClassName: 'times',
+  // str
+  stringSymbol: {
+    id: 'string',
+    name: 'String',
+    description: '字符串符号',
+    type: 'terminal',
+    definition: { tokenClassName: 'string' },
+    displayName: 'str',
+    zhName: '字符串',
   },
-  zhName: '乘号',
-};
 
-// '/'
-const divideBy: SyntaxSymbol = {
-  id: 'divideBy',
-  name: 'DivideBy',
-  description: '除号',
-  type: 'terminal',
-  displayName: '/',
-  definition: {
-    tokenClassName: 'divideBy',
+  // A
+  array: {
+    id: 'array',
+    name: 'Array',
+    description: '数组符号',
+    type: 'nonTerminal',
+    displayName: 'A',
+    zhName: '数组',
   },
-  zhName: '除号',
-};
 
-// >
-const greaterThan: SyntaxSymbol = {
-  id: 'greaterThan',
-  name: 'GreaterThan',
-  description: '严格大于号',
-  type: 'terminal',
-  displayName: '>',
-  definition: {
-    tokenClassName: 'greaterThan',
+  // L
+  list: {
+    id: 'list',
+    name: 'List',
+    description: '列表符号',
+    type: 'nonTerminal',
+    displayName: 'L',
+    zhName: '列表',
   },
-  zhName: '严格大于号',
-};
 
-// >=
-const greaterThanOrEqualTo: SyntaxSymbol = {
-  id: 'greaterThanOrEqualTo',
-  name: 'GreaterThanOrEqualTo',
-  description: '严格不小于号',
-  type: 'terminal',
-  displayName: '>=',
-  definition: {
-    tokenClassName: 'greaterThanOrEqualTo',
+  // L'
+  listExpand: {
+    id: 'listExpand',
+    name: 'ListExpand',
+    description: '列表第二项及以后',
+    type: 'nonTerminal',
+    displayName: "L'",
+    zhName: '列表余项',
   },
-  zhName: '严格不小于号',
-};
 
-// <
-const lessThan: SyntaxSymbol = {
-  id: 'lessThan',
-  name: 'LessThan',
-  description: '严格小于号',
-  type: 'terminal',
-  displayName: '<',
-  definition: {
-    tokenClassName: 'lessThan',
+  // E
+  expression: {
+    id: 'expression',
+    name: 'Expression',
+    description: '表达式符号',
+    type: 'nonTerminal',
+    displayName: 'E',
+    zhName: '表达式',
   },
-  zhName: '严格小于号',
-};
 
-// <=
-const lessThanOrEqualTo: SyntaxSymbol = {
-  id: 'lessThanOrEqualTo',
-  name: 'LessThanOrEqualTo',
-  description: '严格不大于号',
-  type: 'terminal',
-  displayName: '<=',
-  definition: {
-    tokenClassName: 'lessThanOrEqualTo',
+  // ε
+  epsilon: {
+    id: 'epsilon',
+    name: 'Epsilon',
+    description: '空符号',
+    zhName: '空',
+    type: 'terminal',
+    displayName: 'ε',
+    definition: {
+      tokenClassName: '',
+    },
   },
-  zhName: '严格不小于号',
-};
 
-// ==
-const equalSign: SyntaxSymbol = {
-  id: 'equalSign',
-  name: 'DoubleEqual',
-  description: '等于号',
-  type: 'terminal',
-  displayName: '==',
-  definition: {
-    tokenClassName: 'doubleEqual',
+  // number
+  number: {
+    id: 'number',
+    name: 'Number',
+    description: '数值符号',
+    type: 'terminal',
+    displayName: 'num',
+    definition: {
+      tokenClassName: 'digits',
+    },
+    zhName: '数值',
   },
-  zhName: '双等于号',
-};
 
-// '('
-const leftParenthesis: SyntaxSymbol = {
-  id: 'leftParenthesis',
-  name: 'LeftParenthesis',
-  description: '左括号，通常用于强制运算符结合顺序。',
-  type: 'terminal',
-  displayName: '(',
-  definition: {
-    tokenClassName: 'leftParenthesis',
+  // E'
+  expressionExpand: {
+    id: 'expressionExpand',
+    name: 'ExpressionExpand',
+    description: '表达式（辅助符号）',
+    type: 'nonTerminal',
+    displayName: "E'",
+    zhName: '表达式余项',
   },
-  zhName: '左括号',
-};
 
-// ')'
-const rightParenthesis: SyntaxSymbol = {
-  id: 'rightParenthesis',
-  name: 'RightParenthesis',
-  description: '右括号，通常用于强制运算符结合顺序。',
-  type: 'terminal',
-  displayName: ')',
-  definition: {
-    tokenClassName: 'rightParenthesis',
+  // T
+  term: {
+    id: 'term',
+    name: 'Term',
+    description: '可加项符号',
+    type: 'nonTerminal',
+    displayName: 'T',
+    zhName: '可加项',
   },
-  zhName: '右括号',
-};
 
-// '['
-const leftSquareBracket: SyntaxSymbol = {
-  id: 'leftSquareBracket',
-  name: 'LeftSquareBracket',
-  description: '左方括号，通常用于表示一个函数参数列表的开始。',
-  type: 'terminal',
-  displayName: '[',
-  definition: {
-    tokenClassName: 'leftSquareBracket',
+  // T'
+  termExpand: {
+    id: 'termExpand',
+    name: 'TermExpand',
+    description: '可加项余项符号（辅助符号）',
+    type: 'nonTerminal',
+    displayName: "T'",
+    zhName: '可加项余项',
   },
-  zhName: '左方括号',
-};
 
-// ']'
-const rightSquareBracket: SyntaxSymbol = {
-  id: 'rightSquareBracket',
-  name: 'RightSquareBracket',
-  description: '右方括号，通常用于表示一个函数参数列表的结束。',
-  displayName: ']',
-  type: 'terminal',
-  definition: {
-    tokenClassName: 'rightSquareBracket',
+  // F
+  factor: {
+    id: 'factor',
+    name: 'Factor',
+    description: '因子符号（可乘项）',
+    type: 'nonTerminal',
+    displayName: 'F',
+    zhName: '因子',
   },
-  zhName: '右方括号',
-};
 
-// '{'
-const leftBracket: SyntaxSymbol = {
-  id: 'leftBracket',
-  name: 'LeftBracket',
-  description: '左花括号',
-  displayName: '{',
-  type: 'terminal',
-  definition: {
-    tokenClassName: 'leftBracket',
+  // F'
+  factorExpand: {
+    id: 'factorExpand',
+    name: 'FactorExpand',
+    description: '因子余项符号（辅助符号）',
+    type: 'nonTerminal',
+    displayName: "F'",
+    zhName: '因子余项',
   },
-  zhName: '左花括号',
-};
 
-// '}'
-const rightBracket: SyntaxSymbol = {
-  id: 'rightBracket',
-  name: 'RightBracket',
-  description: '右花括号',
-  displayName: '}',
-  type: 'terminal',
-  definition: {
-    tokenClassName: 'rightBracket',
+  // P
+  parametersPart: {
+    id: 'parametersPart',
+    name: 'ParametersPart',
+    description: '标识符右侧可选参数部分',
+    type: 'nonTerminal',
+    displayName: 'P',
+    zhName: '函数参数部分',
   },
-  zhName: '右花括号',
-};
 
-// id
-const identifier: SyntaxSymbol = {
-  id: 'identifier',
-  name: 'Identifier',
-  description:
-    '标识符，一般也就是变量名，通常是以下划线或者字母打头，然后后续可能紧接着 0 个或多个字母、数字以及下划线。',
-  type: 'terminal',
-  displayName: 'id',
-  definition: {
-    tokenClassName: 'identifier',
+  // REM_0
+  remainder: {
+    id: 'rem0',
+    name: 'Remainder',
+    description: '余数运算',
+    type: 'nonTerminal',
+    displayName: 'REM_0',
+    zhName: '余数运算',
   },
-  zhName: '标识符',
-};
 
-// ,
-const comma: SyntaxSymbol = {
-  id: 'comma',
-  name: 'Comma',
-  description: '逗号，可用作函数参数列表的分隔符或者数组各项的分隔符。',
-  type: 'terminal',
-  displayName: ',',
-  definition: {
-    tokenClassName: 'comma',
+  // REM_1
+  remainderExpand: {
+    id: 'rem1',
+    name: 'RemainderExpand',
+    description: '余数运算余项',
+    type: 'nonTerminal',
+    displayName: 'REM_1',
+    zhName: '余数运算余项',
   },
-  zhName: '逗号',
-};
 
-// ^
-const caret: SyntaxSymbol = {
-  id: 'caret',
-  name: 'Caret',
-  description: '插入符',
-  type: 'terminal',
-  displayName: '^',
-  definition: {
-    tokenClassName: 'caret',
+  // NEG
+  negFactor: {
+    id: 'negFactor',
+    name: 'NegativeFactor',
+    description: '可能为负数的项',
+    type: 'nonTerminal',
+    displayName: 'NEG',
+    zhName: '可能为负项',
   },
-  zhName: '插入符',
-};
 
-// %
-const percent: SyntaxSymbol = {
-  id: 'percent',
-  name: 'Percent',
-  description: '百分号',
-  type: 'terminal',
-  displayName: '%',
-  definition: {
-    tokenClassName: 'percent',
+  // POW_0
+  powerFactor: {
+    id: 'powerFactor',
+    name: 'PowerFactor',
+    description: '幂次项',
+    type: 'nonTerminal',
+    displayName: 'POW_0',
+    zhName: '幂次项',
   },
-  zhName: '百分号',
-};
 
-// $
-const endOfFile: SyntaxSymbol = {
-  id: 'endOfFile',
-  name: 'EndOfFile',
-  description: '文件结束符，表示输入结束。',
-  type: 'terminal',
-  displayName: '$',
-  definition: {
-    tokenClassName: 'endOfFile',
+  // POW_1
+  powerFactorExpand: {
+    id: 'powerFactorExpand',
+    name: 'PowerFactorExpand',
+    description: '幂次项余项',
+    type: 'nonTerminal',
+    displayName: 'POW_1',
+    zhName: '幂次项余项',
   },
-  zhName: '文件结束符',
-};
 
-/** 所有符号 */
-export const allSymbols = {
-  start,
-  value,
-  cmp0,
-  cmp1,
-  cmp2,
+  // '='
+  singleEqualSign: {
+    id: 'singleEqual',
+    name: 'SingleEqual',
+    description: '赋值符号',
+    type: 'terminal',
+    displayName: '=',
+    definition: {
+      tokenClassName: 'singleEqual',
+    },
+    zhName: '赋值号',
+  },
 
-  array,
-  stringSymbol,
+  // '+'
+  plus: {
+    id: 'plus',
+    name: 'Plus',
+    description: '加号',
+    type: 'terminal',
+    displayName: '+',
+    definition: {
+      tokenClassName: 'plus',
+    },
+    zhName: '加号',
+  },
 
-  list,
-  listExpand,
+  // '-'
+  minus: {
+    id: 'minus',
+    name: 'Minus',
+    description: '减号',
+    type: 'terminal',
+    displayName: '-',
+    definition: {
+      tokenClassName: 'minus',
+    },
+    zhName: '减号',
+  },
 
-  expression,
-  expressionExpand,
+  // '*'
+  times: {
+    id: 'times',
+    name: 'times',
+    description: '乘号',
+    type: 'terminal',
+    displayName: '*',
+    definition: {
+      tokenClassName: 'times',
+    },
+    zhName: '乘号',
+  },
 
-  term,
-  termExpand,
+  // '/'
+  divideBy: {
+    id: 'divideBy',
+    name: 'DivideBy',
+    description: '除号',
+    type: 'terminal',
+    displayName: '/',
+    definition: {
+      tokenClassName: 'divideBy',
+    },
+    zhName: '除号',
+  },
 
-  remainder,
-  remainderExpand,
-  negFactor,
-  powerFactor,
-  powerFactorExpand,
+  // >
+  greaterThan: {
+    id: 'greaterThan',
+    name: 'GreaterThan',
+    description: '严格大于号',
+    type: 'terminal',
+    displayName: '>',
+    definition: {
+      tokenClassName: 'greaterThan',
+    },
+    zhName: '严格大于号',
+  },
 
-  factor,
-  factorExpand,
+  // >=
+  greaterThanOrEqualTo: {
+    id: 'greaterThanOrEqualTo',
+    name: 'GreaterThanOrEqualTo',
+    description: '严格不小于号',
+    type: 'terminal',
+    displayName: '>=',
+    definition: {
+      tokenClassName: 'greaterThanOrEqualTo',
+    },
+    zhName: '严格不小于号',
+  },
 
-  parametersPart,
+  // <
+  lessThan: {
+    id: 'lessThan',
+    name: 'LessThan',
+    description: '严格小于号',
+    type: 'terminal',
+    displayName: '<',
+    definition: {
+      tokenClassName: 'lessThan',
+    },
+    zhName: '严格小于号',
+  },
 
-  plus,
-  minus,
-  times,
-  divideBy,
-  singleEqualSign,
-  lessThan,
-  lessThanOrEqualTo,
-  greaterThan,
-  greaterThanOrEqualTo,
-  equalSign,
+  // <=
+  lessThanOrEqualTo: {
+    id: 'lessThanOrEqualTo',
+    name: 'LessThanOrEqualTo',
+    description: '严格不大于号',
+    type: 'terminal',
+    displayName: '<=',
+    definition: {
+      tokenClassName: 'lessThanOrEqualTo',
+    },
+    zhName: '严格不小于号',
+  },
 
-  leftParenthesis,
-  rightParenthesis,
-  leftSquareBracket,
-  rightSquareBracket,
-  leftBracket,
-  rightBracket,
+  // ==
+  equalSign: {
+    id: 'equalSign',
+    name: 'DoubleEqual',
+    description: '等于号',
+    type: 'terminal',
+    displayName: '==',
+    definition: {
+      tokenClassName: 'doubleEqual',
+    },
+    zhName: '双等于号',
+  },
 
-  number,
-  identifier,
-  comma,
-  caret,
-  percent,
+  // '('
+  leftParenthesis: {
+    id: 'leftParenthesis',
+    name: 'LeftParenthesis',
+    description: '左括号，通常用于强制运算符结合顺序。',
+    type: 'terminal',
+    displayName: '(',
+    definition: {
+      tokenClassName: 'leftParenthesis',
+    },
+    zhName: '左括号',
+  },
 
-  epsilon,
-  endOfFile,
+  // ')'
+  rightParenthesis: {
+    id: 'rightParenthesis',
+    name: 'RightParenthesis',
+    description: '右括号，通常用于强制运算符结合顺序。',
+    type: 'terminal',
+    displayName: ')',
+    definition: {
+      tokenClassName: 'rightParenthesis',
+    },
+    zhName: '右括号',
+  },
+
+  // '['
+  leftSquareBracket: {
+    id: 'leftSquareBracket',
+    name: 'LeftSquareBracket',
+    description: '左方括号，通常用于表示一个函数参数列表的开始。',
+    type: 'terminal',
+    displayName: '[',
+    definition: {
+      tokenClassName: 'leftSquareBracket',
+    },
+    zhName: '左方括号',
+  },
+
+  // ']'
+  rightSquareBracket: {
+    id: 'rightSquareBracket',
+    name: 'RightSquareBracket',
+    description: '右方括号，通常用于表示一个函数参数列表的结束。',
+    displayName: ']',
+    type: 'terminal',
+    definition: {
+      tokenClassName: 'rightSquareBracket',
+    },
+    zhName: '右方括号',
+  },
+
+  // '{'
+  leftBracket: {
+    id: 'leftBracket',
+    name: 'LeftBracket',
+    description: '左花括号',
+    displayName: '{',
+    type: 'terminal',
+    definition: {
+      tokenClassName: 'leftBracket',
+    },
+    zhName: '左花括号',
+  },
+
+  // '}'
+  rightBracket: {
+    id: 'rightBracket',
+    name: 'RightBracket',
+    description: '右花括号',
+    displayName: '}',
+    type: 'terminal',
+    definition: {
+      tokenClassName: 'rightBracket',
+    },
+    zhName: '右花括号',
+  },
+
+  // id
+  identifier: {
+    id: 'identifier',
+    name: 'Identifier',
+    description:
+      '标识符，一般也就是变量名，通常是以下划线或者字母打头，然后后续可能紧接着 0 个或多个字母、数字以及下划线。',
+    type: 'terminal',
+    displayName: 'id',
+    definition: {
+      tokenClassName: 'identifier',
+    },
+    zhName: '标识符',
+  },
+
+  // ,
+  comma: {
+    id: 'comma',
+    name: 'Comma',
+    description: '逗号，可用作函数参数列表的分隔符或者数组各项的分隔符。',
+    type: 'terminal',
+    displayName: ',',
+    definition: {
+      tokenClassName: 'comma',
+    },
+    zhName: '逗号',
+  },
+
+  // ^
+  caret: {
+    id: 'caret',
+    name: 'Caret',
+    description: '插入符',
+    type: 'terminal',
+    displayName: '^',
+    definition: {
+      tokenClassName: 'caret',
+    },
+    zhName: '插入符',
+  },
+
+  // %
+  percent: {
+    id: 'percent',
+    name: 'Percent',
+    description: '百分号',
+    type: 'terminal',
+    displayName: '%',
+    definition: {
+      tokenClassName: 'percent',
+    },
+    zhName: '百分号',
+  },
+
+  // $
+  endOfFile: {
+    id: 'endOfFile',
+    name: 'EndOfFile',
+    description: '文件结束符，表示输入结束。',
+    type: 'terminal',
+    displayName: '$',
+    definition: {
+      tokenClassName: 'endOfFile',
+    },
+    zhName: '文件结束符',
+  },
 };
 
 /** 文法中的全体非终结符号 */
