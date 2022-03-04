@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Transform } from 'stream';
-import { builtInDefinitions, NodeFactory, NothingSymbol } from './config';
+import {
+  builtInDefinitions,
+  NodeFactory,
+  NothingSymbol,
+  Sequence,
+} from './config';
 import {
   Definition,
   Expr,
@@ -359,6 +364,7 @@ export class Evaluator extends Transform implements IEvaluateContext {
     return this._exprStack.pop() as Expr;
   }
 
+  /** Modify node in-place */
   private stripSequenceSymbolFromExpr(node: Expr): void {
     if (node.nodeType === 'nonTerminal') {
       if (
@@ -397,9 +403,51 @@ export class Evaluator extends Transform implements IEvaluateContext {
   }
 
   /** 对表达式进行求值，如果有规则，按规则来，如果没有，原样返回（到栈顶） */
-  public evaluate(expr: Expr): void {}
+  public evaluate(x: Expr): void {
+    this.findDefinitionAndReEvaluate(x, this._builtInDefinitions);
+    this.standardEvaluate(x);
+  }
 
-  private _standardEvaluate(expr: Expr): void {}
+  private findDefinitionAndReEvaluate(
+    expr: Expr,
+    definitions: Definition[],
+  ): void {
+    for (const def of definitions) {
+      const match = Neo.patternMatch([expr], [def.pattern], 0, 0);
+      if (match.pass) {
+        this.definitionApply(expr, def, match.namedResult);
+        const evaluated = this.popNode();
+        this.evaluate(evaluated);
+        break;
+      }
+    }
+  }
+
+  private definitionApply(
+    expr: Expr,
+    definition: Definition,
+    matchResult: Record<string, Expr[]>,
+  ): void {
+    const ephemeralDef: Definition[] = [];
+    for (const key in matchResult) {
+      const val = matchResult[key];
+      ephemeralDef.push({
+        pattern: NodeFactory.makeSymbol(key),
+        action: (_, ctx) => {
+          ctx.pushNode(Sequence(val));
+        },
+      });
+    }
+    this._ephemeralDefinitions.push(ephemeralDef);
+    definition.action(expr, this);
+    this._ephemeralDefinitions.pop();
+
+    const evaluated = this.popNode();
+    this.stripSequenceSymbolFromExpr(evaluated);
+    this.pushNode(evaluated);
+  }
+
+  private standardEvaluate(expr: Expr): void {}
 
   /**
    * 立即赋值，在赋值时就对右表达式进行求值，之后 pattern 将总是被替换为该结果
