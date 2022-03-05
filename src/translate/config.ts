@@ -268,7 +268,7 @@ class UnaryOperationPatternFactory {
       pattern: {
         nodeType: 'nonTerminal',
         head: headExpr,
-        children: [NumberExpressionType()],
+        children: [Blank()],
       },
       action: (node, evaluator, context) => {
         if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
@@ -290,7 +290,7 @@ class UnaryOperationPatternFactory {
           return nodeCopy;
         }
 
-        return allSymbolsMap.NothingSymbol;
+        return node;
       },
       displayName: 'x :-> f x',
     };
@@ -307,7 +307,7 @@ class BinaryOperationPatternFactory {
       pattern: {
         nodeType: 'nonTerminal',
         head: headExpr,
-        children: [NumberExpressionType(), NumberExpressionType()],
+        children: [Blank(), Blank()],
       },
       action: (node, evaluator, context) => {
         if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -339,7 +339,7 @@ class BinaryOperationPatternFactory {
           );
           return nodeCopy;
         }
-        return allSymbolsMap.NothingSymbol;
+        return node;
       },
       displayName: '(x, y) :-> f (x, y)',
     };

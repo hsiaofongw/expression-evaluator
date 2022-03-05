@@ -157,14 +157,21 @@ export class Evaluator extends Transform implements IEvaluator {
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
   public evaluate(expr: Expr, context: IContext): Expr {
     const head = expr.head;
+    let result = ExprHelper.shallowCopy(expr);
     if (
       head.nodeType === 'terminal' &&
       head.expressionType === 'symbol' &&
       allNonStandardSymbolsSet.has(head.value)
     ) {
-      return this.nonStandardEvaluate(expr, context);
+      result = this.nonStandardEvaluate(result, context);
     } else {
-      return this.standardEvaluate(expr, context);
+      result = this.standardEvaluate(result, context);
+    }
+
+    if (ExprHelper.rawEqualQ([expr], [result])) {
+      return result;
+    } else {
+      return this.evaluate(result, context);
     }
   }
 
@@ -225,7 +232,6 @@ export class Evaluator extends Transform implements IEvaluator {
 
   private standardEvaluate(expr: Expr, context: IContext): Expr {
     let _expr = ExprHelper.shallowCopy(expr);
-    let applyCount = 0;
 
     const match = this.findDefinition(_expr.head, context);
     if (match.pass) {
@@ -235,14 +241,12 @@ export class Evaluator extends Transform implements IEvaluator {
         context,
         match.namedResult,
       );
-      applyCount = applyCount + 1;
     }
 
     if (_expr.nodeType === 'nonTerminal') {
       for (let i = 0; i < _expr.children.length; i++) {
         const match = this.findDefinition(_expr.children[i], context);
         if (match.pass) {
-          applyCount = applyCount + 1;
           _expr.children[i] = this.takeAction(
             _expr.children[i],
             match.definition,
@@ -255,7 +259,6 @@ export class Evaluator extends Transform implements IEvaluator {
 
     const matchForExpr = this.findDefinition(_expr, context);
     if (matchForExpr.pass) {
-      applyCount = applyCount + 1;
       _expr = this.takeAction(
         _expr,
         matchForExpr.definition,
@@ -264,11 +267,7 @@ export class Evaluator extends Transform implements IEvaluator {
       );
     }
 
-    if (applyCount > 0) {
-      return this.evaluate(_expr, context);
-    } else {
-      return _expr;
-    }
+    return _expr;
   }
 
   private nonStandardEvaluate(expr: Expr, context: IContext): Expr {
