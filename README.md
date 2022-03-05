@@ -38,7 +38,7 @@ npm run start:dev  # 或者 npm run start:inspect
 输入：
 
 ```
-fib[Pattern[x, Blank[]]] := If[x == 1, 1, If[x == 2, 1, fib[x-1] + fib[x-2]]]
+fib[x_] := If[x == 1, 1, If[x == 2, 1, fib[x-1] + fib[x-2]]]
 ```
 
 按回车，这时定义了一个函数，系统能够输出斐波那契数列的第 x 项。

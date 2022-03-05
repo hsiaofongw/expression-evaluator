@@ -36,6 +36,8 @@ export class AppService {
       .pipe(toTerminalNode)
       .pipe(parse)
       .pipe(translate)
+      .pipe(preEvaluate)
+      .pipe(evaluate)
       .pipe(serialize);
 
     serialize.on('data', (datum) => {
