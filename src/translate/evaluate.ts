@@ -156,6 +156,8 @@ export class Evaluator extends Transform implements IEvaluator {
 
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
   public evaluate(expr: Expr, context: IContext): Expr {
+    console.log('Evaluate: ' + ExprHelper.nodeToString(expr));
+
     const head = expr.head;
     let result = ExprHelper.shallowCopy(expr);
     if (
@@ -221,6 +223,11 @@ export class Evaluator extends Transform implements IEvaluator {
     parentContext: IContext,
     namedResult: Record<string, Expr[]>,
   ): Expr {
+    for (const key in namedResult) {
+      for (let i = 0; i < namedResult[key].length; i++) {
+        namedResult[key][i] = this.evaluate(namedResult[key][i], parentContext);
+      }
+    }
     const evaluated = definition.action(
       expr,
       this,
@@ -256,6 +263,8 @@ export class Evaluator extends Transform implements IEvaluator {
         }
       }
     }
+
+    this.stripSequenceSymbolFromExpr(_expr);
 
     const matchForExpr = this.findDefinition(_expr, context);
     if (matchForExpr.pass) {
