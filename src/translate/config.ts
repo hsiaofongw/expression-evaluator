@@ -307,7 +307,7 @@ class BinaryOperationPatternFactory {
       pattern: {
         nodeType: 'nonTerminal',
         head: headExpr,
-        children: [Blank(), Blank()],
+        children: [NumberExpressionType(), NumberExpressionType()],
       },
       action: (node, evaluator, context) => {
         if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
