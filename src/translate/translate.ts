@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { Node, NonTerminalNode } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
-import { allSymbolsMap, Blank, BlankSequence } from './config';
+import { allSymbolsMap, Blank, BlankSequence, NodeFactory } from './config';
 import { Expr } from './interfaces';
 
 type Evaluator = (node: NonTerminalNode) => void;
@@ -137,16 +137,17 @@ export class ExpressionTranslate extends Transform {
 
     'PTN_0 -> ε': doNothing,
     'PTN_0 -> id': (node) => {
-      this._evaluate(node.children[0]);
-      const identifierExpr = this._popNode();
-      const patternExpr = this._popNode();
-      if (patternExpr.nodeType === 'nonTerminal') {
-        const blankExpr = patternExpr.children[1];
-        if (blankExpr.nodeType === 'nonTerminal') {
-          blankExpr.children = [identifierExpr];
+      const v1 = node.children[0];
+      if (v1.type === 'terminal' && v1.token?.content) {
+        const patternExpr = this._popNode();
+        if (patternExpr.nodeType === 'nonTerminal') {
+          const blankExpr = patternExpr.children[1];
+          if (blankExpr.nodeType === 'nonTerminal') {
+            blankExpr.children = [NodeFactory.makeSymbol(v1.token.content)];
+          }
         }
+        this._pushNode(patternExpr);
       }
-      this._pushNode(patternExpr);
     },
     'PTN_0 -> _ PTN_1': (node) => {
       const patternExpr = this._popNode();
@@ -163,16 +164,19 @@ export class ExpressionTranslate extends Transform {
 
     'PTN_1 -> ε': doNothing,
     'PTN_1 -> id': (node) => {
-      const patternExpr = this._popNode();
-      this._evaluate(node.children[0]);
-      const identifierExpr = this._popNode();
-      if (patternExpr.nodeType === 'nonTerminal') {
-        const blankSequenceExpr = patternExpr.children[1];
-        if (blankSequenceExpr.nodeType === 'nonTerminal') {
-          blankSequenceExpr.children = [identifierExpr];
+      const v1 = node.children[0];
+      if (v1.type === 'terminal' && v1.token) {
+        const patternExpr = this._popNode();
+        if (patternExpr.nodeType === 'nonTerminal') {
+          const blankSequenceExpr = patternExpr.children[1];
+          if (blankSequenceExpr.nodeType === 'nonTerminal') {
+            blankSequenceExpr.children = [
+              NodeFactory.makeSymbol(v1.token.content),
+            ];
+          }
         }
+        this._pushNode(patternExpr);
       }
-      this._pushNode(patternExpr);
     },
     'PTN_1 -> _ PTN_2': (node) => {
       const patternExpr = this._popNode();
@@ -189,16 +193,19 @@ export class ExpressionTranslate extends Transform {
 
     'PTN_2 -> ε': doNothing,
     'PTN_2 -> id': (node) => {
-      const patternExpr = this._popNode();
-      this._evaluate(node.children[0]);
-      const identifierExpr = this._popNode();
-      if (patternExpr.nodeType === 'nonTerminal') {
-        const blankNullSequenceExpr = patternExpr.children[1];
-        if (blankNullSequenceExpr.nodeType === 'nonTerminal') {
-          blankNullSequenceExpr.children = [identifierExpr];
+      const v1 = node.children[0];
+      if (v1.type === 'terminal' && v1.token) {
+        const patternExpr = this._popNode();
+        if (patternExpr.nodeType === 'nonTerminal') {
+          const blankNullSequenceExpr = patternExpr.children[1];
+          if (blankNullSequenceExpr.nodeType === 'nonTerminal') {
+            blankNullSequenceExpr.children = [
+              NodeFactory.makeSymbol(v1.token.content),
+            ];
+          }
         }
+        this._pushNode(patternExpr);
       }
-      this._pushNode(patternExpr);
     },
 
     "F' -> str": (node) => {
