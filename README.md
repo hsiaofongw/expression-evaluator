@@ -71,40 +71,23 @@ Here are what I found interesting:
 
 ## 已实现函数列表 Currently Supported Functions
 
+当前的版本仍非常不稳定，很多功能没有做，也很容易触发 bug, 但是因为这是一个从 0 到 1 的突破，所以发了 1.0 版本。
+
 ```
-Plus[x, y]                     # x+y
-Minus[x, y]                    # x-y
-Times[x, y]                    # x*y
-Divide[x, y]                   # x/y
-If[x, y, z]                    # 如果 x 为真，返回 y, 否则返回 z
-Take[x, y]                     # 访问 x 的第 y+1 个元素
-GetHead[x]                     # 查看 x 表达式树的根节点，将根节点名称以标识符形式返回
-GetParametersList[x]           # 获取 x 作为函数节点的参数列表，以列表形式返回
-EqualQ[x, y]                   # 若 x 等于 y, 则返回 true, 否则返回 false, 判断方式见源码
-GreaterThan[x, y]              # 返回数 x 是否严格大于 y
-LessThan[x, y]                 # 返回数 x 是否严格小于 y
-GreaterThanOrEqual[x, y]       # 返回 x 是否严格不小于 y
-LessThanOrEqual[x, y]          # 返回 x 是否严格不大于 y
-Sin[x]                         # 计算 x 的正弦值，将 x 视为弧度
-Cos[x]                         # 计算 x 的余弦值，将 x 视为弧度
-Tan[x]                         # 计算 x 的正切值，将 x 视为弧度
-ArcSin[x]                      # 计算 Sin^{-1}[x], 在有定义的范围内
-ArcCos[x]                      # 计算 Cos^{-1}[x], 在有定义的范围内
-ArcTan[x]                      # 计算 Tan^{-1}[x], 在有定义的范围内
-SinH[x]                        # 计算双曲正弦
-CosH[x]                        # 计算双曲余弦
-TanH[x]                        # 计算双曲正切
-Exp[x]                         # 计算 e^{x}
-Ln[x]                          # 计算 x 的自然对数
-Lg[x]                          # 计算 x 的以 10 为底的对数
-Log2[x]                        # 计算 x 的以 2 为底的对数
-FullForm[x]                    # 给出输入的标准 Expression 形式
-GetProductionRulesPreview[]    # 获得语法产生式规则集的预览（字符串形式、已格式化的）
-Print[x]                       # 在控制台打印字符串 x, 字符串以双引号包围，支持 \ 转义
-StringJoin[x, y]               # 将字符串 y 首端连接到字符串 x 的尾端，并且返回连接后的字符串
-Remainder[x, y]                # 计算 x 除以 y 得到的余数
-Power[x, y]                    # 计算 x^y
-Negative[x]                    # 计算 0 - x
+Plus[x, y]                         # x+y
+Minus[x, y]                        # x-y
+Times[x, y]                        # x*y
+Divide[x, y]                       # x/y
+If[x, y, z]                        # 如果 x 为真，返回 y, 否则返回 z
+EqualQ[x, y]                       # 若 x 等于 y, 则返回 true, 否则返回 false, 判断方式见源码
+Exp[x]                             # 计算 e^{x}
+Ln[x]                              # 计算 x 的自然对数
+Remainder[x, y]                    # 计算 x 除以 y 得到的余数
+Power[x, y]                        # 计算 x^y
+Negative[x]                        # 计算 0 - x
+Assign[lhs, rhs]                   # 固定赋值，在全局上下文中对 rhs 求值一次，之后如果对 lhs 求值，得到的都是这次 rhs 求值结果
+AssignDelayed[lhs, rhs]            # 延迟赋值，在之后对 lhs 求值时，结果为那时在全局上下文中对 rhs 求值的结果
+If[cond, trueClause, falseClause]  # 条件求值，先对 cond 求值，若结果不为假，则返回对 trueClause 的求值结果，否则返回对 falseClause 的求值结果
 ```
 
 ## 开发计划 Roadmap
