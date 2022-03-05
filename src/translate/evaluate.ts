@@ -10,6 +10,7 @@ import {
 } from './config';
 import {
   Definition,
+  DefinitionType,
   Expr,
   IContext,
   IEvaluator,
@@ -98,11 +99,12 @@ export class Evaluator extends Transform implements IEvaluator {
   private getRootContext(): IContext {
     const rootContext: IContext = {
       parent: undefined,
-      definitions: [
-        ...this._builtInDefinitions,
-        ...this._userDelayedDefinition,
-        ...this._userFixedDefinition,
-      ],
+      definitions: {
+        builtin: this._builtInDefinitions,
+        fixedAssign: this._userFixedDefinition,
+        delayedAssign: this._userDelayedDefinition,
+        arguments: [],
+      },
     };
     return rootContext;
   }
@@ -177,11 +179,19 @@ export class Evaluator extends Transform implements IEvaluator {
 
   private findDefinition(expr: Expr, context: IContext): DefinitionQueryResult {
     let contextPtr = context;
+    const queryOrder: DefinitionType[] = [
+      'arguments',
+      'fixedAssign',
+      'delayedAssign',
+      'builtin',
+    ];
     while (contextPtr !== undefined) {
-      for (const definition of contextPtr.definitions) {
-        const match = Neo.patternMatch([expr], [definition.pattern]);
-        if (match.pass) {
-          return { ...match, definition: definition };
+      for (const cat of queryOrder) {
+        for (const definition of contextPtr.definitions[cat]) {
+          const match = Neo.patternMatch([expr], [definition.pattern]);
+          if (match.pass) {
+            return { ...match, definition: definition };
+          }
         }
       }
       contextPtr = contextPtr.parent;
@@ -190,12 +200,17 @@ export class Evaluator extends Transform implements IEvaluator {
   }
 
   private appendToContext(
-    context: IContext,
+    parent: IContext,
     namedResult: Record<string, Expr[]>,
   ): IContext {
     const newContext: IContext = {
-      parent: context,
-      definitions: [],
+      parent: parent,
+      definitions: {
+        arguments: [],
+        builtin: [],
+        delayedAssign: [],
+        fixedAssign: [],
+      },
     };
     for (const key in namedResult) {
       const exprs: Expr[] = namedResult[key];
@@ -205,9 +220,9 @@ export class Evaluator extends Transform implements IEvaluator {
         children: [...exprs],
       };
       const keyExpr = NodeFactory.makeSymbol(key);
-      newContext.definitions.push({
+      newContext.definitions.arguments.push({
         pattern: keyExpr,
-        action: (node, evaluator, _context) => sequence,
+        action: (_, __, ___) => sequence,
         displayName: ExprHelper.keyValuePairToString(keyExpr, sequence),
       });
     }
@@ -322,7 +337,7 @@ export class Evaluator extends Transform implements IEvaluator {
       nodeType: 'terminal',
       expressionType: 'number',
       head: NodeFactory.makeSymbol('Integer'),
-      value: afterDefCounts - beforeDefCounts,
+      value: beforeDefCounts - afterDefCounts,
     };
   }
 
@@ -359,7 +374,7 @@ export class Evaluator extends Transform implements IEvaluator {
       nodeType: 'terminal',
       expressionType: 'number',
       head: NodeFactory.makeSymbol('Integer'),
-      value: afterCounts - beforeCounts,
+      value: beforeCounts - afterCounts,
     };
   }
 

@@ -78,7 +78,13 @@ export type MatchResult = { pass: true; namedResult: Record<string, Expr[]> };
 
 export type PatternMatchResult = NoMatchResult | MatchResult;
 
+export type DefinitionType =
+  | 'builtin'
+  | 'fixedAssign'
+  | 'delayedAssign'
+  | 'arguments';
+
 export type IContext = {
   parent: IContext | undefined;
-  definitions: Definition[];
+  definitions: Record<DefinitionType, Definition[]>;
 };
