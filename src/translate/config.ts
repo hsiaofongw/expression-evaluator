@@ -59,7 +59,7 @@ export const allSymbolsMap = {
   SymbolSymbol: SymbolSymbol,
 
   // 数值符号
-  NumberSymbol: NodeFactory.makeSymbol('Number', true),
+  NumberSymbol: NodeFactory.makeSymbol('Number'),
 
   // 赋值符号
   AssignSymbol: NodeFactory.makeSymbol('Assign', true),
@@ -74,46 +74,43 @@ export const allSymbolsMap = {
   ClearDelayedAssignSymbol: NodeFactory.makeSymbol('ClearDelayedAssign', true),
 
   // 取负符号
-  NegativeSymbol: NodeFactory.makeSymbol('Negative', true),
+  NegativeSymbol: NodeFactory.makeSymbol('Negative'),
 
   // 相等判断符号
-  EqualQSymbol: NodeFactory.makeSymbol('EqualQ', true),
+  EqualQSymbol: NodeFactory.makeSymbol('EqualQ'),
 
   // 严格大于判定符号
-  GreaterThanSymbol: NodeFactory.makeSymbol('GreaterThan', true),
+  GreaterThanSymbol: NodeFactory.makeSymbol('GreaterThan'),
 
   // 严格小于判定符号
-  LessThanSymbol: NodeFactory.makeSymbol('LessThan', true),
+  LessThanSymbol: NodeFactory.makeSymbol('LessThan'),
 
   // 严格不小于判定符号
-  GreaterThanOrEqualSymbol: NodeFactory.makeSymbol(
-    'GreaterThanOrEqualSymbol',
-    true,
-  ),
+  GreaterThanOrEqualSymbol: NodeFactory.makeSymbol('GreaterThanOrEqual'),
 
   // 严格不大于判定符号
-  LessThanOrEqualSymbol: NodeFactory.makeSymbol('LessThanOrEqual', true),
+  LessThanOrEqualSymbol: NodeFactory.makeSymbol('LessThanOrEqual'),
 
   // 相加符号
-  PlusSymbol: NodeFactory.makeSymbol('Plus', true),
+  PlusSymbol: NodeFactory.makeSymbol('Plus'),
 
   // 相减符号
-  MinusSymbol: NodeFactory.makeSymbol('Minus', true),
+  MinusSymbol: NodeFactory.makeSymbol('Minus'),
 
   // 相乘符号
-  TimesSymbol: NodeFactory.makeSymbol('Times', true),
+  TimesSymbol: NodeFactory.makeSymbol('Times'),
 
   // 相除符号
-  DivideSymbol: NodeFactory.makeSymbol('Divide', true),
+  DivideSymbol: NodeFactory.makeSymbol('Divide'),
 
   // 取余数符号
-  RemainderSymbol: NodeFactory.makeSymbol('Remainder', true),
+  RemainderSymbol: NodeFactory.makeSymbol('Remainder'),
 
   // 幂次运算符号
-  PowerSymbol: NodeFactory.makeSymbol('Power', true),
+  PowerSymbol: NodeFactory.makeSymbol('Power'),
 
   // 一元自然指数幂符号
-  ESymbol: NodeFactory.makeSymbol('E', true),
+  ESymbol: NodeFactory.makeSymbol('E'),
 
   // 字符串符号
   StringSymbol: NodeFactory.makeSymbol('String', true),
@@ -125,7 +122,7 @@ export const allSymbolsMap = {
   ListSymbol: NodeFactory.makeSymbol('List', true),
 
   // Head 符号
-  HeadSymbol: NodeFactory.makeSymbol('Head', true),
+  HeadSymbol: NodeFactory.makeSymbol('Head'),
 
   // Pattern 符号
   PatternSymbol: NodeFactory.makeSymbol('Pattern', true),
@@ -161,13 +158,13 @@ export const allSymbolsMap = {
   TakeSymbol: NodeFactory.makeSymbol('Take', true),
 
   // Integer 符号
-  IntegerSymbol: NodeFactory.makeSymbol('Integer', true),
+  IntegerSymbol: NodeFactory.makeSymbol('Integer'),
 
   // Real 符号
-  RealSymbol: NodeFactory.makeSymbol('Real', true),
+  RealSymbol: NodeFactory.makeSymbol('Real'),
 
   // RawEqualQ 符号
-  RawEqualQSymbol: NodeFactory.makeSymbol('RawEqualQ', true),
+  RawEqualQSymbol: NodeFactory.makeSymbol('RawEqualQ'),
 };
 
 function makeAllSymbolsList(): Expr[] {
