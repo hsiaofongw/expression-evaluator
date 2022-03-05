@@ -1,9 +1,26 @@
+import { Sequence } from 'src/translate/config';
 import { Expr, PatternMatchResult } from 'src/translate/interfaces';
 
 type ComparePair = { lhs: Expr[]; rhs: Expr[] };
 
 export class Neo {
-  public static patternMatch(
+  public static patternMatch(lhs: Expr[], rhs: Expr[]): PatternMatchResult {
+    const match = Neo.patternMatchRecursive(lhs, rhs, 0, 0);
+    if (match.pass) {
+      const result: Record<string, Expr[]> = {};
+      for (const key in match.namedResult) {
+        if (key.length > 0 && key[0].match(/[a-zA-Z_]/)) {
+          result[key] = match.namedResult[key];
+        }
+      }
+      match.namedResult = result;
+      return match;
+    } else {
+      return { pass: false };
+    }
+  }
+
+  public static patternMatchRecursive(
     lhs: Expr[],
     rhs: Expr[],
     lhsPtr: number,
@@ -37,7 +54,12 @@ export class Neo {
           return { pass: false };
         }
 
-        const restMatch = Neo.patternMatch(lhs, rhs, lhsPtr + 1, rhsPtr + 1);
+        const restMatch = Neo.patternMatchRecursive(
+          lhs,
+          rhs,
+          lhsPtr + 1,
+          rhsPtr + 1,
+        );
         if (!restMatch.pass) {
           return { pass: false };
         }
@@ -59,7 +81,7 @@ export class Neo {
           const patternAlias = rhsPtr.toString();
           const temp = rhs[rhsPtr];
           rhs[rhsPtr] = pattern.children[1];
-          const reMatch = Neo.patternMatch(lhs, rhs, lhsPtr, rhsPtr);
+          const reMatch = Neo.patternMatchRecursive(lhs, rhs, lhsPtr, rhsPtr);
           rhs[rhsPtr] = temp;
           if (!reMatch.pass) {
             return { pass: false };
@@ -87,7 +109,12 @@ export class Neo {
             return { pass: false };
           }
 
-          const restMatch = Neo.patternMatch(lhs, rhs, lhsPtr + 1, rhsPtr + 1);
+          const restMatch = Neo.patternMatchRecursive(
+            lhs,
+            rhs,
+            lhsPtr + 1,
+            rhsPtr + 1,
+          );
           if (!restMatch.pass) {
             return { pass: false };
           }
@@ -111,7 +138,7 @@ export class Neo {
           const expectedHead = pattern.children[0];
           lhs[lhsPtr] = lhs[lhsPtr].head;
           rhs[rhsPtr] = expectedHead;
-          const headMatch = Neo.patternMatch(lhs, rhs, lhsPtr, rhsPtr);
+          const headMatch = Neo.patternMatchRecursive(lhs, rhs, lhsPtr, rhsPtr);
           lhs[lhsPtr] = tempLhsFirst;
           rhs[rhsPtr] = tempRhsFirst;
 
@@ -132,7 +159,7 @@ export class Neo {
           let maxMatchLhsOffset: undefined | number = undefined;
           let matchedResult: Record<string, Expr[]> = {};
           while (lhsPtr + lhsOffset <= lhs.length) {
-            const restMatch = Neo.patternMatch(
+            const restMatch = Neo.patternMatchRecursive(
               lhs,
               rhs,
               lhsPtr + lhsOffset,
@@ -176,7 +203,7 @@ export class Neo {
           while (tempLhsPtrOffset < lhsTemp.length) {
             lhsTemp[tempLhsPtrOffset] = lhsTemp[tempLhsPtrOffset].head;
             rhsTemp.unshift(expectH);
-            const match = Neo.patternMatch(lhsTemp, rhsTemp, 0, 0);
+            const match = Neo.patternMatchRecursive(lhsTemp, rhsTemp, 0, 0);
             if (!match.pass) {
               break;
             }
@@ -203,7 +230,7 @@ export class Neo {
           let lhsOffset = 0;
           let matchResult: Record<string, Expr[]> | undefined = undefined;
           while (lhsPtr + lhsOffset < lhs.length) {
-            const matchRest = Neo.patternMatch(
+            const matchRest = Neo.patternMatchRecursive(
               lhs,
               rhs,
               lhsPtr + lhsOffset,
@@ -242,7 +269,12 @@ export class Neo {
             return { pass: false };
           }
 
-          const restMatch = Neo.patternMatch(lhs, rhs, lhsPtr + 1, rhsPtr + 1);
+          const restMatch = Neo.patternMatchRecursive(
+            lhs,
+            rhs,
+            lhsPtr + 1,
+            rhsPtr + 1,
+          );
           if (!restMatch.pass) {
             return { pass: false };
           }
@@ -270,7 +302,12 @@ export class Neo {
             return { pass: false };
           }
 
-          const restMatch = Neo.patternMatch(lhs, rhs, lhsPtr + 1, rhsPtr + 1);
+          const restMatch = Neo.patternMatchRecursive(
+            lhs,
+            rhs,
+            lhsPtr + 1,
+            rhsPtr + 1,
+          );
           if (!restMatch.pass) {
             return { pass: false };
           }
@@ -287,8 +324,13 @@ export class Neo {
 
           // 这时可以确定 lhs 第一个是 nonTerminal, 就可以分别比较头部和尾部了
           // 可以说是一种一般的处理方法
-          const matchHead = Neo.patternMatch([l.head], [pattern.head], 0, 0);
-          const matchChildren = Neo.patternMatch(
+          const matchHead = Neo.patternMatchRecursive(
+            [l.head],
+            [pattern.head],
+            0,
+            0,
+          );
+          const matchChildren = Neo.patternMatchRecursive(
             [...l.children],
             [...pattern.children],
             0,
@@ -406,5 +448,28 @@ export class ExprHelper {
       newNode.children = newNode.children.slice();
     }
     return newNode;
+  }
+
+  /** 序列号 NamedResult */
+  public static namedResultToString(
+    namedResult: Record<string, Expr[]>,
+  ): string {
+    const pairs: { key: string; value: Expr[] }[] = [];
+    for (const key in namedResult) {
+      pairs.push({ key, value: namedResult[key] });
+    }
+
+    return pairs
+      .map(
+        (pair) =>
+          `${pair.key} -> ${ExprHelper.nodeToString(Sequence(pair.value))}`,
+      )
+      .join('\n');
+  }
+
+  /** 替换关系序列化 */
+  public static keyValuePairToString(key: Expr, value: Expr): string {
+    // eslint-disable-next-line prettier/prettier
+    return `${ExprHelper.nodeToString(key)} -> ${ExprHelper.nodeToString(value)}`;
   }
 }

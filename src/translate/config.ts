@@ -3,6 +3,12 @@
 import { ExprHelper } from 'src/helpers/expr-helpers';
 import { Definition, Expr } from './interfaces';
 
+// 打印错误信息并退出
+function logErrorAndExit(atWhere: string): void {
+  console.error(`At ${atWhere}: pattern match incorrect.`);
+  process.exit(1);
+}
+
 // 符号符号
 function makeMetaSymbol(): Expr {
   const metaSymbol: Expr = {
@@ -68,52 +74,55 @@ export const allSymbolsMap = {
   ClearDelayedAssignSymbol: NodeFactory.makeSymbol('ClearDelayedAssign', true),
 
   // 取负符号
-  NegativeSymbol: NodeFactory.makeSymbol('Negative'),
+  NegativeSymbol: NodeFactory.makeSymbol('Negative', true),
 
   // 相等判断符号
-  EqualQSymbol: NodeFactory.makeSymbol('EqualQ'),
+  EqualQSymbol: NodeFactory.makeSymbol('EqualQ', true),
 
   // 严格大于判定符号
-  GreaterThanSymbol: NodeFactory.makeSymbol('GreaterThan'),
+  GreaterThanSymbol: NodeFactory.makeSymbol('GreaterThan', true),
 
   // 严格小于判定符号
-  LessThanSymbol: NodeFactory.makeSymbol('LessThan'),
+  LessThanSymbol: NodeFactory.makeSymbol('LessThan', true),
 
   // 严格不小于判定符号
-  GreaterThanOrEqualSymbol: NodeFactory.makeSymbol('GreaterThanOrEqualSymbol'),
+  GreaterThanOrEqualSymbol: NodeFactory.makeSymbol(
+    'GreaterThanOrEqualSymbol',
+    true,
+  ),
 
   // 严格不大于判定符号
-  LessThanOrEqualSymbol: NodeFactory.makeSymbol('LessThanOrEqual'),
+  LessThanOrEqualSymbol: NodeFactory.makeSymbol('LessThanOrEqual', true),
 
   // 相加符号
-  PlusSymbol: NodeFactory.makeSymbol('Plus'),
+  PlusSymbol: NodeFactory.makeSymbol('Plus', true),
 
   // 相减符号
-  MinusSymbol: NodeFactory.makeSymbol('Minus'),
+  MinusSymbol: NodeFactory.makeSymbol('Minus', true),
 
   // 相乘符号
-  TimesSymbol: NodeFactory.makeSymbol('Times'),
+  TimesSymbol: NodeFactory.makeSymbol('Times', true),
 
   // 相除符号
-  DivideSymbol: NodeFactory.makeSymbol('Divide'),
+  DivideSymbol: NodeFactory.makeSymbol('Divide', true),
 
   // 取余数符号
-  RemainderSymbol: NodeFactory.makeSymbol('Remainder'),
+  RemainderSymbol: NodeFactory.makeSymbol('Remainder', true),
 
   // 幂次运算符号
-  PowerSymbol: NodeFactory.makeSymbol('Power'),
+  PowerSymbol: NodeFactory.makeSymbol('Power', true),
 
   // 一元自然指数幂符号
-  ESymbol: NodeFactory.makeSymbol('E'),
+  ESymbol: NodeFactory.makeSymbol('E', true),
 
   // 字符串符号
   StringSymbol: NodeFactory.makeSymbol('String', true),
 
   // Sequence 符号
-  SequenceSymbol: NodeFactory.makeSymbol('Sequence'),
+  SequenceSymbol: NodeFactory.makeSymbol('Sequence', true),
 
   // List 符号
-  ListSymbol: NodeFactory.makeSymbol('List'),
+  ListSymbol: NodeFactory.makeSymbol('List', true),
 
   // Head 符号
   HeadSymbol: NodeFactory.makeSymbol('Head', true),
@@ -122,7 +131,7 @@ export const allSymbolsMap = {
   PatternSymbol: NodeFactory.makeSymbol('Pattern', true),
 
   // Nothing 符号
-  NothingSymbol: NodeFactory.makeSymbol('Nothing'),
+  NothingSymbol: NodeFactory.makeSymbol('Nothing', true),
 
   // Blank 符号
   BlankSymbol: NodeFactory.makeSymbol('Blank', true),
@@ -171,6 +180,23 @@ function makeAllSymbolsList(): Expr[] {
 
 // 全体符号集
 export const allSymbols: Expr[] = makeAllSymbolsList();
+
+// 全体带非标准求值标志的符号集合
+function makeNonStandardSymbolSet(): Set<string> {
+  const sblset: Set<string> = new Set<string>();
+  for (const sbl of allSymbols) {
+    if (
+      sbl.nodeType === 'terminal' &&
+      sbl.expressionType === 'symbol' &&
+      sbl.nonStandard
+    ) {
+      sblset.add(sbl.value);
+    }
+  }
+
+  return sblset;
+}
+export const allNonStandardSymbolsSet: Set<string> = makeNonStandardSymbolSet();
 
 // 返回一个 Blank Pattern
 export function Blank(): Expr {
@@ -247,21 +273,29 @@ class UnaryOperationPatternFactory {
         head: headExpr,
         children: [NumberExpressionType()],
       },
-      action: (node, context) => {
+      action: (node, evaluator, context) => {
         if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
           const v1 = node.children[0];
           if (v1.nodeType === 'terminal' && v1.expressionType === 'number') {
-            context.pushNode({
+            return {
               nodeType: 'terminal',
               expressionType: 'number',
               head: allSymbolsMap.NumberSymbol,
               value: valueFunction(v1.value),
-            });
+            };
           }
+
+          const nodeCopy = ExprHelper.shallowCopy(node) as typeof node;
+          nodeCopy.children[0] = evaluator.evaluate(
+            nodeCopy.children[0],
+            context,
+          );
+          return nodeCopy;
         }
 
-        context.pushNode(node);
+        return allSymbolsMap.NothingSymbol;
       },
+      displayName: 'x :-> f x',
     };
   }
 }
@@ -276,31 +310,41 @@ class BinaryOperationPatternFactory {
       pattern: {
         nodeType: 'nonTerminal',
         head: headExpr,
-        children: [NumberExpressionType(), NumberExpressionType()],
+        children: [Blank(), Blank()],
       },
-      action: (node, context) => {
+      action: (node, evaluator, context) => {
         if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-          const v1 = node.children[0];
-          const v2 = node.children[1];
           if (
-            v1.nodeType === 'terminal' &&
-            v1.expressionType === 'number' &&
-            v2.nodeType === 'terminal' &&
-            v2.expressionType === 'number'
+            node.children[0].nodeType === 'terminal' &&
+            node.children[0].expressionType === 'number' &&
+            node.children[1].nodeType === 'terminal' &&
+            node.children[1].expressionType === 'number'
           ) {
-            const a = v1.value;
-            const b = v2.value;
-            context.pushNode({
+            return {
               nodeType: 'terminal',
               expressionType: 'number',
-              value: valueFunction(a, b),
+              value: valueFunction(
+                node.children[0].value,
+                node.children[1].value,
+              ),
               head: allSymbolsMap.NumberSymbol,
-            });
-            return;
+            };
           }
+
+          const nodeCopy = ExprHelper.shallowCopy(node) as typeof node;
+          nodeCopy.children[0] = evaluator.evaluate(
+            nodeCopy.children[0],
+            context,
+          );
+          nodeCopy.children[1] = evaluator.evaluate(
+            nodeCopy.children[1],
+            context,
+          );
+          return nodeCopy;
         }
-        context.pushNode(node);
+        return allSymbolsMap.NothingSymbol;
       },
+      displayName: '(x, y) :-> f (x, y)',
     };
   }
 }
@@ -314,7 +358,7 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.IfSymbol,
       children: [Blank(), Blank(), Blank()],
     },
-    action: (node, context) => {
+    action: (node, evaluator, context) => {
       if (
         node.head.nodeType === 'terminal' &&
         node.head.expressionType === 'symbol' &&
@@ -322,21 +366,22 @@ export const builtInDefinitions: Definition[] = [
         node.nodeType === 'nonTerminal' &&
         node.children.length === 3
       ) {
-        const condition = node.children[0];
-        const trueClause = node.children[1];
-        const falseClause = node.children[2];
-
-        context.evaluate(condition);
-        const evaluatedCondition = context.popNode();
-        if (ExprHelper.rawEqualQ([True], [evaluatedCondition])) {
-          context.evaluate(trueClause);
+        node.children[0] = evaluator.evaluate(node.children[0], context);
+        const cond = node.children[0];
+        if (
+          cond.nodeType === 'terminal' &&
+          cond.expressionType === 'boolean' &&
+          cond.value !== false
+        ) {
+          return evaluator.evaluate(node.children[1], context);
         } else {
-          context.evaluate(falseClause);
+          return evaluator.evaluate(node.children[2], context);
         }
-      } else {
-        context.pushNode(node);
       }
+
+      logErrorAndExit('IF[_, _, _]');
     },
+    displayName: 'IF[x, y, z] -> ?',
   },
 
   // Head[x:_] := x 的 头部, 走特殊求值流程
@@ -346,7 +391,7 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.HeadSymbol,
       children: [Blank()],
     },
-    action: (node, context) => {
+    action: (node, evaluator, context) => {
       if (
         node.nodeType === 'nonTerminal' &&
         node.head.nodeType === 'terminal' &&
@@ -354,99 +399,11 @@ export const builtInDefinitions: Definition[] = [
         node.head.value === 'Head' &&
         node.children.length === 1
       ) {
-        context.evaluate(node.children[0].head);
-      } else {
-        context.pushNode(node);
+        return evaluator.evaluate(node.children[0], context);
       }
+      logErrorAndExit('Head[_]');
     },
-  },
-
-  // Take[expr_, number_Integer] 访问第几个元素
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.TakeSymbol,
-      children: [Blank(), TypedBlank(allSymbolsMap.IntegerSymbol)],
-    },
-    action: (node, context) => {
-      if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-        const expr = node.children[0];
-        const number = node.children[1];
-        if (
-          expr.nodeType === 'nonTerminal' &&
-          number.nodeType === 'terminal' &&
-          number.expressionType === 'number' &&
-          number.value >= 0
-        ) {
-          const index = Math.floor(number.value);
-          if (expr.children.length > index) {
-            context.evaluate(expr.children[index]);
-            return;
-          }
-        }
-      }
-
-      context.pushNode(node);
-    },
-  },
-
-  // Number[x], 待定类型数字，一定要演化成 Real[x] 或者 Integer[x]
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.BlankSymbol,
-      children: [allSymbolsMap.NumberSymbol],
-    },
-    action: (expr, context) => {
-      if (expr.nodeType === 'terminal' && expr.expressionType === 'number') {
-        const value = expr.value;
-        if (Math.floor(value) === value) {
-          // 整数
-          context.pushNode({
-            nodeType: 'terminal',
-            expressionType: 'number',
-            head: allSymbolsMap.IntegerSymbol,
-            value: value,
-          });
-        } else {
-          // 浮点数
-          context.pushNode({
-            nodeType: 'terminal',
-            expressionType: 'number',
-            head: allSymbolsMap.RealSymbol,
-            value: value,
-          });
-        }
-      } else {
-        context.pushNode(expr);
-      }
-    },
-  },
-
-  // 直接相等判断
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.RawEqualQSymbol,
-      children: [Blank(), Blank()],
-    },
-    action: (node, context) => {
-      if (
-        node.head.nodeType === 'terminal' &&
-        node.head.expressionType === 'symbol' &&
-        node.head.value === 'RawEqualQ' &&
-        node.nodeType === 'nonTerminal' &&
-        node.children.length === 2
-      ) {
-        if (ExprHelper.rawEqualQ([node.children[0]], [node.children[1]])) {
-          context.pushNode(True);
-        } else {
-          context.pushNode(False);
-        }
-      } else {
-        context.pushNode(node);
-      }
-    },
+    displayName: 'Head[x] -> ?',
   },
 
   // 定义相等判断
@@ -456,7 +413,7 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.EqualQSymbol,
       children: [Blank(), Blank()],
     },
-    action: (node, context) => {
+    action: (node, evaluator, context) => {
       if (
         node.head.nodeType === 'terminal' &&
         node.head.expressionType === 'symbol' &&
@@ -464,19 +421,19 @@ export const builtInDefinitions: Definition[] = [
         node.nodeType === 'nonTerminal' &&
         node.children.length === 2
       ) {
-        context.evaluate(node.children[0]);
-        context.evaluate(node.children[1]);
-        const rhs = context.popNode();
-        const lhs = context.popNode();
-        context.evaluate({
-          nodeType: 'nonTerminal',
-          head: NodeFactory.makeSymbol('RawEqualQ'),
-          children: [lhs, rhs],
-        });
-      } else {
-        context.pushNode(node);
+        node.children[0] = evaluator.evaluate(node.children[0], context);
+        node.children[1] = evaluator.evaluate(node.children[1], context);
+
+        if (ExprHelper.rawEqualQ([node.children[0]], [node.children[1]])) {
+          return True;
+        } else {
+          return False;
+        }
       }
+
+      logErrorAndExit('EqualQ[_, _]');
     },
+    displayName: 'EqualQ[x, y] -> ?',
   },
 
   // 立即赋值 Assign[lhs, rhs], 走特殊求值流程，避免再对 lhs 求值
@@ -486,16 +443,17 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.AssignSymbol,
       children: [Blank(), Blank()],
     },
-    action: (node, context) => {
+    action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-        context.assign({
+        return evaluator.assign({
           pattern: node.children[0],
           value: node.children[1],
         });
-      } else {
-        context.pushNode(node);
       }
+
+      logErrorAndExit('Assign[_, _]');
     },
+    displayName: 'Assign[lhs, rhs] -> rhs',
   },
 
   // 延迟赋值 AssignDelayed[lhs, rhs], 走特殊求值流程，
@@ -506,16 +464,16 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.AssignDelayedSymbol,
       children: [Blank(), Blank()],
     },
-    action: (node, context) => {
+    action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-        context.assignDelayed({
+        return evaluator.assignDelayed({
           pattern: node.children[0],
           value: node.children[1],
         });
-      } else {
-        context.pushNode(node);
       }
+      logErrorAndExit('AssignDelayed[_, _]');
     },
+    displayName: 'AssignDelayed[lhs, rhs] -> Nothing',
   },
 
   // 清除赋值 ClearAssign[x]
@@ -525,13 +483,14 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.ClearAssignSymbol,
       children: [Blank()],
     },
-    action: (node, context) => {
+    action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
-        context.clearAssign(node.children[0]);
-      } else {
-        context.pushNode(node);
+        return evaluator.clearAssign(node.children[0]);
       }
+
+      logErrorAndExit('ClearAssign[x]');
     },
+    displayName: 'ClearAssign[x] -> ?',
   },
 
   // 清除延迟赋值 ClearDelayedAssign[x]
@@ -541,13 +500,13 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.ClearDelayedAssignSymbol,
       children: [Blank()],
     },
-    action: (node, context) => {
+    action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
-        context.clearDelayedAssign(node.children[0]);
-      } else {
-        context.pushNode(node);
+        return evaluator.clearDelayedAssign(node.children[0]);
       }
+      logErrorAndExit('ClearDelayedAssign[_]');
     },
+    displayName: 'ClearDelayedAssign[x] -> ?',
   },
 
   // 二元加法

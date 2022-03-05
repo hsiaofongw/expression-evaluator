@@ -45,27 +45,21 @@ export type Expr = (TerminalNode | NonTerminalNode) & {
 
 export type KeyValuePair = { pattern: Expr; value: Expr };
 
-export interface IEvaluateContext {
+export interface IEvaluator {
   /** 求值，最终的求值结果在栈顶 */
-  evaluate(node: Expr): void;
-
-  /** 弹出栈顶的那个值（如果有） */
-  popNode(): Expr;
-
-  /** 将一个值入栈 */
-  pushNode(node: Expr): void;
+  evaluate(node: Expr, context: IContext): Expr;
 
   /** 立即赋值 */
-  assign(keyValuePairs: KeyValuePair): void;
+  assign(keyValuePairs: KeyValuePair): Expr;
 
   /** 延迟赋值 */
-  assignDelayed(keyValuePairs: KeyValuePair): void;
+  assignDelayed(keyValuePairs: KeyValuePair): Expr;
 
   /** 清除立即赋值 */
-  clearAssign(pattern: Expr): void;
+  clearAssign(pattern: Expr): Expr;
 
   /** 清除延迟赋值 */
-  clearDelayedAssign(pattern: Expr): void;
+  clearDelayedAssign(pattern: Expr): Expr;
 }
 
 export type Definition = {
@@ -73,10 +67,18 @@ export type Definition = {
   pattern: Expr;
 
   /** 该条规则如何改写被应用的表达式 */
-  action: (node: Expr, context: IEvaluateContext) => void;
+  action: (node: Expr, evaluator: IEvaluator, context: IContext) => Expr;
+
+  /** 显示名称 */
+  displayName: string;
 };
 
 export type NoMatchResult = { pass: false };
 export type MatchResult = { pass: true; namedResult: Record<string, Expr[]> };
 
 export type PatternMatchResult = NoMatchResult | MatchResult;
+
+export type IContext = {
+  parent: IContext | undefined;
+  definitions: Definition[];
+};

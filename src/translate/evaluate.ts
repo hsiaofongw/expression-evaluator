@@ -6,11 +6,13 @@ import {
   NodeFactory,
   Sequence,
   allSymbolsMap,
+  allNonStandardSymbolsSet,
 } from './config';
 import {
   Definition,
   Expr,
-  IEvaluateContext,
+  IContext,
+  IEvaluator,
   KeyValuePair,
   MatchResult,
   NoMatchResult,
@@ -18,6 +20,10 @@ import {
 } from './interfaces';
 import { allSymbols } from './config';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
+
+type DefinitionQueryResult =
+  | NoMatchResult
+  | (MatchResult & { definition: Definition });
 
 export class PreEvaluator extends Transform {
   /** 符号名称到符号对象的映射 */
@@ -56,9 +62,7 @@ export class PreEvaluator extends Transform {
   }
 }
 
-export class Evaluator extends Transform implements IEvaluateContext {
-  private _exprStack: Expr[] = [];
-
+export class Evaluator extends Transform implements IEvaluator {
   /** 系统内建定义，这里的都是按照非标准求值程序进行 */
   private _builtInDefinitions: Definition[] = builtInDefinitions;
 
@@ -86,11 +90,21 @@ export class Evaluator extends Transform implements IEvaluateContext {
    *
    * 对定义的右边也就是 x + y 求值完成后，求值器会对 _ephemeralDefinitions 进行一次出栈操作，防止 _ephermeralDefinitions 的内容不断堆积导致内存泄露。
    */
-  private _ephemeralDefinitions: Definition[][] = [];
 
   constructor() {
     super({ objectMode: true });
-    this._exprStack = [];
+  }
+
+  private getRootContext(): IContext {
+    const rootContext: IContext = {
+      parent: undefined,
+      definitions: [
+        ...this._builtInDefinitions,
+        ...this._userDelayedDefinition,
+        ...this._userFixedDefinition,
+      ],
+    };
+    return rootContext;
   }
 
   public _transform(
@@ -98,18 +112,8 @@ export class Evaluator extends Transform implements IEvaluateContext {
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    this.evaluate(expr);
-    const result = this.popNode();
-    this.push(result);
+    this.push(this.evaluate(expr, this.getRootContext()));
     callback();
-  }
-
-  public pushNode(n: Expr): void {
-    this._exprStack.push(n);
-  }
-
-  public popNode(): Expr {
-    return this._exprStack.pop() as Expr;
   }
 
   /** Modify node in-place */
@@ -151,139 +155,115 @@ export class Evaluator extends Transform implements IEvaluateContext {
   }
 
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
-  public evaluate(expr: Expr): void {
+  public evaluate(expr: Expr, context: IContext): Expr {
     const head = expr.head;
-    if (head.nodeType === 'terminal' && head.expressionType === 'symbol') {
-      if (head.nonStandard) {
-        this.nonStandardEvaluate(expr);
-        return;
-      }
+    if (
+      head.nodeType === 'terminal' &&
+      head.expressionType === 'symbol' &&
+      allNonStandardSymbolsSet.has(head.value)
+    ) {
+      return this.nonStandardEvaluate(expr, context);
+    } else {
+      return this.standardEvaluate(expr, context);
     }
-
-    this.standardEvaluate(expr);
   }
 
-  private findDefinition(
-    expr: Expr,
-    definitions: Definition[],
-  ): NoMatchResult | (MatchResult & { definition: Definition }) {
-    for (const definition of definitions) {
-      const match = Neo.patternMatch([expr], [definition.pattern], 0, 0);
-      if (match.pass) {
-        return { ...match, definition: definition };
+  private findDefinition(expr: Expr, context: IContext): DefinitionQueryResult {
+    let contextPtr = context;
+    while (contextPtr !== undefined) {
+      for (const definition of contextPtr.definitions) {
+        const match = Neo.patternMatch([expr], [definition.pattern]);
+        if (match.pass) {
+          return { ...match, definition: definition };
+        }
       }
+      contextPtr = contextPtr.parent;
     }
-
     return { pass: false };
   }
 
-  private getDefinitions(): Definition[] {
-    const flattenArguments: Definition[] = [];
-    const stackSize = this._ephemeralDefinitions.length;
-    for (let i = 0; i < this._ephemeralDefinitions.length; i++) {
-      const frame = this._ephemeralDefinitions[stackSize - 1 - i];
-      for (const definition of frame) {
-        flattenArguments.push(definition);
-      }
+  private appendToContext(
+    context: IContext,
+    namedResult: Record<string, Expr[]>,
+  ): IContext {
+    const newContext: IContext = {
+      parent: context,
+      definitions: [],
+    };
+    for (const key in namedResult) {
+      const exprs: Expr[] = namedResult[key];
+      const sequence: Expr = {
+        nodeType: 'nonTerminal',
+        head: allSymbolsMap.SequenceSymbol,
+        children: [...exprs],
+      };
+      const keyExpr = NodeFactory.makeSymbol(key);
+      newContext.definitions.push({
+        pattern: keyExpr,
+        action: (node, evaluator, _context) => sequence,
+        displayName: ExprHelper.keyValuePairToString(keyExpr, sequence),
+      });
     }
 
-    const definitions: Definition[] = [
-      ...this._builtInDefinitions,
-      ...this._userFixedDefinition,
-      ...this._userDelayedDefinition,
-      ...flattenArguments,
-    ];
-
-    return definitions;
+    return newContext;
   }
 
-  private standardEvaluate(expr: Expr): void {
-    const _expr = ExprHelper.shallowCopy(expr);
-
-    const head = _expr.head;
-
+  private standardEvaluate(expr: Expr, context: IContext): Expr {
+    let _expr = ExprHelper.shallowCopy(expr);
     let applyCount = 0;
-    let definitions = this.getDefinitions();
 
-    const match = this.findDefinition(head, definitions);
+    const match = this.findDefinition(_expr.head, context);
     if (match.pass) {
-      this.applyDefinition(head, match.definition, match.namedResult);
-      definitions = this.getDefinitions();
+      _expr.head = match.definition.action(
+        _expr.head,
+        this,
+        this.appendToContext(context, match.namedResult),
+      );
       applyCount = applyCount + 1;
-      _expr.head = this.popNode();
     }
 
     if (_expr.nodeType === 'nonTerminal') {
       for (let i = 0; i < _expr.children.length; i++) {
-        const match = this.findDefinition(_expr.children[i], definitions);
+        const match = this.findDefinition(_expr.children[i], context);
         if (match.pass) {
           applyCount = applyCount + 1;
-          this.applyDefinition(
+          _expr.children[i] = match.definition.action(
             _expr.children[i],
-            match.definition,
-            match.namedResult,
+            this,
+            this.appendToContext(context, match.namedResult),
           );
-          definitions = this.getDefinitions();
-          _expr.children[i] = this.popNode();
         }
       }
     }
 
-    const matchForExpr = this.findDefinition(_expr, definitions);
-    let evaluatedExpr = _expr;
+    const matchForExpr = this.findDefinition(_expr, context);
     if (matchForExpr.pass) {
       applyCount = applyCount + 1;
-      this.applyDefinition(
+      _expr = matchForExpr.definition.action(
         _expr,
-        matchForExpr.definition,
-        matchForExpr.namedResult,
+        this,
+        this.appendToContext(context, matchForExpr.namedResult),
       );
-      definitions = this.getDefinitions();
-      evaluatedExpr = this.popNode();
     }
 
     if (applyCount > 0) {
-      this.evaluate(evaluatedExpr);
+      return this.evaluate(_expr, context);
     } else {
-      this.pushNode(evaluatedExpr);
+      return _expr;
     }
   }
 
-  private nonStandardEvaluate(expr: Expr): void {
-    for (const definition of this._builtInDefinitions) {
-      const match = Neo.patternMatch([expr], [definition.pattern], 0, 0);
-      if (match.pass) {
-        this.applyDefinition(expr, definition, match.namedResult);
-        return;
-      }
+  private nonStandardEvaluate(expr: Expr, context: IContext): Expr {
+    const definitionQuery = this.findDefinition(expr, context);
+    if (definitionQuery.pass) {
+      return definitionQuery.definition.action(
+        expr,
+        this,
+        this.appendToContext(context, definitionQuery.namedResult),
+      );
+    } else {
+      return expr;
     }
-
-    this.pushNode(expr);
-  }
-
-  private applyDefinition(
-    expr: Expr,
-    definition: Definition,
-    matchResult: Record<string, Expr[]>,
-  ): void {
-    const ephemeralDef: Definition[] = [];
-    for (const key in matchResult) {
-      const val = matchResult[key];
-      ephemeralDef.push({
-        pattern: NodeFactory.makeSymbol(key),
-        action: (_, ctx) => {
-          ctx.pushNode(Sequence(val));
-        },
-      });
-    }
-    this._ephemeralDefinitions.push(ephemeralDef);
-    definition.action(expr, this);
-    this._ephemeralDefinitions.pop();
-
-    const evaluated = this.popNode();
-
-    this.stripSequenceSymbolFromExpr(evaluated);
-    this.pushNode(evaluated);
   }
 
   /**
@@ -291,35 +271,34 @@ export class Evaluator extends Transform implements IEvaluateContext {
    *
    * 主要是由 Assign 函数调用, Evaluator 内部尽量不要依赖这个函数，换言之这是对外的
    */
-  public assign(keyValuePair: KeyValuePair): void {
-    const originValue = keyValuePair.value;
-    this.evaluate(originValue);
-    const value = this.popNode();
+  public assign(keyValuePair: KeyValuePair): Expr {
+    const lhs = keyValuePair.pattern;
+    const rhs = keyValuePair.value;
+    const evaluatedRhs = this.evaluate(rhs, this.getRootContext());
     this._userFixedDefinition.push({
-      pattern: keyValuePair.pattern,
-      action: (_, context) => {
-        context.pushNode(value);
-      },
+      pattern: lhs,
+      action: (_, __, ___) => evaluatedRhs,
+      displayName: ExprHelper.keyValuePairToString(lhs, rhs),
     });
 
-    this.pushNode(value);
+    return evaluatedRhs;
   }
 
   /**
    * 清除赋值
    */
-  public clearAssign(pattern: Expr): void {
+  public clearAssign(pattern: Expr): Expr {
     const beforeDefCounts = this._userFixedDefinition.length;
     this._userFixedDefinition = this._userFixedDefinition.filter((userDef) => {
-      return !Neo.patternMatch([userDef.pattern], [pattern], 0, 0).pass;
+      return !Neo.patternMatch([userDef.pattern], [pattern]).pass;
     });
     const afterDefCounts = this._userFixedDefinition.length;
-    this.pushNode({
+    return {
       nodeType: 'terminal',
       expressionType: 'number',
       head: NodeFactory.makeSymbol('Integer'),
       value: afterDefCounts - beforeDefCounts,
-    });
+    };
   }
 
   /**
@@ -344,19 +323,19 @@ export class Evaluator extends Transform implements IEvaluateContext {
    *
    * 来清除它。
    */
-  public clearDelayedAssign(pattern: Expr): void {
+  public clearDelayedAssign(pattern: Expr): Expr {
     const beforeCounts = this._userDelayedDefinition.length;
     this._userDelayedDefinition = this._userDelayedDefinition.filter((def) => {
-      return !Neo.patternMatch([def.pattern], [pattern], 0, 0).pass;
+      return !Neo.patternMatch([def.pattern], [pattern]).pass;
     });
     const afterCounts = this._userDelayedDefinition.length;
 
-    this.pushNode({
+    return {
       nodeType: 'terminal',
       expressionType: 'number',
       head: NodeFactory.makeSymbol('Integer'),
       value: afterCounts - beforeCounts,
-    });
+    };
   }
 
   /**
@@ -364,15 +343,16 @@ export class Evaluator extends Transform implements IEvaluateContext {
    *
    * 主要是由 AssignDelayed 函数调用, Evaluator 内部尽量不要依赖这个函数，换言之这是对外的
    */
-  public assignDelayed(keyValuePair: KeyValuePair): void {
+  public assignDelayed(keyValuePair: KeyValuePair): Expr {
     const originValue = keyValuePair.value;
     this._userDelayedDefinition.push({
       pattern: keyValuePair.pattern,
-      action: (_, context) => {
-        context.evaluate(originValue);
+      action: (_, evaluator, context) => {
+        return evaluator.evaluate(originValue, context);
       },
+      displayName: `${ExprHelper.nodeToString(keyValuePair.pattern)} -> ?`,
     });
 
-    this.pushNode(allSymbolsMap.NothingSymbol);
+    return allSymbolsMap.NothingSymbol;
   }
 }
