@@ -208,16 +208,32 @@ export class Evaluator extends Transform implements IEvaluator {
     return newContext;
   }
 
+  private takeAction(
+    expr: Expr,
+    definition: Definition,
+    parentContext: IContext,
+    namedResult: Record<string, Expr[]>,
+  ): Expr {
+    const evaluated = definition.action(
+      expr,
+      this,
+      this.appendToContext(parentContext, namedResult),
+    );
+    this.stripSequenceSymbolFromExpr(evaluated);
+    return evaluated;
+  }
+
   private standardEvaluate(expr: Expr, context: IContext): Expr {
     let _expr = ExprHelper.shallowCopy(expr);
     let applyCount = 0;
 
     const match = this.findDefinition(_expr.head, context);
     if (match.pass) {
-      _expr.head = match.definition.action(
+      _expr.head = this.takeAction(
         _expr.head,
-        this,
-        this.appendToContext(context, match.namedResult),
+        match.definition,
+        context,
+        match.namedResult,
       );
       applyCount = applyCount + 1;
     }
@@ -227,10 +243,11 @@ export class Evaluator extends Transform implements IEvaluator {
         const match = this.findDefinition(_expr.children[i], context);
         if (match.pass) {
           applyCount = applyCount + 1;
-          _expr.children[i] = match.definition.action(
+          _expr.children[i] = this.takeAction(
             _expr.children[i],
-            this,
-            this.appendToContext(context, match.namedResult),
+            match.definition,
+            context,
+            match.namedResult,
           );
         }
       }
@@ -239,10 +256,11 @@ export class Evaluator extends Transform implements IEvaluator {
     const matchForExpr = this.findDefinition(_expr, context);
     if (matchForExpr.pass) {
       applyCount = applyCount + 1;
-      _expr = matchForExpr.definition.action(
+      _expr = this.takeAction(
         _expr,
-        this,
-        this.appendToContext(context, matchForExpr.namedResult),
+        matchForExpr.definition,
+        context,
+        matchForExpr.namedResult,
       );
     }
 
@@ -256,10 +274,11 @@ export class Evaluator extends Transform implements IEvaluator {
   private nonStandardEvaluate(expr: Expr, context: IContext): Expr {
     const definitionQuery = this.findDefinition(expr, context);
     if (definitionQuery.pass) {
-      return definitionQuery.definition.action(
+      return this.takeAction(
         expr,
-        this,
-        this.appendToContext(context, definitionQuery.namedResult),
+        definitionQuery.definition,
+        context,
+        definitionQuery.namedResult,
       );
     } else {
       return expr;
