@@ -1,6 +1,36 @@
 import { TokenClass } from './interfaces';
 
-export const tokenClasses: Record<string, TokenClass> = {
+export type TokenClassType =
+  | 'leftParenthesis'
+  | 'rightParenthesis'
+  | 'plus'
+  | 'minus'
+  | 'times'
+  | 'divideBy'
+  | 'dot'
+  | 'identifier'
+  | 'number'
+  | 'comma'
+  | 'leftSquareBracket'
+  | 'rightSquareBracket'
+  | 'leftBracket'
+  | 'rightBracket'
+  | 'doubleQuote'
+  | 'stringToken'
+  | 'assignToken'
+  | 'delayedAssignToken'
+  | 'doubleEqualSign'
+  | 'tripleEqualSign'
+  | 'lessThanSign'
+  | 'lessThanOrEqualSign'
+  | 'greaterThanSign'
+  | 'greaterThanOrEqualTo'
+  | 'caretSign'
+  | 'percentSign'
+  | 'endOfLine'
+  | 'endOfFile';
+
+export const tokenClasses: Record<TokenClassType, TokenClass> = {
   leftParenthesis: {
     name: 'leftParenthesis',
     description: '左括号 (',
@@ -84,6 +114,11 @@ export const tokenClasses: Record<string, TokenClass> = {
   assignToken: {
     name: 'singleEqual',
     description: '单等于号',
+  },
+
+  delayedAssignToken: {
+    name: 'columnEqual',
+    description: '延迟赋值',
   },
 
   doubleEqualSign: {

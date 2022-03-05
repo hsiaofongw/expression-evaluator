@@ -235,7 +235,7 @@ export const allSymbols: Record<string, SyntaxSymbol> = {
     zhName: '幂次项余项',
   },
 
-  // '='
+  // =
   singleEqualSign: {
     id: 'singleEqual',
     name: 'SingleEqual',
@@ -245,7 +245,20 @@ export const allSymbols: Record<string, SyntaxSymbol> = {
     definition: {
       tokenClassName: 'singleEqual',
     },
-    zhName: '赋值号',
+    zhName: '赋值符号',
+  },
+
+  // :=
+  columnEqualSign: {
+    id: 'columnEqual',
+    name: 'ColumnEqual',
+    description: '延迟赋值符号',
+    type: 'terminal',
+    displayName: ':=',
+    definition: {
+      tokenClassName: 'columnEqual',
+    },
+    zhName: '延迟赋值符号',
   },
 
   // '+'
@@ -755,6 +768,12 @@ export const allRules: ProductionRule[] = [
     name: 'P -> = S',
     lhs: allSymbols.parametersPart,
     rhs: [allSymbols.singleEqualSign, allSymbols.start],
+  },
+
+  {
+    name: 'P -> := S',
+    lhs: allSymbols.parametersPart,
+    rhs: [allSymbols.columnEqualSign, allSymbols.start],
   },
 
   {

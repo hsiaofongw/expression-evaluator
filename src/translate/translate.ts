@@ -173,6 +173,21 @@ export class ExpressionTranslate extends Transform {
       this._pushNode(assignNode);
     },
 
+    'P -> := S': (node) => {
+      const leftValueNode = this._popNode();
+      const assignDelayedNode: Expr = {
+        head: allSymbolsMap.AssignDelayedSymbol,
+        nodeType: 'nonTerminal',
+        children: [leftValueNode],
+      };
+
+      this._evaluate(node.children[1]);
+      const rightValue = this._popNode();
+      assignDelayedNode.children.push(rightValue);
+
+      this._pushNode(assignDelayedNode);
+    },
+
     'P -> ε': (_) => {},
   };
 

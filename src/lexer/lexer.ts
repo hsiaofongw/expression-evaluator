@@ -46,7 +46,9 @@ type State =
   | 'stringEscape'
   | 'equalSign'
   | 'lessThanAndThen'
-  | 'greaterThanAndThen';
+  | 'greaterThanAndThen'
+  | 'column'
+  | 'delayedAssign';
 
 /** 将 chars 组合成 token */
 export class ToToken extends Transform {
@@ -175,6 +177,13 @@ export class ToToken extends Transform {
         this._offset = charObject.offset;
         this._append(charObject.char);
         this._state = 'greaterThanAndThen';
+      }
+
+      // 如果遇到一个冒号
+      if (charObject.char === ':') {
+        this._offset = charObject.offset;
+        this._append(charObject.char);
+        this._state = 'column';
       }
 
       // 如果遇到空白字符, 这代表一个特殊的信号：输入串结束了
@@ -406,10 +415,36 @@ export class ToToken extends Transform {
         this.push(token);
       }
     },
+
+    // 冒号及其后续
+    column: (charObj) => this._expectOnly(charObj, '=', 'delayedAssign'),
+    delayedAssign: (charObj) =>
+      this._emitToken(charObj, tokenClasses.delayedAssignToken),
   };
 
   constructor() {
     super({ objectMode: true });
+  }
+
+  /** 期待单个字符否则退出 */
+  private _expectOnly(
+    charObj: CharObject,
+    char: string,
+    nextState: State,
+    alternativeState?: State,
+  ): void {
+    if (charObj.char === char) {
+      this._append(charObj.char);
+      this._state = nextState;
+    } else {
+      if (alternativeState) {
+        this._charBuffer.push(charObj);
+        this._state = alternativeState;
+      } else {
+        console.error(`Unexpected symbol in tokenizing`);
+        process.exit(1);
+      }
+    }
   }
 
   /** 吸收 char */
