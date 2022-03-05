@@ -48,10 +48,24 @@ F      ->  F'  P            # 因子后面可能加上参数列表
 
 F'     ->  (  E  )          # 因子推导为一个被括号包围的表达式
         |  num              # 因子推导为一个数字
-        |  id               # 因子推导为一个标识符
         |  {  L  }          # 因子推导为一个列表
         |  str              # 因子推导为一个字符串
-         
+        |  id  PTN          # 因子推导为一个 Pattern  
+
+PTN    ->  ε                # 纯标识符 Pattern
+        |  _  PTN_0         # 因子推导为一个 Pattern
+
+PTN_0  ->  ε                # Pattern 推导为一个命名 Pattern
+        |  id               # Pattern 推导为一个 Typed Pattern
+        |  _  PTN_1         # Pattern 推导为一个 BlankSequence[]
+
+PTN_1  ->  ε                # 一个 BlankSequence[]
+        |  id               # 一个 BlankSequence[h]
+        |  _  PTN_2         # 开始推导 BlanksNullSequence[]
+
+PTN_2  ->  ε                # 一个 BlankNullSequence[]
+        |  id               # 一个 BlankNullSequence[h]
+
 P      ->  [  L  ]  P       # 推导为函数参数列表
         |  =  S             # 推导为赋值语句
         |  :=  S            # 推导为延迟赋值语句

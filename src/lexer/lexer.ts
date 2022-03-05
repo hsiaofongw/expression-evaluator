@@ -143,6 +143,11 @@ export class ToToken extends Transform {
         this._emitSingleToken(charObject, tokenClasses.percentSign);
       }
 
+      // 如果遇到一个下划线
+      if (charObject.char === '_') {
+        this._emitSingleToken(charObject, tokenClasses.underline);
+      }
+
       // 如果遇到一个双引号 "
       if (charObject.char.match(/\"/)) {
         // 双引号本身丢弃
@@ -220,8 +225,8 @@ export class ToToken extends Transform {
         return;
       }
 
-      // 如果如果遇到 [a-zA-Z_]
-      if (charObject.char.match(/[a-zA-Z_]/)) {
+      // 如果如果遇到 [a-zA-Z]
+      if (charObject.char.match(/[a-zA-Z]/)) {
         // 保存当前 char
         this._append(charObject.char);
 
@@ -271,7 +276,7 @@ export class ToToken extends Transform {
 
     // 在 identifier 输入状态下
     identifier: (charObject) => {
-      if (charObject.char.match(/[a-zA-Z0-9_]/)) {
+      if (charObject.char.match(/[a-zA-Z0-9]/)) {
         // 如果遇到 identifier 其余 char
 
         // 吸收

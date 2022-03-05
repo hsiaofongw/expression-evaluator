@@ -28,7 +28,8 @@ export type TokenClassType =
   | 'caretSign'
   | 'percentSign'
   | 'endOfLine'
-  | 'endOfFile';
+  | 'endOfFile'
+  | 'underline';
 
 export const tokenClasses: Record<TokenClassType, TokenClass> = {
   leftParenthesis: {
@@ -159,6 +160,11 @@ export const tokenClasses: Record<TokenClassType, TokenClass> = {
   percentSign: {
     name: 'percent',
     description: '百分号',
+  },
+
+  underline: {
+    name: 'underline',
+    description: '下划线',
   },
 
   endOfLine: {

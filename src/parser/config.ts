@@ -235,6 +235,46 @@ export const allSymbols: Record<string, SyntaxSymbol> = {
     zhName: '幂次项余项',
   },
 
+  // PTN
+  pattern: {
+    id: 'pattern',
+    name: 'Pattern',
+    description: 'Pattern 开始',
+    type: 'nonTerminal',
+    displayName: 'PTN',
+    zhName: 'Pattern 开始',
+  },
+
+  // PTN_0
+  pattern0: {
+    id: 'pattern0',
+    name: 'Pattern',
+    description: 'Pattern 0',
+    type: 'nonTerminal',
+    displayName: 'PTN_0',
+    zhName: 'Pattern 0',
+  },
+
+  // PTN_1
+  pattern1: {
+    id: 'pattern1',
+    name: 'Pattern 1',
+    description: 'Pattern 1',
+    type: 'nonTerminal',
+    displayName: 'PTN_1',
+    zhName: 'Pattern 1',
+  },
+
+  // PTN_2
+  pattern2: {
+    id: 'pattern2',
+    name: 'Pattern 2',
+    description: 'Pattern 2',
+    type: 'nonTerminal',
+    displayName: 'PTN_2',
+    zhName: 'Pattern 2',
+  },
+
   // =
   singleEqualSign: {
     id: 'singleEqual',
@@ -509,6 +549,19 @@ export const allSymbols: Record<string, SyntaxSymbol> = {
     zhName: '百分号',
   },
 
+  // _
+  underline: {
+    id: 'underline',
+    name: 'Underline',
+    description: '下划线',
+    type: 'terminal',
+    displayName: '_',
+    definition: {
+      tokenClassName: 'underline',
+    },
+    zhName: '下划线',
+  },
+
   // $
   endOfFile: {
     id: 'endOfFile',
@@ -736,8 +789,68 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: "F' -> id",
+    name: "F' -> id PTN",
     lhs: allSymbols.factorExpand,
+    rhs: [allSymbols.identifier, allSymbols.pattern],
+  },
+
+  {
+    name: 'PTN -> ε',
+    lhs: allSymbols.pattern,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: 'PTN -> _ PTN_0',
+    lhs: allSymbols.pattern,
+    rhs: [allSymbols.underline, allSymbols.pattern0],
+  },
+
+  {
+    name: 'PTN_0 -> ε',
+    lhs: allSymbols.pattern0,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: 'PTN_0 -> id',
+    lhs: allSymbols.pattern0,
+    rhs: [allSymbols.identifier],
+  },
+
+  {
+    name: 'PTN_0 -> _ PTN_1',
+    lhs: allSymbols.pattern0,
+    rhs: [allSymbols.underline, allSymbols.pattern1],
+  },
+
+  {
+    name: 'PTN_1 -> ε',
+    lhs: allSymbols.pattern1,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: 'PTN_1 -> id',
+    lhs: allSymbols.pattern1,
+    rhs: [allSymbols.identifier],
+  },
+
+  {
+    name: 'PTN_1 -> _ PTN_2',
+    lhs: allSymbols.pattern1,
+    rhs: [allSymbols.underline, allSymbols.pattern2],
+  },
+
+  {
+    name: 'PTN_2 -> ε',
+    lhs: allSymbols.pattern2,
+    rhs: [allSymbols.epsilon],
+  },
+
+  {
+    name: 'PTN_2 -> id',
+    lhs: allSymbols.pattern2,
     rhs: [allSymbols.identifier],
   },
 
