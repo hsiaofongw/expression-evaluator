@@ -51,6 +51,16 @@ fib[8]
 
 并按回车，则系统能够输出斐波那契数列的第 8 项，即 21.
 
+另外一个例程：
+
+```
+facIter[prod_, count_, max_] := If[count == max, count * prod, facIter[prod * count, count + 1, max]]
+facIter[1, 1, 5]
+
+```
+
+该程序递归地定义了一个阶乘计算函数，输出结果是 5! 即 120.
+
 按两次 Ctrl+c 退出程序。
 
 ## 致敬 Respects
