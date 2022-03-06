@@ -76,6 +76,9 @@ export const allSymbolsMap = {
   // 取负符号
   NegativeSymbol: NodeFactory.makeSymbol('Negative', true),
 
+  // 平方符号
+  SquareSymbol: NodeFactory.makeSymbol('Square', true),
+
   // 相等判断符号
   EqualQSymbol: NodeFactory.makeSymbol('EqualQ'),
 
@@ -346,6 +349,50 @@ class BinaryOperationPatternFactory {
   }
 }
 
+// 返回一个二元运算 Pattern
+class BinaryExprPatternFactory {
+  public static makePattern(
+    headExpr: Expr,
+    valueFunction: (a: number, b: number) => Expr,
+  ): Definition {
+    return {
+      pattern: {
+        nodeType: 'nonTerminal',
+        head: headExpr,
+        children: [Blank(), Blank()],
+      },
+      action: (node, evaluator, context) => {
+        if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
+          if (
+            node.children[0].nodeType === 'terminal' &&
+            node.children[0].expressionType === 'number' &&
+            node.children[1].nodeType === 'terminal' &&
+            node.children[1].expressionType === 'number'
+          ) {
+            return valueFunction(
+              node.children[0].value,
+              node.children[1].value,
+            );
+          }
+
+          const nodeCopy = ExprHelper.shallowCopy(node) as typeof node;
+          nodeCopy.children[0] = evaluator.evaluate(
+            nodeCopy.children[0],
+            context,
+          );
+          nodeCopy.children[1] = evaluator.evaluate(
+            nodeCopy.children[1],
+            context,
+          );
+          return nodeCopy;
+        }
+        return node;
+      },
+      displayName: '(x, y) :-> f (x, y)',
+    };
+  }
+}
+
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
   // Sequence
@@ -572,5 +619,28 @@ export const builtInDefinitions: Definition[] = [
   // 一元自然对数运算
   UnaryOperationPatternFactory.makePattern(allSymbolsMap.LnSymbol, (a) =>
     Math.log(a),
+  ),
+
+  // 平方运算
+  UnaryOperationPatternFactory.makePattern(
+    allSymbolsMap.SquareSymbol,
+    (a) => a * a,
+  ),
+
+  // 比较大小
+  BinaryExprPatternFactory.makePattern(allSymbolsMap.LessThanSymbol, (a, b) =>
+    a < b ? True : False,
+  ),
+  BinaryExprPatternFactory.makePattern(
+    allSymbolsMap.LessThanOrEqualSymbol,
+    (a, b) => (a <= b ? True : False),
+  ),
+  BinaryExprPatternFactory.makePattern(
+    allSymbolsMap.GreaterThanSymbol,
+    (a, b) => (a > b ? True : False),
+  ),
+  BinaryExprPatternFactory.makePattern(
+    allSymbolsMap.GreaterThanOrEqualSymbol,
+    (a, b) => (a >= b ? True : False),
   ),
 ];
