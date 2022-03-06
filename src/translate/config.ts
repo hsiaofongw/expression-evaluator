@@ -74,7 +74,7 @@ export const allSymbolsMap = {
   ClearDelayedAssignSymbol: NodeFactory.makeSymbol('ClearDelayedAssign', true),
 
   // 取负符号
-  NegativeSymbol: NodeFactory.makeSymbol('Negative'),
+  NegativeSymbol: NodeFactory.makeSymbol('Negative', true),
 
   // 相等判断符号
   EqualQSymbol: NodeFactory.makeSymbol('EqualQ'),
@@ -348,6 +348,22 @@ class BinaryOperationPatternFactory {
 
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
+  // Sequence
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.SequenceSymbol,
+      children: [Blank()],
+    },
+    action: (node, evaluator, context) => {
+      if (node.nodeType === 'nonTerminal') {
+        return evaluator.evaluate(node.children[0], context);
+      }
+      logErrorAndExit('Sequence[_]');
+    },
+    displayName: 'Sequence[_] -> ?',
+  },
+
   // If[cond, trueClause, falseClause], 走特殊求值流程
   {
     pattern: {
