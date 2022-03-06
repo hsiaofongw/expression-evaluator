@@ -447,6 +447,13 @@ export class ExprHelper {
   /** 序列化 */
   public static nodeToString(node: Expr): string {
     if (node.nodeType === 'terminal') {
+      if (node.expressionType === 'boolean') {
+        if (node.value === true) {
+          return 'True';
+        } else {
+          return 'False';
+        }
+      }
       return node.value.toString();
     } else {
       const childrenDisplay = node.children

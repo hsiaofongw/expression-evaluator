@@ -136,6 +136,12 @@ export const allSymbolsMap = {
   // Blank 符号
   BlankSymbol: NodeFactory.makeSymbol('Blank', true),
 
+  // True 符号
+  TrueSymbol: NodeFactory.makeSymbol('True', true),
+
+  // False 符号
+  FalseSymbol: NodeFactory.makeSymbol('False', true),
+
   // NumberExpressionType 符号
   NumberExpressionTypeSymbol: NodeFactory.makeSymbol(
     'NumberExpressionType',
@@ -409,6 +415,22 @@ export const builtInDefinitions: Definition[] = [
       logErrorAndExit('Sequence[_]');
     },
     displayName: 'Sequence[_] -> ?',
+  },
+
+  // 把 True 符号替换为 True, False 符号替换为 False
+  {
+    pattern: allSymbolsMap.TrueSymbol,
+    action: (_, __, ___) => {
+      return True;
+    },
+    displayName: 'True -> True',
+  },
+  {
+    pattern: allSymbolsMap.FalseSymbol,
+    action: (_, __, ___) => {
+      return False;
+    },
+    displayName: 'False -> False',
   },
 
   // If[cond, trueClause, falseClause], 走特殊求值流程
