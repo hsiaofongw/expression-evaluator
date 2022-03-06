@@ -41,7 +41,7 @@ export class Neo {
       // r != 0
       // 注意，到了这里即便是 l = 0 也不应立即退出。
 
-      const pattern = rhs[0];
+      const pattern = rhs[rhsPtr];
       if (pattern.nodeType === 'terminal') {
         if (lLength === 0) {
           return { pass: false };
@@ -87,16 +87,31 @@ export class Neo {
             return { pass: false };
           }
 
-          if (reMatch.namedResult[patternName]) {
-            const currentMatchVal = reMatch.namedResult[patternAlias];
-            const anotherMatchVal = reMatch.namedResult[patternName];
+          const currentMatchExprs = reMatch.namedResult[patternAlias];
+          const currentMatchLength = currentMatchExprs.length;
+          const newLhsPtr = lhsPtr + currentMatchLength;
+          const newRhsPtr = rhsPtr + 1;
+          const restMatch = Neo.patternMatchRecursive(
+            lhs,
+            rhs,
+            newLhsPtr,
+            newRhsPtr,
+          );
+
+          if (!restMatch.pass) {
+            return { pass: false };
+          }
+
+          if (restMatch.namedResult[patternName]) {
+            const currentMatchVal = currentMatchExprs;
+            const anotherMatchVal = restMatch.namedResult[patternName];
             if (!ExprHelper.rawEqualQ(currentMatchVal, anotherMatchVal)) {
               return { pass: false };
             }
           }
 
-          reMatch.namedResult[patternName] = reMatch.namedResult[patternAlias];
-          return { pass: true, namedResult: reMatch.namedResult };
+          restMatch.namedResult[patternName] = currentMatchExprs;
+          return { pass: true, namedResult: restMatch.namedResult };
         } else if (
           pattern.children.length === 0 &&
           pattern.head.nodeType === 'terminal' &&
