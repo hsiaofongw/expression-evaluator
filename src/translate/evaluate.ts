@@ -73,6 +73,9 @@ export class Evaluator extends Transform implements IEvaluator {
   /** 用户使用 AssignDelayed 指令下的全局定义 */
   private _userDelayedDefinition: Definition[] = [];
 
+  /** 序列号 */
+  private seqNum = 0;
+
   /**
    * 在进行模式匹配得到的定义，例如：
    *
@@ -92,8 +95,11 @@ export class Evaluator extends Transform implements IEvaluator {
    * 对定义的右边也就是 x + y 求值完成后，求值器会对 _ephemeralDefinitions 进行一次出栈操作，防止 _ephermeralDefinitions 的内容不断堆积导致内存泄露。
    */
 
-  constructor() {
+  constructor(seqNum?: number) {
     super({ objectMode: true });
+    if (seqNum !== undefined) {
+      this.seqNum = seqNum;
+    }
   }
 
   private getRootContext(): IContext {
@@ -114,7 +120,10 @@ export class Evaluator extends Transform implements IEvaluator {
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    this.push(this.evaluate(expr, this.getRootContext()));
+    const rootContext = this.getRootContext();
+    const result = this.evaluate(expr, rootContext);
+    this.push({ seqNum: this.seqNum, result });
+    this.seqNum = this.seqNum + 1;
     callback();
   }
 
