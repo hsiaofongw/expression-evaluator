@@ -11,7 +11,7 @@ import { Expr } from './translate/interfaces';
 
 type EvaluateResultObject = { seqNum: number; result: Expr };
 
-let inputStreamFlushSentinel = '\n';
+let inputStreamFlushSentinel = ';';
 export const inputStreamFlushSentinelUpdater$ = new Subject<string>();
 inputStreamFlushSentinelUpdater$.subscribe((sentinel) => {
   inputStreamFlushSentinel = sentinel;
@@ -72,7 +72,9 @@ export class AppService {
     stdin.on('data', (d) => {
       const inputContent = d.toString('utf-8').replace(/\s/g, ' ');
       let lines = inputContent.split(inputStreamFlushSentinel);
-      lines = lines.filter((line) => line.length > 0);
+      lines = lines
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
       for (const line of lines) {
         toChars.write(line.trim());
       }
