@@ -11,9 +11,10 @@ import { Expr } from './translate/interfaces';
 
 type EvaluateResultObject = { seqNum: number; result: Expr };
 
-let inputStreamFlushSentinel = ';';
+type FlushSentinel = ';' | '\n';
+let inputStreamFlushSentinel: FlushSentinel = ';';
 export const inputStreamFlushSentinelUpdater$ = new Subject<string>();
-inputStreamFlushSentinelUpdater$.subscribe((sentinel) => {
+inputStreamFlushSentinelUpdater$.subscribe((sentinel: FlushSentinel) => {
   inputStreamFlushSentinel = sentinel;
 });
 
@@ -35,6 +36,7 @@ export class AppService {
     const preEvaluate = new PreEvaluator();
     const evaluate = new Evaluator(currentSeqNum);
     const serialize = new ExpressionNodeSerialize();
+    let inputBuffer = '';
 
     /** 组建解释器 */
     toChars
@@ -71,12 +73,27 @@ export class AppService {
     });
     stdin.on('data', (d) => {
       const inputContent = d.toString('utf-8').replace(/\s/g, ' ');
-      let lines = inputContent.split(inputStreamFlushSentinel);
-      lines = lines
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
-      for (const line of lines) {
-        toChars.write(line.trim());
+      if (inputStreamFlushSentinel === '\n') {
+        const lines = inputContent.split(/\s/);
+        for (const line of lines) {
+          toChars.write(line);
+        }
+      } else {
+        const semiColumnIndex = inputContent.indexOf(';');
+        if (semiColumnIndex === -1) {
+          inputBuffer = inputBuffer + inputContent;
+        } else {
+          for (let i = 0; i < inputContent.length; i++) {
+            if (inputContent[i] === ';') {
+              if (inputBuffer.trim().length) {
+                toChars.write(inputBuffer.trim());
+                inputBuffer = '';
+              }
+              continue;
+            }
+            inputBuffer = inputBuffer + inputContent[i];
+          }
+        }
       }
     });
   }

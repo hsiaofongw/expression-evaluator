@@ -2,7 +2,7 @@
 
 这是一个命令行界面的表达式求值器，能进行一些简单的数学函数运算。支持自定义函数（包括递归函数），支持 If 分支执行。
 
-This is a expression evaluator, it provides commandline interface, it is capable of doing some simple calculations (listed below). Yet it currently doesn't support custom-defined functions.
+This is a expression evaluator, it provides commandline interface, it is capable of doing some simple calculations (listed below), as well as of defining custom-defined functions.
 
 这是基于 Nest 框架，以及作者自己写的 Lexer (词法分析器) 和 LL(1) Parser (语法分析器) 来实现的。
 
@@ -31,35 +31,7 @@ npm i  # 如 npm 提示找不到，则需要先安装 NodeJS 和 NPM 软件
 npm run start:dev  # 或者 npm run start:inspect
 ```
 
-4. 试一试
-
-在出现 `In[0]:` 字样的提示之后，可开始输入表达式，之后按回车键获得计算结果。
-
-输入：
-
-```
-fib[x_] := If[x == 1, 1, If[x == 2, 1, fib[x-1] + fib[x-2]]]
-```
-
-按回车，这时定义了一个函数，系统能够输出斐波那契数列的第 x 项。
-
-再输入：
-
-```
-fib[8]
-```
-
-并按回车，则系统能够输出斐波那契数列的第 8 项，即 21.
-
-另外一个例程：
-
-```
-facIter[prod_, count_, max_] := If[count == max, count * prod, facIter[prod * count, count + 1, max]]
-facIter[1, 1, 5]
-
-```
-
-该程序递归地定义了一个阶乘计算函数，输出结果是 5! 即 120.
+在本项目的 examples 文件夹下可以找到示例程序。
 
 按两次 Ctrl+c 退出程序。
 
