@@ -21,6 +21,7 @@ import {
 } from './interfaces';
 import { allSymbols } from './config';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
+import { concat, concatAll, map, Observable, of, zip } from 'rxjs';
 
 type DefinitionQueryResult =
   | NoMatchResult
@@ -166,24 +167,30 @@ export class Evaluator extends Transform implements IEvaluator {
   }
 
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
-  public evaluate(expr: Expr, context: IContext): Expr {
+  public evaluate(expr: Expr, context: IContext): Observable<Expr> {
     const head = expr.head;
-    let result = ExprHelper.shallowCopy(expr);
+    const copy = ExprHelper.shallowCopy(expr);
+    let result$: Observable<Expr>;
     if (
       head.nodeType === 'terminal' &&
       head.expressionType === 'symbol' &&
       allNonStandardSymbolsSet.has(head.value)
     ) {
-      result = this.nonStandardEvaluate(result, context);
+      result$ = this.nonStandardEvaluate(copy, context);
     } else {
-      result = this.standardEvaluate(result, context);
+      result$ = this.standardEvaluate(copy, context);
     }
 
-    if (ExprHelper.rawEqualQ([expr], [result])) {
-      return result;
-    } else {
-      return this.evaluate(result, context);
-    }
+    return result$.pipe(
+      map((result) => {
+        if (ExprHelper.rawEqualQ([expr], [result])) {
+          return of(result);
+        } else {
+          return this.evaluate(result, context);
+        }
+      }),
+      concatAll(),
+    );
   }
 
   private findDefinition(expr: Expr, context: IContext): DefinitionQueryResult {
@@ -231,7 +238,7 @@ export class Evaluator extends Transform implements IEvaluator {
       const keyExpr = NodeFactory.makeSymbol(key);
       newContext.definitions.arguments.push({
         pattern: keyExpr,
-        action: (_, __, ___) => sequence,
+        action: (_, __, ___) => of(sequence),
         displayName: ExprHelper.keyValuePairToString(keyExpr, sequence),
       });
     }
@@ -244,75 +251,148 @@ export class Evaluator extends Transform implements IEvaluator {
     definition: Definition,
     parentContext: IContext,
     namedResult: Record<string, Expr[]>,
-  ): Expr {
-    for (const key in namedResult) {
-      for (let i = 0; i < namedResult[key].length; i++) {
-        namedResult[key][i] = this.evaluate(namedResult[key][i], parentContext);
-      }
-    }
-    const evaluated = definition.action(
-      expr,
-      this,
-      this.appendToContext(parentContext, namedResult),
+  ): Observable<Expr> {
+    return of(namedResult).pipe(
+      map((namedResult) => {
+        const keyValuePairs: { key: string; idx: number; value: Expr }[] = [];
+        for (const key in namedResult) {
+          for (let idx = 0; idx < namedResult[key].length; idx = idx + 1) {
+            keyValuePairs.push({ key, idx, value: namedResult[key][idx] });
+          }
+        }
+        return keyValuePairs;
+      }),
+      map((pairs) => {
+        const op = (k: string, i: number, v: Expr) =>
+          this.evaluate(v, parentContext).pipe(
+            map((res) => ({ key: k, idx: i, value: res })),
+          );
+        return zip(pairs.map((pair) => op(pair.key, pair.idx, pair.value)));
+      }),
+      concatAll(),
+      map((pairs) => {
+        const newNamedResult: Record<string, Expr[]> = {};
+        for (const pair of pairs) {
+          if (newNamedResult[pair.key] === undefined) {
+            newNamedResult[pair.key] = [];
+          }
+          newNamedResult[pair.key][pair.idx] = pair.value;
+        }
+        return newNamedResult;
+      }),
+      map((newNamedResult) => {
+        return definition.action(
+          expr,
+          this,
+          this.appendToContext(parentContext, newNamedResult),
+        );
+      }),
+      concatAll(),
+      map((evaluated) => {
+        this.stripSequenceSymbolFromExpr(evaluated);
+        return evaluated;
+      }),
     );
-    this.stripSequenceSymbolFromExpr(evaluated);
-    return evaluated;
   }
 
-  private standardEvaluate(expr: Expr, context: IContext): Expr {
-    let _expr = ExprHelper.shallowCopy(expr);
+  /** 标准求值程序 */
+  private standardEvaluate(expr: Expr, context: IContext): Observable<Expr> {
+    return of(expr).pipe(
+      // 浅复制
+      map((expr) => ExprHelper.shallowCopy(expr)),
 
-    const match = this.findDefinition(_expr.head, context);
-    if (match.pass) {
-      _expr.head = this.takeAction(
-        _expr.head,
-        match.definition,
-        context,
-        match.namedResult,
-      );
-    }
-
-    if (_expr.nodeType === 'nonTerminal') {
-      for (let i = 0; i < _expr.children.length; i++) {
-        const match = this.findDefinition(_expr.children[i], context);
+      // 对头部求值
+      map((expr) => {
+        const match = this.findDefinition(expr.head, context);
         if (match.pass) {
-          _expr.children[i] = this.takeAction(
-            _expr.children[i],
+          const newHead$ = this.takeAction(
+            expr.head,
             match.definition,
             context,
             match.namedResult,
           );
+          return newHead$.pipe(
+            map((head) => {
+              expr.head = head;
+              return expr;
+            }),
+          );
         }
-      }
-    }
 
-    this.stripSequenceSymbolFromExpr(_expr);
+        return of(expr);
+      }),
+      concatAll(),
 
-    const matchForExpr = this.findDefinition(_expr, context);
-    if (matchForExpr.pass) {
-      _expr = this.takeAction(
-        _expr,
-        matchForExpr.definition,
-        context,
-        matchForExpr.namedResult,
-      );
-    }
+      // 对 children 中的每一个分别求值
+      map((expr) => {
+        if (expr.nodeType === 'nonTerminal') {
+          const children$ = expr.children.map((child) => {
+            const match = this.findDefinition(child, context);
+            if (match.pass) {
+              return this.takeAction(
+                child,
+                match.definition,
+                context,
+                match.namedResult,
+              );
+            }
+            return of(child);
+          });
 
-    return _expr;
+          return zip(children$).pipe(
+            map((children) => {
+              expr.children = children;
+              return expr as Expr;
+            }),
+          );
+        }
+
+        return of(expr);
+      }),
+      concatAll(),
+
+      // 展开 Sequence 符号
+      map((expr) => {
+        this.stripSequenceSymbolFromExpr(expr);
+        return expr;
+      }),
+
+      // 对自己求值
+      map((expr) => {
+        const matchForExpr = this.findDefinition(expr, context);
+        if (matchForExpr.pass) {
+          return this.takeAction(
+            expr,
+            matchForExpr.definition,
+            context,
+            matchForExpr.namedResult,
+          );
+        }
+
+        return of(expr);
+      }),
+      concatAll(),
+    );
   }
 
-  private nonStandardEvaluate(expr: Expr, context: IContext): Expr {
-    const definitionQuery = this.findDefinition(expr, context);
-    if (definitionQuery.pass) {
-      return this.takeAction(
-        expr,
-        definitionQuery.definition,
-        context,
-        definitionQuery.namedResult,
-      );
-    } else {
-      return expr;
-    }
+  /** 非标准求值程序 */
+  private nonStandardEvaluate(expr: Expr, context: IContext): Observable<Expr> {
+    return of(expr).pipe(
+      map((expr) => {
+        const definitionQuery = this.findDefinition(expr, context);
+        if (definitionQuery.pass) {
+          return this.takeAction(
+            expr,
+            definitionQuery.definition,
+            context,
+            definitionQuery.namedResult,
+          );
+        }
+
+        return of(expr);
+      }),
+      concatAll(),
+    );
   }
 
   /**
@@ -320,7 +400,7 @@ export class Evaluator extends Transform implements IEvaluator {
    *
    * 主要是由 Assign 函数调用, Evaluator 内部尽量不要依赖这个函数，换言之这是对外的
    */
-  public assign(keyValuePair: KeyValuePair): Expr {
+  public assign(keyValuePair: KeyValuePair): Observable<Expr> {
     const lhs = keyValuePair.pattern;
     const rhs = keyValuePair.value;
     const evaluatedRhs = this.evaluate(rhs, this.getRootContext());
@@ -336,18 +416,18 @@ export class Evaluator extends Transform implements IEvaluator {
   /**
    * 清除赋值
    */
-  public clearAssign(pattern: Expr): Expr {
+  public clearAssign(pattern: Expr): Observable<Expr> {
     const beforeDefCounts = this._userFixedDefinition.length;
     this._userFixedDefinition = this._userFixedDefinition.filter((userDef) => {
       return !Neo.patternMatch([userDef.pattern], [pattern]).pass;
     });
     const afterDefCounts = this._userFixedDefinition.length;
-    return {
+    return of({
       nodeType: 'terminal',
       expressionType: 'number',
       head: NodeFactory.makeSymbol('Integer'),
       value: beforeDefCounts - afterDefCounts,
-    };
+    });
   }
 
   /**
@@ -372,19 +452,19 @@ export class Evaluator extends Transform implements IEvaluator {
    *
    * 来清除它。
    */
-  public clearDelayedAssign(pattern: Expr): Expr {
+  public clearDelayedAssign(pattern: Expr): Observable<Expr> {
     const beforeCounts = this._userDelayedDefinition.length;
     this._userDelayedDefinition = this._userDelayedDefinition.filter((def) => {
       return !Neo.patternMatch([def.pattern], [pattern]).pass;
     });
     const afterCounts = this._userDelayedDefinition.length;
 
-    return {
+    return of({
       nodeType: 'terminal',
       expressionType: 'number',
       head: NodeFactory.makeSymbol('Integer'),
       value: beforeCounts - afterCounts,
-    };
+    });
   }
 
   /**
@@ -392,7 +472,7 @@ export class Evaluator extends Transform implements IEvaluator {
    *
    * 主要是由 AssignDelayed 函数调用, Evaluator 内部尽量不要依赖这个函数，换言之这是对外的
    */
-  public assignDelayed(keyValuePair: KeyValuePair): Expr {
+  public assignDelayed(keyValuePair: KeyValuePair): Observable<Expr> {
     const originValue = keyValuePair.value;
     this._userDelayedDefinition.push({
       pattern: keyValuePair.pattern,
@@ -402,6 +482,6 @@ export class Evaluator extends Transform implements IEvaluator {
       displayName: `${ExprHelper.nodeToString(keyValuePair.pattern)} -> ?`,
     });
 
-    return allSymbolsMap.NothingSymbol;
+    return of(allSymbolsMap.NothingSymbol);
   }
 }

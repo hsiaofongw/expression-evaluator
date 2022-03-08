@@ -7,7 +7,6 @@ import { ExpressionTranslate } from './translate/translate';
 import { ExpressionNodeSerialize } from './translate/serialize';
 import { Evaluator, PreEvaluator } from './translate/evaluate';
 import { Subject } from 'rxjs';
-import { Transform } from 'stream';
 import { Expr } from './translate/interfaces';
 
 type EvaluateResultObject = { seqNum: number; result: Expr };
@@ -50,8 +49,8 @@ export class AppService {
     evaluate.on('data', (evaluateResultObject: EvaluateResultObject) => {
       const receivedSeqNum = evaluateResultObject.seqNum;
       const expectingSeqNum = currentSeqNum;
+      resultObjsBuffer.push(evaluateResultObject);
       if (receivedSeqNum === expectingSeqNum) {
-        resultObjsBuffer.push(evaluateResultObject);
         resultObjsBuffer.sort((a, b) => a.seqNum - b.seqNum);
         const maxReceivedSeqNum =
           resultObjsBuffer[resultObjsBuffer.length - 1].seqNum;
@@ -60,8 +59,6 @@ export class AppService {
         }
         currentSeqNum = maxReceivedSeqNum + 1;
         stdout.write(promptContentFn(currentSeqNum));
-      } else {
-        resultObjsBuffer.push(evaluateResultObject);
       }
     });
 

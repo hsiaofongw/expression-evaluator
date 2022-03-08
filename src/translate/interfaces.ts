@@ -1,3 +1,5 @@
+import { Observable } from 'rxjs';
+
 export type SymbolExpressionType = {
   /** 表达式类型：符号 */
   expressionType: 'symbol';
@@ -47,19 +49,19 @@ export type KeyValuePair = { pattern: Expr; value: Expr };
 
 export interface IEvaluator {
   /** 求值，最终的求值结果在栈顶 */
-  evaluate(node: Expr, context: IContext): Expr;
+  evaluate(node: Expr, context: IContext): Observable<Expr>;
 
   /** 立即赋值 */
-  assign(keyValuePairs: KeyValuePair): Expr;
+  assign(keyValuePairs: KeyValuePair): Observable<Expr>;
 
   /** 延迟赋值 */
-  assignDelayed(keyValuePairs: KeyValuePair): Expr;
+  assignDelayed(keyValuePairs: KeyValuePair): Observable<Expr>;
 
   /** 清除立即赋值 */
-  clearAssign(pattern: Expr): Expr;
+  clearAssign(pattern: Expr): Observable<Expr>;
 
   /** 清除延迟赋值 */
-  clearDelayedAssign(pattern: Expr): Expr;
+  clearDelayedAssign(pattern: Expr): Observable<Expr>;
 }
 
 export type Definition = {
@@ -67,7 +69,11 @@ export type Definition = {
   pattern: Expr;
 
   /** 该条规则如何改写被应用的表达式 */
-  action: (node: Expr, evaluator: IEvaluator, context: IContext) => Expr;
+  action: (
+    node: Expr,
+    evaluator: IEvaluator,
+    context: IContext,
+  ) => Observable<Expr>;
 
   /** 显示名称 */
   displayName: string;

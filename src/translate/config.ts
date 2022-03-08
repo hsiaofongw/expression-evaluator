@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
+import { concatAll, map, Observable, of, zip } from 'rxjs';
+import { inputStreamFlushSentinelUpdater$ } from 'src/app.service';
 import { ExprHelper } from 'src/helpers/expr-helpers';
 import { Definition, Expr } from './interfaces';
 
@@ -174,6 +176,24 @@ export const allSymbolsMap = {
 
   // RawEqualQ 符号
   RawEqualQSymbol: NodeFactory.makeSymbol('RawEqualQ'),
+
+  // SwitchToMultilineInputMode 符号
+  SwitchToMultilineInputModeSymbol: NodeFactory.makeSymbol(
+    'SwitchToMultilineInputMode',
+  ),
+
+  // SwitchToSingleLineInputMode 符号
+  SwitchToSingleLineInputModeSymbol: NodeFactory.makeSymbol(
+    'SwitchToSingleLineInputMode',
+  ),
+
+  // Rule 符号
+  RuleSymbol: NodeFactory.makeSymbol('Rule'),
+
+  // CurrentInputFlushSentinel 符号
+  currentInputFlushSentinelSymbol: NodeFactory.makeSymbol(
+    'CurrentInputFlushSentinel',
+  ),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -283,74 +303,30 @@ class UnaryOperationPatternFactory {
         if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
           const v1 = node.children[0];
           if (v1.nodeType === 'terminal' && v1.expressionType === 'number') {
-            return {
+            return of({
               nodeType: 'terminal',
               expressionType: 'number',
               head: allSymbolsMap.NumberSymbol,
               value: valueFunction(v1.value),
-            };
+            });
           }
 
-          const nodeCopy = ExprHelper.shallowCopy(node) as typeof node;
-          nodeCopy.children[0] = evaluator.evaluate(
-            nodeCopy.children[0],
-            context,
+          return of(ExprHelper.shallowCopy(node) as typeof node).pipe(
+            map((node) => {
+              return evaluator.evaluate(node.children[0], context).pipe(
+                map((child) => {
+                  node.children[0] = child;
+                  return node as Expr;
+                }),
+              );
+            }),
+            concatAll(),
           );
-          return nodeCopy;
         }
 
-        return node;
+        return of(node);
       },
       displayName: 'x :-> f x',
-    };
-  }
-}
-
-// 返回一个数值型二元运算 Pattern
-class BinaryOperationPatternFactory {
-  public static makePattern(
-    headExpr: Expr,
-    valueFunction: (a: number, b: number) => number,
-  ): Definition {
-    return {
-      pattern: {
-        nodeType: 'nonTerminal',
-        head: headExpr,
-        children: [Blank(), Blank()],
-      },
-      action: (node, evaluator, context) => {
-        if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-          if (
-            node.children[0].nodeType === 'terminal' &&
-            node.children[0].expressionType === 'number' &&
-            node.children[1].nodeType === 'terminal' &&
-            node.children[1].expressionType === 'number'
-          ) {
-            return {
-              nodeType: 'terminal',
-              expressionType: 'number',
-              value: valueFunction(
-                node.children[0].value,
-                node.children[1].value,
-              ),
-              head: allSymbolsMap.NumberSymbol,
-            };
-          }
-
-          const nodeCopy = ExprHelper.shallowCopy(node) as typeof node;
-          nodeCopy.children[0] = evaluator.evaluate(
-            nodeCopy.children[0],
-            context,
-          );
-          nodeCopy.children[1] = evaluator.evaluate(
-            nodeCopy.children[1],
-            context,
-          );
-          return nodeCopy;
-        }
-        return node;
-      },
-      displayName: '(x, y) :-> f (x, y)',
     };
   }
 }
@@ -375,32 +351,57 @@ class BinaryExprPatternFactory {
             node.children[1].nodeType === 'terminal' &&
             node.children[1].expressionType === 'number'
           ) {
-            return valueFunction(
-              node.children[0].value,
-              node.children[1].value,
-            );
+            const x = node.children[0].value;
+            const y = node.children[1].value;
+            return of(valueFunction(x, y));
           }
 
-          const nodeCopy = ExprHelper.shallowCopy(node) as typeof node;
-          nodeCopy.children[0] = evaluator.evaluate(
-            nodeCopy.children[0],
-            context,
+          return of(ExprHelper.shallowCopy(node) as typeof node).pipe(
+            map((node) =>
+              zip([
+                evaluator.evaluate(node.children[0], context),
+                evaluator.evaluate(node.children[1], context),
+              ]).pipe(
+                map(([child1, child2]) => {
+                  node.children[0] = child1;
+                  node.children[1] = child2;
+                  return node as Expr;
+                }),
+              ),
+            ),
+            concatAll(),
           );
-          nodeCopy.children[1] = evaluator.evaluate(
-            nodeCopy.children[1],
-            context,
-          );
-          return nodeCopy;
         }
-        return node;
+        return of(node);
       },
       displayName: '(x, y) :-> f (x, y)',
     };
   }
 }
 
+// 返回一个数值型二元运算 Pattern
+class BinaryOperationPatternFactory {
+  public static makePattern(
+    headExpr: Expr,
+    valueFunction: (a: number, b: number) => number,
+  ): Definition {
+    return BinaryExprPatternFactory.makePattern(headExpr, (a, b) => {
+      return {
+        nodeType: 'terminal',
+        expressionType: 'number',
+        value: valueFunction(a, b),
+        head: allSymbolsMap.NumberSymbol,
+      };
+    });
+  }
+}
+
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
+  // SwitchToSingleLineInputMode
+
+  // SwitchToMultiLineInputMode
+
   // Sequence
   {
     pattern: {
@@ -421,14 +422,14 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: allSymbolsMap.TrueSymbol,
     action: (_, __, ___) => {
-      return True;
+      return of(True);
     },
     displayName: 'True -> True',
   },
   {
     pattern: allSymbolsMap.FalseSymbol,
     action: (_, __, ___) => {
-      return False;
+      return of(False);
     },
     displayName: 'False -> False',
   },
@@ -440,28 +441,36 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.IfSymbol,
       children: [Blank(), Blank(), Blank()],
     },
-    action: (node, evaluator, context) => {
-      if (
-        node.head.nodeType === 'terminal' &&
-        node.head.expressionType === 'symbol' &&
-        node.head.value === 'If' &&
-        node.nodeType === 'nonTerminal' &&
-        node.children.length === 3
-      ) {
-        node.children[0] = evaluator.evaluate(node.children[0], context);
-        const cond = node.children[0];
-        if (
-          cond.nodeType === 'terminal' &&
-          cond.expressionType === 'boolean' &&
-          cond.value !== false
-        ) {
-          return evaluator.evaluate(node.children[1], context);
-        } else {
-          return evaluator.evaluate(node.children[2], context);
-        }
-      }
-
-      logErrorAndExit('IF[_, _, _]');
+    action: (expr, evaluator, context) => {
+      return of(expr).pipe(
+        map((expr) => {
+          if (
+            expr.head.nodeType === 'terminal' &&
+            expr.head.expressionType === 'symbol' &&
+            expr.head.value === 'If' &&
+            expr.nodeType === 'nonTerminal' &&
+            expr.children.length === 3
+          ) {
+            return evaluator.evaluate(expr.children[0], context).pipe(
+              map((cond) => {
+                if (
+                  cond.nodeType === 'terminal' &&
+                  cond.expressionType === 'boolean' &&
+                  !cond.value
+                ) {
+                  return evaluator.evaluate(expr.children[2], context);
+                } else {
+                  return evaluator.evaluate(expr.children[1], context);
+                }
+              }),
+              concatAll(),
+            );
+          } else {
+            logErrorAndExit('If');
+          }
+        }),
+        concatAll(),
+      );
     },
     displayName: 'IF[x, y, z] -> ?',
   },
@@ -503,14 +512,17 @@ export const builtInDefinitions: Definition[] = [
         node.nodeType === 'nonTerminal' &&
         node.children.length === 2
       ) {
-        node.children[0] = evaluator.evaluate(node.children[0], context);
-        node.children[1] = evaluator.evaluate(node.children[1], context);
-
-        if (ExprHelper.rawEqualQ([node.children[0]], [node.children[1]])) {
-          return True;
-        } else {
-          return False;
-        }
+        const lhs$ = evaluator.evaluate(node.children[0], context);
+        const rhs$ = evaluator.evaluate(node.children[1], context);
+        return zip([lhs$, rhs$]).pipe(
+          map(([lhs, rhs]) => {
+            if (ExprHelper.rawEqualQ([lhs], [rhs])) {
+              return True as Expr;
+            } else {
+              return False as Expr;
+            }
+          }),
+        );
       }
 
       logErrorAndExit('EqualQ[_, _]');
