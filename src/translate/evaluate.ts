@@ -122,10 +122,12 @@ export class Evaluator extends Transform implements IEvaluator {
     callback: TransformCallback,
   ): void {
     const rootContext = this.getRootContext();
-    const result = this.evaluate(expr, rootContext);
-    this.push({ seqNum: this.seqNum, result });
-    this.seqNum = this.seqNum + 1;
-    callback();
+    const result$ = this.evaluate(expr, rootContext);
+    result$.subscribe((result) => {
+      this.push({ seqNum: this.seqNum, result });
+      this.seqNum = this.seqNum + 1;
+      callback();
+    });
   }
 
   /** Modify node in-place */
@@ -252,47 +254,60 @@ export class Evaluator extends Transform implements IEvaluator {
     parentContext: IContext,
     namedResult: Record<string, Expr[]>,
   ): Observable<Expr> {
-    return of(namedResult).pipe(
-      map((namedResult) => {
-        const keyValuePairs: { key: string; idx: number; value: Expr }[] = [];
-        for (const key in namedResult) {
-          for (let idx = 0; idx < namedResult[key].length; idx = idx + 1) {
-            keyValuePairs.push({ key, idx, value: namedResult[key][idx] });
-          }
-        }
-        return keyValuePairs;
-      }),
-      map((pairs) => {
-        const op = (k: string, i: number, v: Expr) =>
-          this.evaluate(v, parentContext).pipe(
-            map((res) => ({ key: k, idx: i, value: res })),
-          );
-        return zip(pairs.map((pair) => op(pair.key, pair.idx, pair.value)));
-      }),
-      concatAll(),
+    const pairs: { key: string; exprs: Expr[] }[] = [];
+    for (const key in namedResult) {
+      pairs.push({ key, exprs: namedResult[key] });
+    }
+
+    const pair$s: Observable<{ key: string; exprs: Expr[] }>[] = pairs.map(
+      (pair) => {
+        const expr$s: Observable<Expr>[] = pair.exprs.map((expr) =>
+          this.evaluate(expr, parentContext),
+        );
+
+        const exprs$: Observable<Expr[]> = zip(expr$s);
+
+        const pair$: Observable<{ key: string; exprs: Expr[] }> = exprs$.pipe(
+          map((exprs) => ({ key: pair.key, exprs })),
+        );
+
+        return pair$;
+      },
+    );
+
+    const pairs$: Observable<{ key: string; exprs: Expr[] }[]> = zip(pair$s);
+    let namedResult$: Observable<Record<string, Expr[]>> = pairs$.pipe(
       map((pairs) => {
         const newNamedResult: Record<string, Expr[]> = {};
         for (const pair of pairs) {
-          if (newNamedResult[pair.key] === undefined) {
-            newNamedResult[pair.key] = [];
-          }
-          newNamedResult[pair.key][pair.idx] = pair.value;
+          newNamedResult[pair.key] = pair.exprs;
         }
         return newNamedResult;
       }),
-      map((newNamedResult) => {
-        return definition.action(
+    );
+
+    if (pairs.length === 0) {
+      namedResult$ = of(namedResult);
+    }
+
+    const evaluated$$: Observable<Observable<Expr>> = namedResult$.pipe(
+      map((namedResult) => {
+        const expr$: Observable<Expr> = definition.action(
           expr,
           this,
-          this.appendToContext(parentContext, newNamedResult),
+          this.appendToContext(parentContext, namedResult),
         );
-      }),
-      concatAll(),
-      map((evaluated) => {
-        this.stripSequenceSymbolFromExpr(evaluated);
-        return evaluated;
+        return expr$;
       }),
     );
+    const evaluated$: Observable<Expr> = evaluated$$.pipe(
+      concatAll(),
+      map((expr) => {
+        this.stripSequenceSymbolFromExpr(expr);
+        return expr;
+      }),
+    );
+    return evaluated$;
   }
 
   /** 标准求值程序 */
