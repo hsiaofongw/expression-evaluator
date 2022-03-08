@@ -178,21 +178,21 @@ export const allSymbolsMap = {
   RawEqualQSymbol: NodeFactory.makeSymbol('RawEqualQ'),
 
   // SwitchToMultilineInputMode 符号
-  MultilineModeSymbol: NodeFactory.makeSymbol('MultilineMode', true),
+  SwitchToMultilineInputModeSymbol: NodeFactory.makeSymbol(
+    'SwitchToMultilineInputMode',
+  ),
 
   // SwitchToSingleLineInputMode 符号
-  SingleLineInputModeSymbol: NodeFactory.makeSymbol(
-    'SingleLineInputMode',
-    true,
+  SwitchToSingleLineInputModeSymbol: NodeFactory.makeSymbol(
+    'SwitchToSingleLineInputMode',
   ),
 
   // Rule 符号
-  RuleSymbol: NodeFactory.makeSymbol('Rule', true),
+  RuleSymbol: NodeFactory.makeSymbol('Rule'),
 
   // CurrentInputFlushSentinel 符号
   currentInputFlushSentinelSymbol: NodeFactory.makeSymbol(
     'CurrentInputFlushSentinel',
-    true,
   ),
 };
 
@@ -284,25 +284,6 @@ export function NumberExpressionType(): Expr {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.NumberExpressionTypeSymbol,
     children: [],
-  };
-}
-
-// 返回一个字符串 Expr
-export function StringExpr(content: string): Expr {
-  return {
-    nodeType: 'terminal',
-    expressionType: 'string',
-    head: allSymbolsMap.StringSymbol,
-    value: content,
-  };
-}
-
-// 返回一个 Rule
-export function Rule(keyExpr: Expr, valueExpr: Expr): Expr {
-  return {
-    nodeType: 'nonTerminal',
-    head: allSymbolsMap.RuleSymbol,
-    children: [keyExpr, valueExpr],
   };
 }
 
@@ -418,42 +399,8 @@ class BinaryOperationPatternFactory {
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
   // SwitchToSingleLineInputMode
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.SingleLineInputModeSymbol,
-      children: [],
-    },
-    action: (_, __, ___) => {
-      return new Observable<Expr>((obs) => {
-        inputStreamFlushSentinelUpdater$.subscribe(() => {
-          obs.next(allSymbolsMap.NothingSymbol);
-          obs.complete();
-        });
-        inputStreamFlushSentinelUpdater$.next('\n');
-      });
-    },
-    displayName: 'SwitchToSingleLineInputMode[] -> ?',
-  },
 
   // SwitchToMultiLineInputMode
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.MultilineModeSymbol,
-      children: [],
-    },
-    action: (_, __, ___) => {
-      return new Observable<Expr>((obs) => {
-        inputStreamFlushSentinelUpdater$.subscribe(() => {
-          obs.next(allSymbolsMap.NothingSymbol);
-          obs.complete();
-        });
-        inputStreamFlushSentinelUpdater$.next(';');
-      });
-    },
-    displayName: 'SwitchToMultiLineInputMode[] -> ?',
-  },
 
   // Sequence
   {
