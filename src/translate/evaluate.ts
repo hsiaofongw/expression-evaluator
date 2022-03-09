@@ -21,7 +21,7 @@ import {
 } from './interfaces';
 import { allSymbols } from './config';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
-import { concat, concatAll, map, Observable, of, zip } from 'rxjs';
+import { concat, concatAll, from, map, Observable, of, zip } from 'rxjs';
 
 type DefinitionQueryResult =
   | NoMatchResult
@@ -77,25 +77,6 @@ export class Evaluator extends Transform implements IEvaluator {
   /** 序列号 */
   private seqNum = 0;
 
-  /**
-   * 在进行模式匹配得到的定义，例如：
-   *
-   * 假设现在有这样一条定义存在：
-   *
-   * f[x_, y_] := x + y
-   *
-   * 这时我们尝试对表达式
-   *
-   * f[a, b]
-   *
-   * 求值，那么求值器会遍历所有定义，并且发现 f[a, b] 符合 f[x_, y_]，并且得到 x 的值为 a, y 的值为 b,
-   * 那么这个「x 的值为 a, y 的值为 b」这条信息，则会临时记录在 _ephemeralDefinitions 变量中（入栈），
-   *
-   * 然后，求值器会对定义的右边进行求值，求值（递归的）的过程中，求值器还会尝试寻找 x 和 y 的定义，那么求值器就会在 _ephemeralDefinitions 中找到，
-   *
-   * 对定义的右边也就是 x + y 求值完成后，求值器会对 _ephemeralDefinitions 进行一次出栈操作，防止 _ephermeralDefinitions 的内容不断堆积导致内存泄露。
-   */
-
   constructor(seqNum?: number) {
     super({ objectMode: true });
     if (seqNum !== undefined) {
@@ -130,42 +111,46 @@ export class Evaluator extends Transform implements IEvaluator {
     });
   }
 
-  /** Modify node in-place */
-  private stripSequenceSymbolFromExpr(node: Expr): void {
-    if (node.nodeType === 'nonTerminal') {
-      if (
-        node.head.nodeType === 'nonTerminal' &&
-        node.head.head.nodeType === 'terminal' &&
-        node.head.head.expressionType === 'symbol' &&
-        node.head.head.value == 'Sequence' &&
-        node.head.children.length === 1
-      ) {
-        node.head = node.head.children[0];
-      }
+  private makeEmptyContext(): IContext {
+    return {
+      definitions: {
+        arguments: [],
+        builtin: [],
+        delayedAssign: [],
+        fixedAssign: [],
+      },
+      parent: undefined,
+    };
+  }
 
-      const flattenChildren: Expr[] = [];
-      for (let i = 0; i < node.children.length; i++) {
-        const child = node.children[i];
-        if (
-          child.head.nodeType === 'terminal' &&
-          child.nodeType === 'nonTerminal' &&
-          child.head.expressionType === 'symbol' &&
-          child.head.value === 'Sequence'
-        ) {
-          for (const subChild of child.children) {
-            flattenChildren.push(subChild);
-          }
-        } else {
-          flattenChildren.push(child);
-        }
-      }
-      node.children = flattenChildren;
-
-      this.stripSequenceSymbolFromExpr(node.head);
-      for (let i = 0; i < node.children.length; i++) {
-        this.stripSequenceSymbolFromExpr(node.children[i]);
-      }
+  /** 寻找定义并执行定义规定的操作 */
+  private substitute(expr: Expr, context: IContext): Observable<Expr> {
+    // 寻找定义
+    const definitionQueryResult = this.findDefinition(expr, context);
+    if (!definitionQueryResult.pass) {
+      // 无定义
+      return of(expr);
     }
+
+    // 导入结果
+    const newContext: IContext = this.makeEmptyContext();
+    const namedResult = definitionQueryResult.namedResult;
+    for (const key in namedResult) {
+      const keyExpr = NodeFactory.makeSymbol(key);
+      const valueExpr = Sequence(namedResult[key]);
+      newContext.definitions.arguments.push({
+        pattern: keyExpr,
+        // 务必要在现在这个父上下文进行求值，而不是在将来那个现场的上下文
+        action: (_, evaluator, ___) => evaluator.evaluate(valueExpr, context),
+        displayName: ExprHelper.keyValuePairToString(keyExpr, valueExpr),
+      });
+    }
+
+    // 新建上下文
+    newContext.parent = context;
+
+    // 求值
+    return definitionQueryResult.definition.action(expr, this, newContext);
   }
 
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
@@ -217,197 +202,63 @@ export class Evaluator extends Transform implements IEvaluator {
     return { pass: false };
   }
 
-  private appendToContext(
-    parent: IContext,
-    namedResult: Record<string, Expr[]>,
-  ): IContext {
-    const newContext: IContext = {
-      parent: parent,
-      definitions: {
-        arguments: [],
-        builtin: [],
-        delayedAssign: [],
-        fixedAssign: [],
-      },
-    };
-    for (const key in namedResult) {
-      const exprs: Expr[] = namedResult[key];
-      const sequence: Expr = {
-        nodeType: 'nonTerminal',
-        head: allSymbolsMap.SequenceSymbol,
-        children: [...exprs],
-      };
-      const keyExpr = NodeFactory.makeSymbol(key);
-      newContext.definitions.arguments.push({
-        pattern: keyExpr,
-        action: (_, __, ___) => of(sequence),
-        displayName: ExprHelper.keyValuePairToString(keyExpr, sequence),
-      });
-    }
-
-    return newContext;
-  }
-
-  private takeAction(
-    expr: Expr,
-    definition: Definition,
-    parentContext: IContext,
-    namedResult: Record<string, Expr[]>,
-  ): Observable<Expr> {
-    const pairs: { key: string; exprs: Expr[] }[] = [];
-    for (const key in namedResult) {
-      pairs.push({ key, exprs: namedResult[key] });
-    }
-
-    const pair$s: Observable<{ key: string; exprs: Expr[] }>[] = pairs.map(
-      (pair) => {
-        const expr$s: Observable<Expr>[] = pair.exprs.map((expr) =>
-          this.evaluate(expr, parentContext),
-        );
-
-        const exprs$: Observable<Expr[]> = zip(expr$s);
-
-        const pair$: Observable<{ key: string; exprs: Expr[] }> = exprs$.pipe(
-          map((exprs) => ({ key: pair.key, exprs })),
-        );
-
-        return pair$;
-      },
-    );
-
-    const pairs$: Observable<{ key: string; exprs: Expr[] }[]> = zip(pair$s);
-    let namedResult$: Observable<Record<string, Expr[]>> = pairs$.pipe(
-      map((pairs) => {
-        const newNamedResult: Record<string, Expr[]> = {};
-        for (const pair of pairs) {
-          newNamedResult[pair.key] = pair.exprs;
-        }
-        return newNamedResult;
-      }),
-    );
-
-    if (pairs.length === 0) {
-      namedResult$ = of(namedResult);
-    }
-
-    const evaluated$$: Observable<Observable<Expr>> = namedResult$.pipe(
-      map((namedResult) => {
-        const expr$: Observable<Expr> = definition.action(
-          expr,
-          this,
-          this.appendToContext(parentContext, namedResult),
-        );
-        return expr$;
-      }),
-    );
-    const evaluated$: Observable<Expr> = evaluated$$.pipe(
-      concatAll(),
-      map((expr) => {
-        this.stripSequenceSymbolFromExpr(expr);
-        return expr;
-      }),
-    );
-    return evaluated$;
-  }
-
   /** 标准求值程序 */
   private standardEvaluate(expr: Expr, context: IContext): Observable<Expr> {
-    return of(expr).pipe(
-      // 浅复制
-      map((expr) => ExprHelper.shallowCopy(expr)),
-
-      // 对头部求值
-      map((expr) => {
-        const match = this.findDefinition(expr.head, context);
-        if (match.pass) {
-          const newHead$ = this.takeAction(
-            expr.head,
-            match.definition,
-            context,
-            match.namedResult,
-          );
-          return newHead$.pipe(
-            map((head) => {
-              expr.head = head;
-              return expr;
-            }),
-          );
-        }
-
-        return of(expr);
-      }),
+    const head = expr.head;
+    return of([expr, ExprHelper.shallowCopy(head)]).pipe(
+      // 对 head 求值
+      map(([expr, headExpr]) =>
+        this.substitute(headExpr, context).pipe(
+          map((evaluatedHead) => {
+            expr.head = evaluatedHead;
+            return expr;
+          }),
+        ),
+      ),
       concatAll(),
 
-      // 对 children 中的每一个分别求值
+      // 为对 children 求值做准备，提前把每一个 child 做浅复制
       map((expr) => {
         if (expr.nodeType === 'nonTerminal') {
-          const children$ = expr.children.map((child) => {
-            const match = this.findDefinition(child, context);
-            if (match.pass) {
-              return this.takeAction(
-                child,
-                match.definition,
-                context,
-                match.namedResult,
-              );
-            }
-            return of(child);
-          });
-
-          return zip(children$).pipe(
-            map((children) => {
-              expr.children = children;
-              return expr as Expr;
-            }),
+          expr.children = expr.children.map((child) =>
+            ExprHelper.shallowCopy(child),
           );
         }
+        return expr as Expr;
+      }),
 
-        return of(expr);
+      // 尝试对每个 child 求值（如果有的话）
+      map((expr) => {
+        if (
+          (expr.nodeType === 'nonTerminal' && expr.children.length === 0) ||
+          expr.nodeType === 'terminal'
+        ) {
+          return of(expr);
+        }
+
+        const exprWithChildrenEvaluated$ = zip(
+          expr.children.map((child) =>
+            this.evaluate(ExprHelper.shallowCopy(child), context),
+          ),
+        ).pipe(
+          map((children) => {
+            expr.children = children;
+            return expr as Expr;
+          }),
+        );
+        return exprWithChildrenEvaluated$;
       }),
       concatAll(),
 
-      // 展开 Sequence 符号
-      map((expr) => {
-        this.stripSequenceSymbolFromExpr(expr);
-        return expr;
-      }),
-
       // 对自己求值
-      map((expr) => {
-        const matchForExpr = this.findDefinition(expr, context);
-        if (matchForExpr.pass) {
-          return this.takeAction(
-            expr,
-            matchForExpr.definition,
-            context,
-            matchForExpr.namedResult,
-          );
-        }
-
-        return of(expr);
-      }),
+      map((expr) => this.substitute(expr, context)),
       concatAll(),
     );
   }
 
   /** 非标准求值程序 */
   private nonStandardEvaluate(expr: Expr, context: IContext): Observable<Expr> {
-    return of(expr).pipe(
-      map((expr) => {
-        const definitionQuery = this.findDefinition(expr, context);
-        if (definitionQuery.pass) {
-          return this.takeAction(
-            expr,
-            definitionQuery.definition,
-            context,
-            definitionQuery.namedResult,
-          );
-        }
-
-        return of(expr);
-      }),
-      concatAll(),
-    );
+    return this.substitute(expr, context);
   }
 
   /**

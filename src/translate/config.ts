@@ -460,13 +460,16 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.SequenceSymbol,
-      children: [Blank()],
+      children: [BlankNullSequence()],
     },
-    action: (node, evaluator, context) => {
+    action: (node, _, __) => {
       if (node.nodeType === 'nonTerminal') {
-        return evaluator.evaluate(node.children[0], context);
+        if (node.children.length === 1) {
+          return of(node.children[0]);
+        }
       }
-      logErrorAndExit('Sequence[_]');
+
+      return of(node);
     },
     displayName: 'Sequence[_] -> ?',
   },
