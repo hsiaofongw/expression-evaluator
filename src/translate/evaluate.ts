@@ -155,6 +155,8 @@ export class Evaluator extends Transform implements IEvaluator {
 
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
   public evaluate(expr: Expr, context: IContext): Observable<Expr> {
+    console.log('Evaluate: ' + ExprHelper.nodeToString(expr));
+
     const head = expr.head;
     const copy = ExprHelper.shallowCopy(expr);
     let result$: Observable<Expr>;

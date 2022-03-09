@@ -24,7 +24,10 @@ export class Neo {
     lhs: Expr[],
     rhs: Expr[],
   ): PatternMatchResult {
-    if (lhs.length === 0 && rhs.length !== 0) {
+    // console.log(`Lhs: ${lhs.map(expr => ExprHelper.nodeToString(expr)).join(', ')}`);
+    // console.log(`Rhs: ${rhs.map(expr => ExprHelper.nodeToString(expr)).join(', ')}`);
+
+    if (lhs.length !== 0 && rhs.length === 0) {
       return { pass: false };
     } else if (lhs.length === rhs.length && rhs.length === 0) {
       return { pass: true, namedResult: {} };
