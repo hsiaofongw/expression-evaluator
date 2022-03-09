@@ -31,8 +31,12 @@ export class Neo {
     lhs: Expr[],
     rhs: Expr[],
   ): PatternMatchResult {
-    // console.log(`Lhs: ${lhs.map(expr => ExprHelper.nodeToString(expr)).join(', ')}`);
-    // console.log(`Rhs: ${rhs.map(expr => ExprHelper.nodeToString(expr)).join(', ')}`);
+    // console.log(
+    //   `Lhs: ${lhs.map((expr) => ExprHelper.nodeToString(expr)).join(', ')}`,
+    // );
+    // console.log(
+    //   `Rhs: ${rhs.map((expr) => ExprHelper.nodeToString(expr)).join(', ')}`,
+    // );
 
     if (lhs.length !== 0 && rhs.length === 0) {
       return { pass: false };
@@ -380,13 +384,29 @@ export class Neo {
           );
 
           if (matchHead.pass && matchChildren.pass) {
-            // 这里不用考虑命名 pattern 匹配值冲突问题，因为在处理 Pattern[symbol, x] 的情形的时候已经处理了
+            const namedResult = ExprHelper.mergeNamedResult(
+              matchHead.namedResult,
+              matchChildren.namedResult,
+            );
+            const restMatch = Neo.patternMatch(
+              lhs.slice(1, lhs.length),
+              rhs.slice(1, rhs.length),
+            );
+            if (
+              restMatch.pass &&
+              !ExprHelper.nameConflictQ(restMatch.namedResult, namedResult)
+            ) {
+              return {
+                pass: true,
+                namedResult: ExprHelper.mergeNamedResult(
+                  restMatch.namedResult,
+                  namedResult,
+                ),
+              };
+            }
+
             return {
-              pass: true,
-              namedResult: ExprHelper.mergeNamedResult(
-                matchHead.namedResult,
-                matchChildren.namedResult,
-              ),
+              pass: false,
             };
           } else {
             return { pass: false };
@@ -513,12 +533,12 @@ export class ExprHelper {
     if (node.nodeType === 'terminal') {
       if (node.expressionType === 'boolean') {
         if (node.value === true) {
-          return 'True::boolean';
+          return 'True';
         } else {
-          return 'False::boolean';
+          return 'False';
         }
       }
-      return node.value.toString() + '::' + node.expressionType;
+      return node.value.toString();
     } else {
       const childrenDisplay = node.children
         .map((_n) => ExprHelper.nodeToString(_n))
