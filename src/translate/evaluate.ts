@@ -77,6 +77,16 @@ export class Evaluator extends Transform implements IEvaluator {
   /** 序列号 */
   private seqNum = 0;
 
+  private rootContext: IContext = {
+    parent: undefined,
+    definitions: {
+      builtin: this._builtInDefinitions,
+      fixedAssign: this._userFixedDefinition,
+      delayedAssign: this._userDelayedDefinition,
+      arguments: [],
+    },
+  };
+
   constructor(seqNum?: number) {
     super({ objectMode: true });
     if (seqNum !== undefined) {
@@ -85,15 +95,7 @@ export class Evaluator extends Transform implements IEvaluator {
   }
 
   private getRootContext(): IContext {
-    const rootContext: IContext = {
-      parent: undefined,
-      definitions: {
-        builtin: this._builtInDefinitions,
-        fixedAssign: this._userFixedDefinition,
-        delayedAssign: this._userDelayedDefinition,
-        arguments: [],
-      },
-    };
+    const rootContext: IContext = this.rootContext;
     return rootContext;
   }
 
@@ -125,6 +127,8 @@ export class Evaluator extends Transform implements IEvaluator {
 
   /** 寻找定义并执行定义规定的操作 */
   private substitute(expr: Expr, context: IContext): Observable<Expr> {
+    console.log('Substitute: ' + ExprHelper.nodeToString(expr));
+
     // 寻找定义
     const definitionQueryResult = this.findDefinition(expr, context);
     if (!definitionQueryResult.pass) {
@@ -150,6 +154,7 @@ export class Evaluator extends Transform implements IEvaluator {
     newContext.parent = context;
 
     // 求值
+    console.log('Apply: ' + definitionQueryResult.definition.displayName);
     return definitionQueryResult.definition.action(expr, this, newContext);
   }
 
@@ -160,7 +165,9 @@ export class Evaluator extends Transform implements IEvaluator {
     const head = expr.head;
     const copy = ExprHelper.shallowCopy(expr);
     let result$: Observable<Expr>;
-    if (
+    if (expr.nodeType === 'terminal' && expr.expressionType !== 'symbol') {
+      return of(expr);
+    } else if (
       head.nodeType === 'terminal' &&
       head.expressionType === 'symbol' &&
       allNonStandardSymbolsSet.has(head.value)
@@ -192,6 +199,13 @@ export class Evaluator extends Transform implements IEvaluator {
    * @returns 定义查询结果
    */
   private findDefinition(expr: Expr, context: IContext): DefinitionQueryResult {
+    if (context.parent !== undefined) {
+      const defQuery = this.findDefinition(expr, this.rootContext);
+      if (defQuery.pass) {
+        return { ...defQuery, definition: defQuery.definition };
+      }
+    }
+
     let contextPtr = context;
     const queryOrder: DefinitionType[] = [
       'arguments',

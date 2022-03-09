@@ -18,6 +18,7 @@ function makeMetaSymbol(): Expr {
     nodeType: 'terminal',
     expressionType: 'symbol',
     value: 'Symbol',
+    nonStandard: true,
   };
   metaSymbol.head = metaSymbol;
   return metaSymbol;
@@ -61,7 +62,7 @@ export const allSymbolsMap = {
   SymbolSymbol: SymbolSymbol,
 
   // 数值符号
-  NumberSymbol: NodeFactory.makeSymbol('Number'),
+  NumberSymbol: NodeFactory.makeSymbol('Number', true),
 
   // 赋值符号
   AssignSymbol: NodeFactory.makeSymbol('Assign', true),
@@ -82,40 +83,40 @@ export const allSymbolsMap = {
   SquareSymbol: NodeFactory.makeSymbol('Square', true),
 
   // 相等判断符号
-  EqualQSymbol: NodeFactory.makeSymbol('EqualQ'),
+  EqualQSymbol: NodeFactory.makeSymbol('EqualQ', true),
 
   // 严格大于判定符号
-  GreaterThanSymbol: NodeFactory.makeSymbol('GreaterThan'),
+  GreaterThanSymbol: NodeFactory.makeSymbol('GreaterThan', true),
 
   // 严格小于判定符号
-  LessThanSymbol: NodeFactory.makeSymbol('LessThan'),
+  LessThanSymbol: NodeFactory.makeSymbol('LessThan', true),
 
   // 严格不小于判定符号
-  GreaterThanOrEqualSymbol: NodeFactory.makeSymbol('GreaterThanOrEqual'),
+  GreaterThanOrEqualSymbol: NodeFactory.makeSymbol('GreaterThanOrEqual', true),
 
   // 严格不大于判定符号
-  LessThanOrEqualSymbol: NodeFactory.makeSymbol('LessThanOrEqual'),
+  LessThanOrEqualSymbol: NodeFactory.makeSymbol('LessThanOrEqual', true),
 
   // 相加符号
-  PlusSymbol: NodeFactory.makeSymbol('Plus'),
+  PlusSymbol: NodeFactory.makeSymbol('Plus', true),
 
   // 相减符号
-  MinusSymbol: NodeFactory.makeSymbol('Minus'),
+  MinusSymbol: NodeFactory.makeSymbol('Minus', true),
 
   // 相乘符号
-  TimesSymbol: NodeFactory.makeSymbol('Times'),
+  TimesSymbol: NodeFactory.makeSymbol('Times', true),
 
   // 相除符号
-  DivideSymbol: NodeFactory.makeSymbol('Divide'),
+  DivideSymbol: NodeFactory.makeSymbol('Divide', true),
 
   // 取余数符号
-  RemainderSymbol: NodeFactory.makeSymbol('Remainder'),
+  RemainderSymbol: NodeFactory.makeSymbol('Remainder', true),
 
   // 幂次运算符号
-  PowerSymbol: NodeFactory.makeSymbol('Power'),
+  PowerSymbol: NodeFactory.makeSymbol('Power', true),
 
   // 一元自然指数幂符号
-  ESymbol: NodeFactory.makeSymbol('E'),
+  ESymbol: NodeFactory.makeSymbol('E', true),
 
   // 字符串符号
   StringSymbol: NodeFactory.makeSymbol('String', true),
@@ -127,7 +128,7 @@ export const allSymbolsMap = {
   ListSymbol: NodeFactory.makeSymbol('List', true),
 
   // Head 符号
-  HeadSymbol: NodeFactory.makeSymbol('Head'),
+  HeadSymbol: NodeFactory.makeSymbol('Head', true),
 
   // Pattern 符号
   PatternSymbol: NodeFactory.makeSymbol('Pattern', true),
@@ -151,10 +152,10 @@ export const allSymbolsMap = {
   ),
 
   // 自然对数符号
-  LnSymbol: NodeFactory.makeSymbol('Ln'),
+  LnSymbol: NodeFactory.makeSymbol('Ln', true),
 
   // 对数符号
-  LogSymbol: NodeFactory.makeSymbol('Log'),
+  LogSymbol: NodeFactory.makeSymbol('Log', true),
 
   // BlankSequence 符号
   BlankSequenceSymbol: NodeFactory.makeSymbol('BlankSequence', true),
@@ -460,7 +461,7 @@ export const builtInDefinitions: Definition[] = [
 
       return of(node);
     },
-    displayName: 'Sequence[x_] -> x',
+    displayName: '_[___, _Sequence, ___] -> ?',
   },
 
   // Sequence[_]
@@ -477,7 +478,7 @@ export const builtInDefinitions: Definition[] = [
         return of(node);
       }
     },
-    displayName: '_[___] -> ?',
+    displayName: 'Sequence[x] -> x',
   },
 
   // 把 True 符号替换为 True, False 符号替换为 False
