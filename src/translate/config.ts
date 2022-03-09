@@ -61,6 +61,12 @@ export const allSymbolsMap = {
   // 元符号
   SymbolSymbol: SymbolSymbol,
 
+  // 长度符号
+  LengthSymbol: NodeFactory.makeSymbol('Length', true),
+
+  // 剩余部分负号
+  RestPartSymbol: NodeFactory.makeSymbol('RestPart', true),
+
   // 或者符号
   OrSymbol: NodeFactory.makeSymbol('Or', true),
 
@@ -198,6 +204,9 @@ export const allSymbolsMap = {
     'CurrentInputFlushSentinel',
     true,
   ),
+
+  // First 符号
+  FirstSymbol: NodeFactory.makeSymbol('First', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -229,7 +238,7 @@ function makeNonStandardSymbolSet(): Set<string> {
 export const allNonStandardSymbolsSet: Set<string> = makeNonStandardSymbolSet();
 
 // 返回一个 Blank Pattern
-export function Blank(): Expr {
+export function BlankExpr(): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.BlankSymbol,
@@ -238,7 +247,7 @@ export function Blank(): Expr {
 }
 
 // 返回一个 Typed Blank Pattern
-export function TypedBlank(h: Expr): Expr {
+export function TypedBlankExpr(h: Expr): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.BlankSymbol,
@@ -247,7 +256,7 @@ export function TypedBlank(h: Expr): Expr {
 }
 
 // 返回一个 BlankSequence Pattern
-export function BlankSequence(): Expr {
+export function BlankSequenceExpr(): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.BlankSequenceSymbol,
@@ -256,7 +265,7 @@ export function BlankSequence(): Expr {
 }
 
 // 返回一个 BlankSequenceNull Pattern
-export function BlankNullSequence(): Expr {
+export function BlankNullSequenceExpr(): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.BlankNullSequenceSymbol,
@@ -265,7 +274,7 @@ export function BlankNullSequence(): Expr {
 }
 
 // 返回一个 BlankSequenceNull[h] Pattern
-export function TypedBlankNullSequence(headExpected: Expr): Expr {
+export function TypedBlankNullSequenceExpr(headExpected: Expr): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.BlankNullSequenceSymbol,
@@ -274,7 +283,7 @@ export function TypedBlankNullSequence(headExpected: Expr): Expr {
 }
 
 // 返回一个命名 Pattern
-export function NamedPattern(identifier: string, pattern: Expr): Expr {
+export function NamedPatternExpr(identifier: string, pattern: Expr): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.PatternSymbol,
@@ -283,7 +292,7 @@ export function NamedPattern(identifier: string, pattern: Expr): Expr {
 }
 
 // 返回一个 Sequence
-export function Sequence(children: Expr[]): Expr {
+export function SequenceExpr(children: Expr[]): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.SequenceSymbol,
@@ -310,8 +319,27 @@ export function StringExpr(content: string): Expr {
   };
 }
 
+// 返回一个数字 Expr
+export function NumberExpr(value: number): Expr {
+  return {
+    nodeType: 'terminal',
+    expressionType: 'number',
+    head: allSymbolsMap.NumberSymbol,
+    value: value,
+  };
+}
+
+// 返回一个 List Expr
+export function ListExpr(elements: Expr[]): Expr {
+  return {
+    nodeType: 'nonTerminal',
+    children: elements,
+    head: allSymbolsMap.ListSymbol,
+  };
+}
+
 // 返回一个 Rule
-export function Rule(keyExpr: Expr, valueExpr: Expr): Expr {
+export function RuleExpr(keyExpr: Expr, valueExpr: Expr): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.RuleSymbol,
@@ -329,18 +357,13 @@ class UnaryOperationPatternFactory {
       pattern: {
         nodeType: 'nonTerminal',
         head: headExpr,
-        children: [Blank()],
+        children: [BlankExpr()],
       },
       action: (node, evaluator, context) => {
         if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
           const v1 = node.children[0];
           if (v1.nodeType === 'terminal' && v1.expressionType === 'number') {
-            return of({
-              nodeType: 'terminal',
-              expressionType: 'number',
-              head: allSymbolsMap.NumberSymbol,
-              value: valueFunction(v1.value),
-            });
+            return of(NumberExpr(valueFunction(v1.value)));
           }
 
           return of(ExprHelper.shallowCopy(node) as typeof node).pipe(
@@ -373,7 +396,7 @@ class BinaryExprPatternFactory {
       pattern: {
         nodeType: 'nonTerminal',
         head: headExpr,
-        children: [Blank(), Blank()],
+        children: [BlankExpr(), BlankExpr()],
       },
       action: (node, evaluator, context) => {
         if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -418,27 +441,128 @@ class BinaryOperationPatternFactory {
     valueFunction: (a: number, b: number) => number,
   ): Definition {
     return BinaryExprPatternFactory.makePattern(headExpr, (a, b) => {
-      return {
-        nodeType: 'terminal',
-        expressionType: 'number',
-        value: valueFunction(a, b),
-        head: allSymbolsMap.NumberSymbol,
-      };
+      return NumberExpr(valueFunction(a, b));
     });
   }
 }
 
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
+  // List[...]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.ListSymbol,
+      children: [BlankNullSequenceExpr()],
+    },
+    action: (expr, evaluator, context) => {
+      if (expr.nodeType === 'nonTerminal') {
+        if (expr.children.length > 0) {
+          return zip(
+            expr.children.map((child) => evaluator.evaluate(child, context)),
+          ).pipe(
+            map((children) => {
+              expr.children = children;
+              return expr;
+            }),
+          );
+        }
+      }
+
+      return of(expr);
+    },
+    displayName: 'List[___] -> ?',
+  },
+
+  // Length
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.LengthSymbol,
+      children: [BlankExpr()],
+    },
+    action: (expr, evaluator, context) => {
+      if (expr.nodeType === 'nonTerminal') {
+        if (expr.children.length === 1) {
+          const x = expr.children[0];
+          if (x.nodeType === 'nonTerminal') {
+            return of(NumberExpr(x.children.length));
+          }
+        }
+      }
+
+      return of(expr);
+    },
+    displayName: 'Length[_] -> ?',
+  },
+
+  // First
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.FirstSymbol,
+      children: [BlankExpr()],
+    },
+    action: (expr, evaluator, context) => {
+      if (expr.nodeType === 'nonTerminal') {
+        if (expr.children.length === 1) {
+          const x = expr.children[0];
+          return evaluator.evaluate(x, context).pipe(
+            map((x) => {
+              if (x.nodeType === 'nonTerminal') {
+                if (x.children.length >= 1) {
+                  return x.children[0];
+                }
+              }
+              return expr;
+            }),
+          );
+        }
+      }
+
+      return of(expr);
+    },
+    displayName: 'First[_] -> ?',
+  },
+
+  // RestPart
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.RestPartSymbol,
+      children: [BlankExpr()],
+    },
+    action: (expr, evaluator, context) => {
+      if (expr.nodeType === 'nonTerminal') {
+        if (expr.children.length === 1) {
+          const x = expr.children[0];
+          return evaluator.evaluate(x, context).pipe(
+            map((x) => {
+              if (x.nodeType === 'nonTerminal') {
+                if (x.children.length >= 1) {
+                  return ListExpr(x.children.slice(1, x.children.length));
+                }
+              }
+              return expr;
+            }),
+          );
+        }
+      }
+
+      return of(expr);
+    },
+    displayName: 'RestPart[_] -> ?',
+  },
+
   // _[___, _Sequence, ___]
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: Blank(),
+      head: BlankExpr(),
       children: [
-        BlankNullSequence(),
-        TypedBlank(allSymbolsMap.SequenceSymbol),
-        BlankNullSequence(),
+        BlankNullSequenceExpr(),
+        TypedBlankExpr(allSymbolsMap.SequenceSymbol),
+        BlankNullSequenceExpr(),
       ],
     },
     action: (node, _, __) => {
@@ -472,7 +596,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.SequenceSymbol,
-      children: [Blank()],
+      children: [BlankExpr()],
     },
     action: (node, _, __) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
@@ -505,7 +629,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.OrSymbol,
-      children: [Blank(), Blank()],
+      children: [BlankExpr(), BlankExpr()],
     },
     action: (node, evaluator, context) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -543,7 +667,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.IfSymbol,
-      children: [Blank(), Blank(), Blank()],
+      children: [BlankExpr(), BlankExpr(), BlankExpr()],
     },
     action: (expr, evaluator, context) => {
       return of(expr).pipe(
@@ -583,7 +707,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.HeadSymbol,
-      children: [Blank()],
+      children: [BlankExpr()],
     },
     action: (node, _, __) => {
       if (
@@ -605,7 +729,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.EqualQSymbol,
-      children: [Blank(), Blank()],
+      children: [BlankExpr(), BlankExpr()],
     },
     action: (node, evaluator, context) => {
       if (
@@ -638,7 +762,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.AssignSymbol,
-      children: [Blank(), Blank()],
+      children: [BlankExpr(), BlankExpr()],
     },
     action: (node, evaluator, context) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -663,7 +787,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.AssignDelayedSymbol,
-      children: [Blank(), Blank()],
+      children: [BlankExpr(), BlankExpr()],
     },
     action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -682,7 +806,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.ClearAssignSymbol,
-      children: [Blank()],
+      children: [BlankExpr()],
     },
     action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
@@ -699,7 +823,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.ClearDelayedAssignSymbol,
-      children: [Blank()],
+      children: [BlankExpr()],
     },
     action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 1) {

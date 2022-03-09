@@ -1,4 +1,4 @@
-import { Sequence } from 'src/translate/config';
+import { SequenceExpr } from 'src/translate/config';
 import { Expr, PatternMatchResult } from 'src/translate/interfaces';
 
 type ComparePair = { lhs: Expr[]; rhs: Expr[] };
@@ -548,7 +548,7 @@ export class ExprHelper {
     return pairs
       .map(
         (pair) =>
-          `${pair.key} -> ${ExprHelper.nodeToString(Sequence(pair.value))}`,
+          `${pair.key} -> ${ExprHelper.nodeToString(SequenceExpr(pair.value))}`,
       )
       .join('\n');
   }

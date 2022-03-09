@@ -4,7 +4,7 @@ import { Transform, TransformCallback } from 'stream';
 import {
   builtInDefinitions,
   NodeFactory,
-  Sequence,
+  SequenceExpr,
   allSymbolsMap,
   allNonStandardSymbolsSet,
 } from './config';
@@ -139,7 +139,7 @@ export class Evaluator extends Transform implements IEvaluator {
     const namedResult = definitionQueryResult.namedResult;
     for (const key in namedResult) {
       const keyExpr = NodeFactory.makeSymbol(key);
-      const valueExpr = Sequence(namedResult[key]);
+      const valueExpr = SequenceExpr(namedResult[key]);
       newContext.definitions.arguments.push({
         pattern: keyExpr,
         // 务必要在现在这个父上下文进行求值，而不是在将来那个现场的上下文

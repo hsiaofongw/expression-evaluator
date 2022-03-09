@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { Node, NonTerminalNode } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
-import { allSymbolsMap, Blank, BlankSequence, NodeFactory } from './config';
+import { allSymbolsMap, BlankExpr, BlankSequenceExpr, NodeFactory } from './config';
 import { Expr } from './interfaces';
 
 type Evaluator = (node: NonTerminalNode) => void;
@@ -125,7 +125,7 @@ export class ExpressionTranslate extends Transform {
     'PTN -> ε': doNothing,
     'PTN -> _ PTN_0': (node) => {
       const patternNameExpr = this._popNode();
-      const blankExpr = Blank();
+      const blankExpr = BlankExpr();
       const patternExpr: Expr = {
         head: allSymbolsMap.PatternSymbol,
         nodeType: 'nonTerminal',

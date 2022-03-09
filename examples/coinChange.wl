@@ -1,5 +1,4 @@
 countChange[amount_] := coinChange[amount, 5];
-
 coinChange[amount_, kindsOfCoins_] := If[
   amount == 0, 
   1,
@@ -12,9 +11,7 @@ coinChange[amount_, kindsOfCoins_] := If[
     ]
   ]
 ];
-
 or[cond1_, cond2_] := If[cond1, True, If[cond2, True, False]];
-
 firstDenomination[kindsOfCoins_] := If[
   kindsOfCoins == 1, 
   1, 
