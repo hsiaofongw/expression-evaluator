@@ -5,6 +5,13 @@ type ComparePair = { lhs: Expr[]; rhs: Expr[] };
 
 export class Neo {
   public static patternMatch(lhs: Expr[], rhs: Expr[]): PatternMatchResult {
+    // console.log(
+    //   `Lhs: [${lhs.map((e) => ExprHelper.nodeToString(e)).join(', ')}]`,
+    // );
+    // console.log(
+    //   `Rhs: [${rhs.map((e) => ExprHelper.nodeToString(e)).join(', ')}]`,
+    // );
+
     const match = Neo.patternMatchRecursive(lhs, rhs);
     if (match.pass) {
       const result: Record<string, Expr[]> = {};
@@ -183,29 +190,22 @@ export class Neo {
           const rhs2 = rhs.slice(1, rhs.length);
           for (let k = 1; k <= lhs.length; k++) {
             const matchCurrent = Neo.patternMatchRecursive(lhs1, rhs1);
-            if (!matchCurrent.pass) {
-              break;
-            }
-
             const matchRest = Neo.patternMatchRecursive(lhs2, rhs2);
-            if (!matchRest.pass) {
-              break;
-            }
-
             if (
-              ExprHelper.nameConflictQ(
+              matchCurrent.pass &&
+              matchRest.pass &&
+              !ExprHelper.nameConflictQ(
                 matchCurrent.namedResult,
                 matchRest.namedResult,
               )
             ) {
-              break;
+              namedResult = ExprHelper.mergeNamedResult(
+                matchCurrent.namedResult,
+                matchRest.namedResult,
+              );
+              namedResult['0'] = lhs.slice(0, lhs1.length);
             }
 
-            namedResult = ExprHelper.mergeNamedResult(
-              matchCurrent.namedResult,
-              matchRest.namedResult,
-            );
-            namedResult['0'] = lhs.slice(0, lhs1.length);
             if (lhs2.length > 0) {
               const exprBeingLhs = lhs2.shift() as Expr;
               lhs1.push(exprBeingLhs.head);
@@ -556,6 +556,8 @@ export class ExprHelper {
   /** 替换关系序列化 */
   public static keyValuePairToString(key: Expr, value: Expr): string {
     // eslint-disable-next-line prettier/prettier
-    return `${ExprHelper.nodeToString(key)} -> ${ExprHelper.nodeToString(value)}`;
+    return `${ExprHelper.nodeToString(key)} -> ${ExprHelper.nodeToString(
+      value,
+    )}`;
   }
 }

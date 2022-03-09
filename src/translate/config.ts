@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { concatAll, map, Observable, of, zip } from 'rxjs';
 import { inputStreamFlushSentinelUpdater$ } from 'src/app.service';
-import { ExprHelper } from 'src/helpers/expr-helpers';
+import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
 import { Definition, Expr } from './interfaces';
 
 // 打印错误信息并退出
@@ -60,6 +60,9 @@ export const False: Expr = {
 export const allSymbolsMap = {
   // 元符号
   SymbolSymbol: SymbolSymbol,
+
+  // 模式匹配判定负号
+  MatchQSymbol: NodeFactory.makeSymbol('MatchQ', true),
 
   // 长度符号
   LengthSymbol: NodeFactory.makeSymbol('Length', true),
@@ -207,6 +210,9 @@ export const allSymbolsMap = {
 
   // First 符号
   FirstSymbol: NodeFactory.makeSymbol('First', true),
+
+  // Table 符号
+  TableSymbol: NodeFactory.makeSymbol('Table', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -273,11 +279,20 @@ export function BlankNullSequenceExpr(): Expr {
   };
 }
 
-// 返回一个 BlankSequenceNull[h] Pattern
+// 返回一个 BlankNullSequence[h] Pattern
 export function TypedBlankNullSequenceExpr(headExpected: Expr): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.BlankNullSequenceSymbol,
+    children: [headExpected],
+  };
+}
+
+// 返回一个 BlankSequence[h] Pattern
+export function TypedBlankSequenceExpr(headExpected: Expr): Expr {
+  return {
+    nodeType: 'nonTerminal',
+    head: allSymbolsMap.BlankSequenceSymbol,
     children: [headExpected],
   };
 }
@@ -552,6 +567,56 @@ export const builtInDefinitions: Definition[] = [
       return of(expr);
     },
     displayName: 'RestPart[_] -> ?',
+  },
+
+  // MatchQ
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.MatchQSymbol,
+      children: [BlankExpr(), BlankExpr()],
+    },
+    action: (expr, evaluator, context) => {
+      if (expr.nodeType === 'nonTerminal' && expr.children.length === 2) {
+        if (Neo.patternMatch([expr.children[0]], [expr.children[1]]).pass) {
+          return of(True);
+        } else {
+          return of(False);
+        }
+      }
+      return of(expr);
+    },
+    displayName: 'MatchQ[_, _] -> ?',
+  },
+
+  // Table[expr, { { variables }, initial, step, max }]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.TableSymbol,
+      children: [
+        BlankExpr(),
+        {
+          nodeType: 'nonTerminal',
+          head: allSymbolsMap.ListSymbol,
+          children: [
+            {
+              nodeType: 'nonTerminal',
+              head: allSymbolsMap.ListSymbol,
+              children: [TypedBlankSequenceExpr(allSymbolsMap.SymbolSymbol)],
+            },
+            BlankExpr(),
+            BlankExpr(),
+            BlankExpr(),
+          ],
+        },
+      ],
+    },
+    action: (expr, evaluator, context) => {
+      return of(NodeFactory.makeSymbol('abc'));
+      return of(expr);
+    },
+    displayName: 'Table[_, {_, _, _}] -> {?}',
   },
 
   // _[___, _Sequence, ___]
