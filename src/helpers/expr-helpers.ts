@@ -241,31 +241,79 @@ export class Neo {
           pattern.head.expressionType === 'symbol' &&
           pattern.head.value === 'BlankNullSequence'
         ) {
-          // as for BlankNullSequence[]
-          let lhsOffset = 0;
-          let matchResult: Record<string, Expr[]> | undefined = undefined;
-          while (lhsPtr + lhsOffset < lhs.length) {
+          let maxK = 1;
+          let matchCount = 0;
+          let namedResult: Record<string, Expr[]> = {};
+          for (let k = maxK; k < lhs.length - lhsPtr; k++) {
             const matchRest = Neo.patternMatchRecursive(
               lhs,
               rhs,
-              lhsPtr + lhsOffset,
+              lhsPtr + k,
               rhsPtr + 1,
             );
             if (matchRest.pass) {
-              matchResult = matchRest.namedResult;
-              matchResult[rhsPtr.toString()] = lhs.slice(
-                lhsPtr,
-                lhsPtr + lhsOffset,
-              );
+              maxK = k;
+              matchCount = matchCount + 1;
+              namedResult = matchRest.namedResult;
             }
-
-            lhsOffset = lhsOffset + 1;
           }
 
-          if (matchResult === undefined) {
+          if (matchCount === 0) {
             return { pass: false };
           } else {
-            return { pass: true, namedResult: matchResult };
+            namedResult[rhsPtr.toString()] = lhs.slice(lhsPtr, lhsPtr + maxK);
+            return { pass: true, namedResult };
+          }
+        } else if (
+          pattern.children.length === 1 &&
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'BlankNullSequence'
+        ) {
+          // as for BlankNullSequence[h]
+          const expectHead = pattern.children[0];
+          const lhsTemp = lhs.slice(lhsPtr, lhs.length);
+          const rhsTemp = rhs.slice(rhsPtr, rhs.length);
+          let namedResult: Record<string, Expr[]> = {};
+          let matchCount = 0;
+          rhsTemp[rhsPtr] = expectHead;
+          let maxK = 0;
+          for (let k = maxK; k < lhs.length - lhsPtr; k++) {
+            lhsTemp[lhsPtr + k] = lhsTemp[lhsPtr + k].head;
+            const matchCurrent = Neo.patternMatchRecursive(
+              lhsTemp.slice(0, k),
+              rhsTemp.slice(0, k),
+              0,
+              0,
+            );
+            const matchRest = Neo.patternMatchRecursive(
+              lhsTemp,
+              rhsTemp,
+              lhsPtr + k,
+              rhsPtr + 1,
+            );
+            if (
+              matchCurrent.pass &&
+              matchRest.pass &&
+              !ExprHelper.nameConflictQ(
+                matchCurrent.namedResult,
+                matchRest.namedResult,
+              )
+            ) {
+              namedResult = ExprHelper.mergeNamedResult(
+                matchCurrent.namedResult,
+                matchRest.namedResult,
+              );
+              matchCount = matchCount + 1;
+              maxK = k;
+            }
+          }
+
+          if (matchCount === 0) {
+            return { pass: false };
+          } else {
+            namedResult[rhsPtr.toString()] = lhs.slice(lhsPtr, lhsPtr + maxK);
+            return { pass: true, namedResult };
           }
         } else if (
           pattern.children.length === 1 &&
@@ -369,6 +417,38 @@ export class Neo {
 }
 
 export class ExprHelper {
+  public static nameConflictQ(
+    a: Record<string, Expr[]>,
+    b: Record<string, Expr[]>,
+  ): boolean {
+    for (const k in a) {
+      if (b[k]) {
+        if (!ExprHelper.rawEqualQ(a[k], b[k])) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  public static mergeNamedResult(
+    a: Record<string, Expr[]>,
+    b: Record<string, Expr[]>,
+  ): Record<string, Expr[]> {
+    const merged: Record<string, Expr[]> = {};
+
+    for (const k in a) {
+      merged[k] = a[k];
+    }
+
+    for (const k in b) {
+      merged[k] = b[k];
+    }
+
+    return merged;
+  }
+
   /** 返回两个 terminal 节点是否相等 */
   public static isTerminalEqual(expr1: Expr, expr2: Expr): boolean {
     if (expr1.nodeType === 'terminal' && expr2.nodeType === 'terminal') {
