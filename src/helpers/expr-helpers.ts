@@ -119,6 +119,8 @@ export class Neo {
           lhs[0] = lhs[0].head;
           rhs[0] = pattern.children[0];
           const reMatch = Neo.newPatternMatch(lhs, rhs);
+          lhs[0] = originLhsHead;
+          rhs[0] = pattern;
           if (!reMatch.pass) {
             return { pass: false };
           }
@@ -136,15 +138,14 @@ export class Neo {
             return { pass: false };
           }
 
-          let maxK = 1;
           let namedResult: Record<string, Expr[]> | undefined;
           const restRhs = rhs.slice(1, rhs.length);
-          for (let k = maxK; k <= lhs.length; k++) {
+          for (let k = 1; k <= lhs.length; k++) {
             const restLhs = lhs.slice(k, lhs.length);
             const restMatch = Neo.newPatternMatch(restLhs, restRhs);
             if (restMatch.pass) {
-              maxK = k;
               namedResult = restMatch.namedResult;
+              namedResult['0'] = lhs.slice(0, k);
             }
           }
 
@@ -152,7 +153,6 @@ export class Neo {
             return { pass: false };
           }
 
-          namedResult['0'] = lhs.slice(0, maxK);
           return { pass: true, namedResult };
         } else if (
           pattern.children.length === 1 &&
@@ -166,17 +166,16 @@ export class Neo {
           }
 
           const expectH = pattern.children[0];
-          let maxK = 1;
-          const lhs1 = lhs.slice(0, maxK);
-          const rhs1 = rhs.slice(0, maxK);
+          const lhs1 = lhs.slice(0, 1);
+          const rhs1 = rhs.slice(0, 1);
           lhs1[0] = lhs1[0].head;
           rhs1[0] = expectH;
 
           let namedResult: Record<string, Expr[]> | undefined;
 
-          const lhs2 = lhs.slice(maxK, lhs.length);
-          const rhs2 = rhs.slice(maxK, rhs.length);
-          for (let k = maxK; k <= lhs.length; k++) {
+          const lhs2 = lhs.slice(1, lhs.length);
+          const rhs2 = rhs.slice(1, rhs.length);
+          for (let k = 1; k <= lhs.length; k++) {
             const matchCurrent = Neo.newPatternMatch(lhs1, rhs1);
             if (!matchCurrent.pass) {
               break;
@@ -201,7 +200,6 @@ export class Neo {
               matchRest.namedResult,
             );
             namedResult['0'] = lhs.slice(0, lhs1.length);
-            maxK = k;
             if (lhs2.length > 0) {
               const exprBeingLhs = lhs2.shift() as Expr;
               lhs1.push(exprBeingLhs.head);
@@ -342,6 +340,23 @@ export class Neo {
 
           restMatch.namedResult['0'] = [lhs[0]];
           return { pass: true, namedResult: restMatch.namedResult };
+        } else if (
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.children.length >= 1 &&
+          pattern.head.value === 'Alternatives'
+        ) {
+          // as For Alternatives[x,y,z,...]
+          for (const alternative of pattern.children) {
+            rhs[0] = alternative;
+            const match = Neo.newPatternMatch(lhs, rhs);
+            if (match.pass) {
+              rhs[0] = pattern;
+              return { pass: true, namedResult: match.namedResult };
+            }
+            rhs[0] = pattern;
+          }
+          return { pass: false };
         } else {
           // 这时 pattern 是其他不认识的形式，而且 pattern 是 nonTerminal
           // 所以如果 lhs 第一个是 terminal, 则不匹配
