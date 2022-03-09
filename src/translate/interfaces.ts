@@ -45,7 +45,7 @@ export type Expr = (TerminalNode | NonTerminalNode) & {
   head: Expr;
 };
 
-export type KeyValuePair = { pattern: Expr; value: Expr };
+export type KeyValuePair = { pattern: Expr; value: Observable<Expr> };
 
 export interface IEvaluator {
   /** 求值，最终的求值结果在栈顶 */

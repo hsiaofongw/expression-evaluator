@@ -260,6 +260,15 @@ export function BlankNullSequence(): Expr {
   };
 }
 
+// 返回一个 BlankSequenceNull[h] Pattern
+export function TypedBlankNullSequence(headExpected: Expr): Expr {
+  return {
+    nodeType: 'nonTerminal',
+    head: allSymbolsMap.BlankNullSequenceSymbol,
+    children: [headExpected],
+  };
+}
+
 // 返回一个命名 Pattern
 export function NamedPattern(identifier: string, pattern: Expr): Expr {
   return {
@@ -417,61 +426,58 @@ class BinaryOperationPatternFactory {
 
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
-  // SwitchToSingleLineInputMode
+  // _[___, _Sequence, ___]
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: allSymbolsMap.SingleLineInputModeSymbol,
-      children: [],
-    },
-    action: (_, __, ___) => {
-      return new Observable<Expr>((obs) => {
-        inputStreamFlushSentinelUpdater$.subscribe(() => {
-          obs.next(allSymbolsMap.NothingSymbol);
-          obs.complete();
-        });
-        inputStreamFlushSentinelUpdater$.next('\n');
-      });
-    },
-    displayName: 'SwitchToSingleLineInputMode[] -> ?',
-  },
-
-  // SwitchToMultiLineInputMode
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.MultilineModeSymbol,
-      children: [],
-    },
-    action: (_, __, ___) => {
-      return new Observable<Expr>((obs) => {
-        inputStreamFlushSentinelUpdater$.subscribe(() => {
-          obs.next(allSymbolsMap.NothingSymbol);
-          obs.complete();
-        });
-        inputStreamFlushSentinelUpdater$.next(';');
-      });
-    },
-    displayName: 'SwitchToMultiLineInputMode[] -> ?',
-  },
-
-  // Sequence
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.SequenceSymbol,
-      children: [BlankNullSequence()],
+      head: Blank(),
+      children: [
+        BlankNullSequence(),
+        TypedBlank(allSymbolsMap.SequenceSymbol),
+        BlankNullSequence(),
+      ],
     },
     action: (node, _, __) => {
       if (node.nodeType === 'nonTerminal') {
-        if (node.children.length === 1) {
-          return of(node.children[0]);
+        const children: Expr[] = [];
+        for (const child of node.children) {
+          if (
+            child.nodeType === 'nonTerminal' &&
+            child.head.nodeType === 'terminal' &&
+            child.head.expressionType === 'symbol' &&
+            child.head.value === 'Sequence'
+          ) {
+            for (const childOfSequence of child.children) {
+              children.push(childOfSequence);
+            }
+          } else {
+            children.push(child);
+          }
         }
+
+        node.children = children;
       }
 
       return of(node);
     },
-    displayName: 'Sequence[_] -> ?',
+    displayName: 'Sequence[x_] -> x',
+  },
+
+  // Sequence[_]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.SequenceSymbol,
+      children: [Blank()],
+    },
+    action: (node, _, __) => {
+      if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
+        return of(node.children[0]);
+      } else {
+        return of(node);
+      }
+    },
+    displayName: '_[___] -> ?',
   },
 
   // 把 True 符号替换为 True, False 符号替换为 False
@@ -514,15 +520,14 @@ export const builtInDefinitions: Definition[] = [
                   cond.expressionType === 'boolean' &&
                   !cond.value
                 ) {
-                  return evaluator.evaluate(expr.children[2], context);
+                  return expr.children[2];
                 } else {
-                  return evaluator.evaluate(expr.children[1], context);
+                  return expr.children[1];
                 }
               }),
-              concatAll(),
             );
           } else {
-            logErrorAndExit('If');
+            return of(expr);
           }
         }),
         concatAll(),
@@ -538,7 +543,7 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.HeadSymbol,
       children: [Blank()],
     },
-    action: (node, evaluator, context) => {
+    action: (node, _, __) => {
       if (
         node.nodeType === 'nonTerminal' &&
         node.head.nodeType === 'terminal' &&
@@ -546,9 +551,9 @@ export const builtInDefinitions: Definition[] = [
         node.head.value === 'Head' &&
         node.children.length === 1
       ) {
-        return evaluator.evaluate(node.children[0], context);
+        return of(node.children[0]);
       }
-      logErrorAndExit('Head[_]');
+      return of(node);
     },
     displayName: 'Head[x] -> ?',
   },
@@ -593,15 +598,19 @@ export const builtInDefinitions: Definition[] = [
       head: allSymbolsMap.AssignSymbol,
       children: [Blank(), Blank()],
     },
-    action: (node, evaluator, _) => {
+    action: (node, evaluator, context) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-        return evaluator.assign({
-          pattern: node.children[0],
-          value: node.children[1],
-        });
+        const key = node.children[0];
+        const value = node.children[1];
+        return evaluator.evaluate(value, context).pipe(
+          map((evaluatedRhs) => {
+            evaluator.assign({ pattern: key, value: of(value) });
+            return evaluatedRhs;
+          }),
+        );
       }
 
-      logErrorAndExit('Assign[_, _]');
+      return of(node);
     },
     displayName: 'Assign[lhs, rhs] -> rhs',
   },
@@ -618,10 +627,10 @@ export const builtInDefinitions: Definition[] = [
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
         return evaluator.assignDelayed({
           pattern: node.children[0],
-          value: node.children[1],
+          value: of(node.children[1]),
         });
       }
-      logErrorAndExit('AssignDelayed[_, _]');
+      return of(node);
     },
     displayName: 'AssignDelayed[lhs, rhs] -> Nothing',
   },

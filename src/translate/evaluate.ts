@@ -180,6 +180,15 @@ export class Evaluator extends Transform implements IEvaluator {
     );
   }
 
+  /**
+   * 为一个表达式在给定的上下文中寻找定义，
+   *
+   * todo: 暂时没想好当遇到多个匹配的时候如何处理。
+   *
+   * @param expr 表达式
+   * @param context 上下文
+   * @returns 定义查询结果
+   */
   private findDefinition(expr: Expr, context: IContext): DefinitionQueryResult {
     let contextPtr = context;
     const queryOrder: DefinitionType[] = [
@@ -269,14 +278,13 @@ export class Evaluator extends Transform implements IEvaluator {
   public assign(keyValuePair: KeyValuePair): Observable<Expr> {
     const lhs = keyValuePair.pattern;
     const rhs = keyValuePair.value;
-    const evaluatedRhs = this.evaluate(rhs, this.getRootContext());
     this._userFixedDefinition.push({
       pattern: lhs,
-      action: (_, __, ___) => evaluatedRhs,
-      displayName: ExprHelper.keyValuePairToString(lhs, rhs),
+      action: (_, __, ___) => rhs,
+      displayName: 'lhs -> ?',
     });
 
-    return evaluatedRhs;
+    return rhs;
   }
 
   /**
@@ -339,15 +347,18 @@ export class Evaluator extends Transform implements IEvaluator {
    * 主要是由 AssignDelayed 函数调用, Evaluator 内部尽量不要依赖这个函数，换言之这是对外的
    */
   public assignDelayed(keyValuePair: KeyValuePair): Observable<Expr> {
-    const originValue = keyValuePair.value;
-    this._userDelayedDefinition.push({
-      pattern: keyValuePair.pattern,
-      action: (_, evaluator, context) => {
-        return evaluator.evaluate(originValue, context);
-      },
-      displayName: `${ExprHelper.nodeToString(keyValuePair.pattern)} -> ?`,
-    });
+    return zip([of(keyValuePair.pattern), keyValuePair.value]).pipe(
+      map(([key, value]) => {
+        this._userDelayedDefinition.push({
+          pattern: key,
+          action: (_, evaluator, context) => {
+            return evaluator.evaluate(value, context);
+          },
+          displayName: `${ExprHelper.nodeToString(keyValuePair.pattern)} -> ?`,
+        });
 
-    return of(allSymbolsMap.NothingSymbol);
+        return allSymbolsMap.NothingSymbol;
+      }),
+    );
   }
 }
