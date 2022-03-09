@@ -368,6 +368,10 @@ export class Neo {
         } else {
           // 这时 pattern 是其他不认识的形式，而且 pattern 是 nonTerminal
           // 所以如果 lhs 第一个是 terminal, 则不匹配
+          if (lhs.length === 0) {
+            return { pass: false };
+          }
+
           if (lhs[0].nodeType === 'terminal') {
             return { pass: false };
           }
