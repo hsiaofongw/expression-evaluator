@@ -463,6 +463,43 @@ class BinaryOperationPatternFactory {
 
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
+  // _[___, _Sequence, ___]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: BlankExpr(),
+      children: [
+        BlankNullSequenceExpr(),
+        TypedBlankExpr(allSymbolsMap.SequenceSymbol),
+        BlankNullSequenceExpr(),
+      ],
+    },
+    action: (node, _, __) => {
+      if (node.nodeType === 'nonTerminal') {
+        const children: Expr[] = [];
+        for (const child of node.children) {
+          if (
+            child.nodeType === 'nonTerminal' &&
+            child.head.nodeType === 'terminal' &&
+            child.head.expressionType === 'symbol' &&
+            child.head.value === 'Sequence'
+          ) {
+            for (const childOfSequence of child.children) {
+              children.push(childOfSequence);
+            }
+          } else {
+            children.push(child);
+          }
+        }
+
+        node.children = children;
+      }
+
+      return of(node);
+    },
+    displayName: '_[___, _Sequence, ___] -> ?',
+  },
+
   // List[...]
   {
     pattern: {
@@ -617,43 +654,6 @@ export const builtInDefinitions: Definition[] = [
       return of(expr);
     },
     displayName: 'Table[_, {_, _, _}] -> {?}',
-  },
-
-  // _[___, _Sequence, ___]
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: BlankExpr(),
-      children: [
-        BlankNullSequenceExpr(),
-        TypedBlankExpr(allSymbolsMap.SequenceSymbol),
-        BlankNullSequenceExpr(),
-      ],
-    },
-    action: (node, _, __) => {
-      if (node.nodeType === 'nonTerminal') {
-        const children: Expr[] = [];
-        for (const child of node.children) {
-          if (
-            child.nodeType === 'nonTerminal' &&
-            child.head.nodeType === 'terminal' &&
-            child.head.expressionType === 'symbol' &&
-            child.head.value === 'Sequence'
-          ) {
-            for (const childOfSequence of child.children) {
-              children.push(childOfSequence);
-            }
-          } else {
-            children.push(child);
-          }
-        }
-
-        node.children = children;
-      }
-
-      return of(node);
-    },
-    displayName: '_[___, _Sequence, ___] -> ?',
   },
 
   // Sequence[_]
