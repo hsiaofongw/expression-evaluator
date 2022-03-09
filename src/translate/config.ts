@@ -61,6 +61,9 @@ export const allSymbolsMap = {
   // 元符号
   SymbolSymbol: SymbolSymbol,
 
+  // 或者符号
+  OrSymbol: NodeFactory.makeSymbol('Or', true),
+
   // 数值符号
   NumberSymbol: NodeFactory.makeSymbol('Number', true),
 
@@ -497,6 +500,44 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'False -> False',
   },
 
+  // Or[cond1, cond2]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.OrSymbol,
+      children: [Blank(), Blank()],
+    },
+    action: (node, evaluator, context) => {
+      if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
+        return zip([
+          evaluator.evaluate(node.children[0], context),
+          evaluator.evaluate(node.children[1], context),
+        ]).pipe(
+          map(([cond1, cond2]) => {
+            if (
+              cond1.nodeType === 'terminal' &&
+              cond1.expressionType === 'boolean' &&
+              cond1.value === true
+            ) {
+              return True;
+            } else if (
+              cond2.nodeType === 'terminal' &&
+              cond2.expressionType === 'boolean' &&
+              cond2.value === true
+            ) {
+              return True;
+            } else {
+              return False;
+            }
+          }),
+        );
+      }
+
+      return of(node);
+    },
+    displayName: 'Or[_, _] -> ?',
+  },
+
   // If[cond, trueClause, falseClause], 走特殊求值流程
   {
     pattern: {
@@ -519,11 +560,11 @@ export const builtInDefinitions: Definition[] = [
                 if (
                   cond.nodeType === 'terminal' &&
                   cond.expressionType === 'boolean' &&
-                  !cond.value
+                  cond.value === true
                 ) {
-                  return expr.children[2];
-                } else {
                   return expr.children[1];
+                } else {
+                  return expr.children[2];
                 }
               }),
             );

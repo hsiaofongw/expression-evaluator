@@ -127,8 +127,6 @@ export class Evaluator extends Transform implements IEvaluator {
 
   /** 寻找定义并执行定义规定的操作 */
   private substitute(expr: Expr, context: IContext): Observable<Expr> {
-    console.log('Substitute: ' + ExprHelper.nodeToString(expr));
-
     // 寻找定义
     const definitionQueryResult = this.findDefinition(expr, context);
     if (!definitionQueryResult.pass) {
@@ -154,14 +152,11 @@ export class Evaluator extends Transform implements IEvaluator {
     newContext.parent = context;
 
     // 求值
-    console.log('Apply: ' + definitionQueryResult.definition.displayName);
     return definitionQueryResult.definition.action(expr, this, newContext);
   }
 
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
   public evaluate(expr: Expr, context: IContext): Observable<Expr> {
-    console.log('Evaluate: ' + ExprHelper.nodeToString(expr));
-
     const head = expr.head;
     const copy = ExprHelper.shallowCopy(expr);
     let result$: Observable<Expr>;

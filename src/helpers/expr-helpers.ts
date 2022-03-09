@@ -513,12 +513,12 @@ export class ExprHelper {
     if (node.nodeType === 'terminal') {
       if (node.expressionType === 'boolean') {
         if (node.value === true) {
-          return 'True';
+          return 'True::boolean';
         } else {
-          return 'False';
+          return 'False::boolean';
         }
       }
-      return node.value.toString();
+      return node.value.toString() + '::' + node.expressionType;
     } else {
       const childrenDisplay = node.children
         .map((_n) => ExprHelper.nodeToString(_n))
