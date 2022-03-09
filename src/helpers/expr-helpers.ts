@@ -5,7 +5,7 @@ type ComparePair = { lhs: Expr[]; rhs: Expr[] };
 
 export class Neo {
   public static patternMatch(lhs: Expr[], rhs: Expr[]): PatternMatchResult {
-    const match = Neo.patternMatchRecursive(lhs, rhs, 0, 0);
+    const match = Neo.newPatternMatch(lhs, rhs);
     if (match.pass) {
       const result: Record<string, Expr[]> = {};
       for (const key in match.namedResult) {
@@ -20,51 +20,34 @@ export class Neo {
     }
   }
 
-  public static patternMatchRecursive(
-    lhs: Expr[],
-    rhs: Expr[],
-    lhsPtr: number,
-    rhsPtr: number,
-  ): PatternMatchResult {
-    const lLength = lhs.length - lhsPtr;
-    const rLength = rhs.length - rhsPtr;
-
-    if (rLength === 0) {
-      if (lLength === 0) {
-        // l == 0 and r == 0
-        return { pass: true, namedResult: {} };
-      } else {
-        // l != 0 and r == 0
-        return { pass: false };
-      }
+  public static newPatternMatch(lhs: Expr[], rhs: Expr[]): PatternMatchResult {
+    if (lhs.length === 0 && rhs.length !== 0) {
+      return { pass: false };
+    } else if (lhs.length === rhs.length && rhs.length === 0) {
+      return { pass: true, namedResult: {} };
     } else {
-      // r != 0
-      // 注意，到了这里即便是 l = 0 也不应立即退出。
-
-      const pattern = rhs[rhsPtr];
+      const pattern = rhs[0];
       if (pattern.nodeType === 'terminal') {
-        if (lLength === 0) {
+        if (lhs.length === 0) {
           return { pass: false };
         }
 
         // now we know that lhs has value
-        const l = lhs[lhsPtr];
-        const isEqual = ExprHelper.rawEqualQ([l], [rhs[rhsPtr]]);
+        const l = lhs[0];
+        const isEqual = ExprHelper.rawEqualQ([l], [rhs[0]]);
         if (!isEqual) {
           return { pass: false };
         }
 
-        const restMatch = Neo.patternMatchRecursive(
-          lhs,
-          rhs,
-          lhsPtr + 1,
-          rhsPtr + 1,
+        const restMatch = Neo.newPatternMatch(
+          lhs.slice(1, lhs.length),
+          rhs.slice(1, rhs.length),
         );
         if (!restMatch.pass) {
           return { pass: false };
         }
 
-        restMatch.namedResult[rhsPtr.toString()] = [lhs[lhsPtr]];
+        restMatch.namedResult['0'] = [lhs[0]];
         return { pass: true, namedResult: restMatch.namedResult };
       } else {
         if (
@@ -78,40 +61,27 @@ export class Neo {
           // as for Pattern[symbol, expr]
 
           const patternName = pattern.children[0].value;
-          const patternAlias = rhsPtr.toString();
-          const temp = rhs[rhsPtr];
-          rhs[rhsPtr] = pattern.children[1];
-          const reMatch = Neo.patternMatchRecursive(lhs, rhs, lhsPtr, rhsPtr);
-          rhs[rhsPtr] = temp;
+          const temp = rhs[0];
+          rhs[0] = pattern.children[1];
+          const reMatch = Neo.newPatternMatch(lhs, rhs);
+          rhs[0] = temp;
           if (!reMatch.pass) {
             return { pass: false };
           }
 
-          const currentMatchExprs = reMatch.namedResult[patternAlias];
-          const currentMatchLength = currentMatchExprs.length;
-          const newLhsPtr = lhsPtr + currentMatchLength;
-          const newRhsPtr = rhsPtr + 1;
-          const restMatch = Neo.patternMatchRecursive(
-            lhs,
-            rhs,
-            newLhsPtr,
-            newRhsPtr,
-          );
-
-          if (!restMatch.pass) {
-            return { pass: false };
-          }
-
-          if (restMatch.namedResult[patternName]) {
-            const currentMatchVal = currentMatchExprs;
-            const anotherMatchVal = restMatch.namedResult[patternName];
-            if (!ExprHelper.rawEqualQ(currentMatchVal, anotherMatchVal)) {
+          if (reMatch.namedResult[patternName]) {
+            if (
+              !ExprHelper.rawEqualQ(
+                reMatch.namedResult[patternName],
+                lhs.slice(0, reMatch.namedResult['0'].length),
+              )
+            ) {
               return { pass: false };
             }
           }
 
-          restMatch.namedResult[patternName] = currentMatchExprs;
-          return { pass: true, namedResult: restMatch.namedResult };
+          reMatch.namedResult[patternName] = reMatch.namedResult['0'];
+          return { pass: true, namedResult: reMatch.namedResult };
         } else if (
           pattern.children.length === 0 &&
           pattern.head.nodeType === 'terminal' &&
@@ -120,22 +90,19 @@ export class Neo {
         ) {
           // as for Blank[]
 
-          if (lLength === 0) {
+          if (lhs.length === 0) {
             return { pass: false };
           }
 
-          const restMatch = Neo.patternMatchRecursive(
-            lhs,
-            rhs,
-            lhsPtr + 1,
-            rhsPtr + 1,
+          const restMatch = Neo.newPatternMatch(
+            lhs.slice(1, lhs.length),
+            rhs.slice(1, rhs.length),
           );
           if (!restMatch.pass) {
             return { pass: false };
           }
 
-          const patternAlias = rhsPtr.toString();
-          restMatch.namedResult[patternAlias] = [lhs[lhsPtr]];
+          restMatch.namedResult['0'] = [lhs[0]];
           return { pass: true, namedResult: restMatch.namedResult };
         } else if (
           pattern.children.length === 1 &&
@@ -144,25 +111,20 @@ export class Neo {
           pattern.head.value === 'Blank'
         ) {
           // as for Blank[expr]
-          if (lLength === 0) {
+          if (lhs.length === 0) {
             return { pass: false };
           }
 
-          const tempLhsFirst = lhs[lhsPtr];
-          const tempRhsFirst = rhs[rhsPtr];
-          const expectedHead = pattern.children[0];
-          lhs[lhsPtr] = lhs[lhsPtr].head;
-          rhs[rhsPtr] = expectedHead;
-          const headMatch = Neo.patternMatchRecursive(lhs, rhs, lhsPtr, rhsPtr);
-          lhs[lhsPtr] = tempLhsFirst;
-          rhs[rhsPtr] = tempRhsFirst;
-
-          if (!headMatch.pass) {
+          const originLhsHead = lhs[0];
+          lhs[0] = lhs[0].head;
+          rhs[0] = pattern.children[0];
+          const reMatch = Neo.newPatternMatch(lhs, rhs);
+          if (!reMatch.pass) {
             return { pass: false };
           }
-          const patternAlias = rhsPtr.toString();
-          headMatch.namedResult[patternAlias] = [tempLhsFirst];
-          return { pass: true, namedResult: headMatch.namedResult };
+
+          reMatch.namedResult['0'] = [originLhsHead];
+          return { pass: true, namedResult: reMatch.namedResult };
         } else if (
           pattern.children.length === 0 &&
           pattern.head.nodeType == 'terminal' &&
@@ -170,35 +132,28 @@ export class Neo {
           pattern.head.value === 'BlankSequence'
         ) {
           // as for BlankSequence[]
-          let lhsOffset = 1;
-          let maxMatchLhsOffset: undefined | number = undefined;
-          let matchedResult: Record<string, Expr[]> = {};
-          while (lhsPtr + lhsOffset <= lhs.length) {
-            const restMatch = Neo.patternMatchRecursive(
-              lhs,
-              rhs,
-              lhsPtr + lhsOffset,
-              rhsPtr + 1,
-            );
-            if (restMatch.pass) {
-              matchedResult = restMatch.namedResult;
-              maxMatchLhsOffset = lhsOffset;
-            }
-            lhsOffset = lhsOffset + 1;
-          }
-
-          if (!matchedResult) {
+          if (lhs.length === 0) {
             return { pass: false };
           }
 
-          if (maxMatchLhsOffset) {
-            matchedResult[rhsPtr.toString()] = lhs.slice(
-              lhsPtr,
-              lhsPtr + maxMatchLhsOffset,
-            );
+          let maxK = 1;
+          let namedResult: Record<string, Expr[]> | undefined;
+          const restRhs = rhs.slice(1, rhs.length);
+          for (let k = maxK; k <= lhs.length; k++) {
+            const restLhs = lhs.slice(k, lhs.length);
+            const restMatch = Neo.newPatternMatch(restLhs, restRhs);
+            if (restMatch.pass) {
+              maxK = k;
+              namedResult = restMatch.namedResult;
+            }
           }
 
-          return { pass: true, namedResult: matchedResult };
+          if (!namedResult) {
+            return { pass: false };
+          }
+
+          namedResult['0'] = lhs.slice(0, maxK);
+          return { pass: true, namedResult };
         } else if (
           pattern.children.length === 1 &&
           pattern.head.nodeType === 'terminal' &&
@@ -206,35 +161,59 @@ export class Neo {
           pattern.head.value === 'BlankSequence'
         ) {
           // as for BlankSequence[h]
-          if (lLength === 0) {
+          if (lhs.length === 0) {
             return { pass: false };
           }
 
           const expectH = pattern.children[0];
-          const lhsTemp = lhs.slice(lhsPtr, lhs.length);
-          const rhsTemp = rhs.slice(rhsPtr + 1, rhs.length);
-          let tempLhsPtrOffset = 0;
-          let matchResult: Record<string, Expr[]> = {};
-          while (tempLhsPtrOffset < lhsTemp.length) {
-            lhsTemp[tempLhsPtrOffset] = lhsTemp[tempLhsPtrOffset].head;
-            rhsTemp.unshift(expectH);
-            const match = Neo.patternMatchRecursive(lhsTemp, rhsTemp, 0, 0);
-            if (!match.pass) {
+          let maxK = 1;
+          const lhs1 = lhs.slice(0, maxK);
+          const rhs1 = rhs.slice(0, maxK);
+          lhs1[0] = lhs1[0].head;
+          rhs1[0] = expectH;
+
+          let namedResult: Record<string, Expr[]> | undefined;
+
+          const lhs2 = lhs.slice(maxK, lhs.length);
+          const rhs2 = rhs.slice(maxK, rhs.length);
+          for (let k = maxK; k <= lhs.length; k++) {
+            const matchCurrent = Neo.newPatternMatch(lhs1, rhs1);
+            if (!matchCurrent.pass) {
               break;
             }
-            matchResult = match.namedResult;
-            tempLhsPtrOffset = tempLhsPtrOffset + 1;
+
+            const matchRest = Neo.newPatternMatch(lhs2, rhs2);
+            if (!matchRest.pass) {
+              break;
+            }
+
+            if (
+              ExprHelper.nameConflictQ(
+                matchCurrent.namedResult,
+                matchRest.namedResult,
+              )
+            ) {
+              break;
+            }
+
+            namedResult = ExprHelper.mergeNamedResult(
+              matchCurrent.namedResult,
+              matchRest.namedResult,
+            );
+            namedResult['0'] = lhs.slice(0, lhs1.length);
+            maxK = k;
+            if (lhs2.length > 0) {
+              const exprBeingLhs = lhs2.shift() as Expr;
+              lhs1.push(exprBeingLhs.head);
+              rhs1.push(expectH);
+            }
           }
-          if (tempLhsPtrOffset === 0) {
+
+          if (!namedResult) {
             return { pass: false };
           }
 
-          matchResult[rhsPtr.toString()] = lhs.slice(
-            lhsPtr,
-            lhsPtr + tempLhsPtrOffset,
-          );
-
-          return { pass: true, namedResult: matchResult };
+          return { pass: true, namedResult: namedResult };
         } else if (
           pattern.children.length === 0 &&
           pattern.head.nodeType === 'terminal' &&
@@ -242,31 +221,71 @@ export class Neo {
           pattern.head.value === 'BlankNullSequence'
         ) {
           // as for BlankNullSequence[]
-          let lhsOffset = 0;
-          let matchResult: Record<string, Expr[]> | undefined = undefined;
-          while (lhsPtr + lhsOffset < lhs.length) {
-            const matchRest = Neo.patternMatchRecursive(
-              lhs,
-              rhs,
-              lhsPtr + lhsOffset,
-              rhsPtr + 1,
+          let maxK = 0;
+          let namedResult: Record<string, Expr[]> | undefined;
+          const restRhs = rhs.slice(1, rhs.length);
+          for (let k = maxK; k <= lhs.length; k++) {
+            const matchRest = Neo.newPatternMatch(
+              lhs.slice(k, lhs.length),
+              restRhs,
             );
             if (matchRest.pass) {
-              matchResult = matchRest.namedResult;
-              matchResult[rhsPtr.toString()] = lhs.slice(
-                lhsPtr,
-                lhsPtr + lhsOffset,
-              );
+              maxK = k;
+              namedResult = matchRest.namedResult;
             }
-
-            lhsOffset = lhsOffset + 1;
           }
 
-          if (matchResult === undefined) {
+          if (namedResult === undefined) {
             return { pass: false };
           } else {
-            return { pass: true, namedResult: matchResult };
+            namedResult['0'] = lhs.slice(0, maxK);
+            return { pass: true, namedResult };
           }
+        } else if (
+          pattern.children.length === 1 &&
+          pattern.head.nodeType === 'terminal' &&
+          pattern.head.expressionType === 'symbol' &&
+          pattern.head.value === 'BlankNullSequence'
+        ) {
+          // as for BlankNullSequence[h]
+          const expectHead = pattern.children[0];
+          let namedResult: undefined | Record<string, Expr[]>;
+          const lhsTemp: Expr[] = [];
+          const rhsTemp: Expr[] = [];
+          const rhsRest = rhs.slice(1, rhs.length);
+          for (let k = 0; k <= lhs.length; k++) {
+            const currentMatch = Neo.newPatternMatch(lhsTemp, rhsTemp);
+            const restMatch = Neo.newPatternMatch(
+              lhs.slice(lhsTemp.length, lhs.length),
+              rhsRest,
+            );
+            if (
+              currentMatch.pass &&
+              restMatch.pass &&
+              !ExprHelper.nameConflictQ(
+                currentMatch.namedResult,
+                restMatch.namedResult,
+              )
+            ) {
+              namedResult = ExprHelper.mergeNamedResult(
+                currentMatch.namedResult,
+                restMatch.namedResult,
+              );
+              namedResult['0'] = lhs.slice(0, lhsTemp.length);
+            }
+
+            if (lhs.length - lhsTemp.length > 0) {
+              const exprBeingLhs = lhs.shift() as Expr;
+              lhsTemp.push(exprBeingLhs.head);
+              rhsTemp.push(expectHead);
+            }
+          }
+
+          if (namedResult === undefined) {
+            return { pass: false };
+          }
+
+          return { pass: true, namedResult: namedResult };
         } else if (
           pattern.children.length === 1 &&
           pattern.head.nodeType === 'terminal' &&
@@ -274,27 +293,24 @@ export class Neo {
           pattern.head.value === 'Verbatim'
         ) {
           // as for Verbatim[x]
-          if (lLength === 0) {
+          if (lhs.length === 0) {
             return { pass: false };
           }
 
-          const l = lhs[lhsPtr];
-          const isEqual = ExprHelper.rawEqualQ([l], [pattern.children[0]]);
+          const isEqual = ExprHelper.rawEqualQ([lhs[0]], [pattern.children[0]]);
           if (!isEqual) {
             return { pass: false };
           }
 
-          const restMatch = Neo.patternMatchRecursive(
-            lhs,
-            rhs,
-            lhsPtr + 1,
-            rhsPtr + 1,
+          const restMatch = Neo.newPatternMatch(
+            lhs.slice(1, lhs.length),
+            rhs.slice(1, rhs.length),
           );
           if (!restMatch.pass) {
             return { pass: false };
           }
 
-          restMatch.namedResult[rhsPtr.toString()] = [l];
+          restMatch.namedResult['0'] = [lhs[0]];
           return { pass: true, namedResult: restMatch.namedResult };
         } else if (
           pattern.children.length === 0 &&
@@ -304,52 +320,41 @@ export class Neo {
         ) {
           // as for NumberExpressionType[]
           // 匹配所有 expressionType 为 Number 的 Expr
-          if (lLength === 0) {
+          if (lhs.length === 0) {
             return { pass: false };
           }
 
-          const l = lhs[lhsPtr];
-          if (l.nodeType === 'nonTerminal') {
+          if (lhs[0].nodeType === 'nonTerminal') {
             return { pass: false };
           }
 
-          if (l.expressionType !== 'number') {
+          if (lhs[0].expressionType !== 'number') {
             return { pass: false };
           }
 
-          const restMatch = Neo.patternMatchRecursive(
-            lhs,
-            rhs,
-            lhsPtr + 1,
-            rhsPtr + 1,
+          const restMatch = Neo.newPatternMatch(
+            lhs.slice(1, lhs.length),
+            rhs.slice(1, rhs.length),
           );
           if (!restMatch.pass) {
             return { pass: false };
           }
 
-          restMatch.namedResult[rhsPtr.toString()] = [l];
+          restMatch.namedResult['0'] = [lhs[0]];
           return { pass: true, namedResult: restMatch.namedResult };
         } else {
           // 这时 pattern 是其他不认识的形式，而且 pattern 是 nonTerminal
           // 所以如果 lhs 第一个是 terminal, 则不匹配
-          const l = lhs[lhsPtr];
-          if (l.nodeType === 'terminal') {
+          if (lhs[0].nodeType === 'terminal') {
             return { pass: false };
           }
 
           // 这时可以确定 lhs 第一个是 nonTerminal, 就可以分别比较头部和尾部了
           // 可以说是一种一般的处理方法
-          const matchHead = Neo.patternMatchRecursive(
-            [l.head],
-            [pattern.head],
-            0,
-            0,
-          );
-          const matchChildren = Neo.patternMatchRecursive(
-            [...l.children],
+          const matchHead = Neo.newPatternMatch([lhs[0].head], [pattern.head]);
+          const matchChildren = Neo.newPatternMatch(
+            [...lhs[0].children],
             [...pattern.children],
-            0,
-            0,
           );
 
           if (matchHead.pass && matchChildren.pass) {
@@ -369,6 +374,41 @@ export class Neo {
 }
 
 export class ExprHelper {
+  public static nameConflictQ(
+    a: Record<string, Expr[]>,
+    b: Record<string, Expr[]>,
+  ): boolean {
+    for (const k in a) {
+      if (
+        typeof k === 'string' &&
+        k.length > 0 &&
+        k[0].match(/[a-zA-Z]/) &&
+        b[k]
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public static mergeNamedResult(
+    a: Record<string, Expr[]>,
+    b: Record<string, Expr[]>,
+  ): Record<string, Expr[]> {
+    const merged: Record<string, Expr[]> = {};
+
+    for (const k in a) {
+      merged[k] = a[k];
+    }
+
+    for (const k in b) {
+      merged[k] = b[k];
+    }
+
+    return merged;
+  }
+
   /** 返回两个 terminal 节点是否相等 */
   public static isTerminalEqual(expr1: Expr, expr2: Expr): boolean {
     if (expr1.nodeType === 'terminal' && expr2.nodeType === 'terminal') {

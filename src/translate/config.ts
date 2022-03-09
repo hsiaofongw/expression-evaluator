@@ -252,7 +252,7 @@ export function BlankSequence(): Expr {
 }
 
 // 返回一个 BlankSequenceNull Pattern
-export function BlankSequenceNull(): Expr {
+export function BlankNullSequence(): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.BlankNullSequenceSymbol,
