@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { concatAll, map, Observable, of, zip } from 'rxjs';
-import { inputStreamFlushSentinelUpdater$ } from 'src/app.service';
+import { concatAll, map, of, zip } from 'rxjs';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
-import { Definition, Expr } from './interfaces';
+import { Definition, Expr, IContext } from './interfaces';
 
 // 打印错误信息并退出
 function logErrorAndExit(atWhere: string): void {
@@ -61,7 +60,10 @@ export const allSymbolsMap = {
   // 元符号
   SymbolSymbol: SymbolSymbol,
 
-  // 模式匹配判定负号
+  // 函数符号
+  FunctionSymbol: NodeFactory.makeSymbol('Function', true),
+
+  // 模式匹配判定符号
   MatchQSymbol: NodeFactory.makeSymbol('MatchQ', true),
 
   // 长度符号
@@ -498,6 +500,59 @@ export const builtInDefinitions: Definition[] = [
       return of(node);
     },
     displayName: '_[___, _Sequence, ___] -> ?',
+  },
+
+  // Function[{ x, y, z }, expr][___]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: {
+        nodeType: 'nonTerminal',
+        head: allSymbolsMap.FunctionSymbol,
+        children: [ListExpr([BlankNullSequenceExpr()]), BlankExpr()],
+      },
+      children: [BlankNullSequenceExpr()],
+    },
+    action: (expr, evaluator, context) => {
+      if (expr.nodeType === 'nonTerminal') {
+        const functionExpr = expr.head;
+        if (
+          functionExpr.nodeType === 'nonTerminal' &&
+          functionExpr.children.length === 2
+        ) {
+          const argumentsExpr = functionExpr.children[0];
+          if (argumentsExpr.nodeType === 'nonTerminal') {
+            const functipnBodyExpr = functionExpr.children[1];
+            const tempPattern: Expr = {
+              nodeType: 'nonTerminal',
+              head: BlankExpr(),
+              children: argumentsExpr.children,
+            };
+            const tempContext: IContext = {
+              parent: context,
+              definitions: {
+                arguments: [
+                  {
+                    pattern: tempPattern,
+                    action: (_, _evaluator, _context) => {
+                      return _evaluator.evaluate(functipnBodyExpr, _context);
+                    },
+                    displayName: `${ExprHelper.nodeToString(tempPattern)} -> ?`,
+                  },
+                ],
+                builtin: [],
+                delayedAssign: [],
+                fixedAssign: [],
+              },
+            };
+            return evaluator.evaluate(expr, tempContext);
+          }
+        }
+      }
+
+      return of(expr);
+    },
+    displayName: 'Function[{___}, _][___] -> ?',
   },
 
   // List[...]

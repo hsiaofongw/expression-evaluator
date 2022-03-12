@@ -94,3 +94,7 @@ export type IContext = {
   parent: IContext | undefined;
   definitions: Record<DefinitionType, Definition[]>;
 };
+
+export type EvaluateResultObject = { seqNum: number; result: Expr };
+
+export type FlushSentinel = ';' | '\n';
