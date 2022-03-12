@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { syntaxAnalysisConfiguration } from './parser/helpers';
@@ -7,18 +8,11 @@ import { stdin, stdout } from 'process';
 import { ExpressionTranslate } from './translate/translate';
 import { ExpressionNodeSerialize } from './translate/serialize';
 import { Evaluator, PreEvaluator } from './translate/evaluate';
-import { Subject } from 'rxjs';
 import { EvaluateResultObject, FlushSentinel } from './translate/interfaces';
 
-let inputStreamFlushSentinel: FlushSentinel = ';';
-export const inputStreamFlushSentinelUpdater$ = new Subject<string>();
-inputStreamFlushSentinelUpdater$.subscribe((sentinel: FlushSentinel) => {
-  inputStreamFlushSentinel = sentinel;
-});
-
 async function bootstrap() {
-  await NestFactory.createApplicationContext(AppModule);
-  startREPL();
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
 }
 bootstrap();
 
@@ -75,26 +69,19 @@ async function startREPL() {
   });
   stdin.on('data', (d) => {
     const inputContent = d.toString('utf-8').replace(/\s/g, ' ');
-    if (inputStreamFlushSentinel === '\n') {
-      const lines = inputContent.split(/\s/);
-      for (const line of lines) {
-        toChars.write(line);
-      }
+    const semiColumnIndex = inputContent.indexOf(';');
+    if (semiColumnIndex === -1) {
+      inputBuffer = inputBuffer + inputContent;
     } else {
-      const semiColumnIndex = inputContent.indexOf(';');
-      if (semiColumnIndex === -1) {
-        inputBuffer = inputBuffer + inputContent;
-      } else {
-        for (let i = 0; i < inputContent.length; i++) {
-          if (inputContent[i] === ';') {
-            if (inputBuffer.trim().length) {
-              toChars.write(inputBuffer.trim());
-              inputBuffer = '';
-            }
-            continue;
+      for (let i = 0; i < inputContent.length; i++) {
+        if (inputContent[i] === ';') {
+          if (inputBuffer.trim().length) {
+            toChars.write(inputBuffer.trim());
+            inputBuffer = '';
           }
-          inputBuffer = inputBuffer + inputContent[i];
+          continue;
         }
+        inputBuffer = inputBuffer + inputContent[i];
       }
     }
   });
