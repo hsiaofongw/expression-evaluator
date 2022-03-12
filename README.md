@@ -24,7 +24,7 @@ This project is based on [Nest.js Framework](https://nestjs.com/), and our own i
 
 ![求算术平方根](screenshots/sqrt.png)
 
-上图求出给定实数的正的正的平方根。
+上图求出给定实数的正的平方根。
 
 ## 安装运行 Setup and Run
 
