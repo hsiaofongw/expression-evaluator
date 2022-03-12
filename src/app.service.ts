@@ -33,7 +33,6 @@ export class AppService {
     const initialSeqNum = 0;
     let currentSeqNum = initialSeqNum;
     const resultObjsBuffer: EvaluateResultObject[] = [];
-    const promptContentFn = (seqNum: number) => `In[${seqNum}]:= `;
     const toChars = new ToCharacters();
     const toToken = new ToToken();
     const toTerminalNode = new ToTerminalNode(syntaxAnalysisConfiguration);
@@ -65,7 +64,6 @@ export class AppService {
           serialize.write(resultObjsBuffer.shift().result);
         }
         currentSeqNum = maxReceivedSeqNum + 1;
-        stdout.write(promptContentFn(currentSeqNum));
       }
     });
 
