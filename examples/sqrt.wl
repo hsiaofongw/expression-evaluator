@@ -3,12 +3,12 @@ sqrtIter[guess_, x_] := If[
   good[guess, x], 
   guess, 
   sqrtIter[
-    improve[guess, x], 
+    better[guess, x], 
     x
   ]
 ];
-improve[guess_, x_] := average[guess, Divide[x, guess]];
-average[x_, y_] := Divide[Plus[x, y], 2];
+better[guess_, x_] := avg[guess, Divide[x, guess]];
+avg[x_, y_] := Divide[Plus[x, y], 2];
 good[guess_, x_] := LessThan[abs[Minus[Square[guess], x]], 0.001];
 abs[x_] := If[x < 0, Negative[x], x];
 sqrt[1];
