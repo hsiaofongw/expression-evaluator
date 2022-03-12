@@ -8,6 +8,24 @@ This is a expression evaluator, it provides commandline interface, it is capable
 
 This project is based on [Nest.js Framework](https://nestjs.com/), and our own implementation of Lexer, LL(1) Parser, Translator and Evaluator.
 
+## 项目展示
+
+![斐波那契数列求值1](screenshots/fib1.png)
+
+上图为斐波那契数列求值程序的树型递归写法。
+
+![斐波那契数列求值2](screenshots/fib2.png)
+
+上图为斐波那契数列求值程序的模式匹配写法。
+
+![质性判定](screenshots/primeQ.png)
+
+上图为质性判定程序，能够判断一个整数是否是质数。
+
+![求算术平方根](screenshots/sqrt.png)
+
+上图求出给定实数的正的正的平方根。
+
 ## 安装运行 Setup and Run
 
 分为 3 个步骤：
