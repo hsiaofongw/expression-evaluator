@@ -35,7 +35,7 @@ async function startCommandLineREPL() {
   let currentSeqNum = initialSeqNum;
   const resultObjsBuffer: EvaluateResultObject[] = [];
   const promptContentFn = (seqNum: number) => `In[${seqNum}]:= `;
-  const outputPrefixFn = (seqNum: number) => `\nOut[${seqNum}]= \n\n`;
+  const outputPrefixFn = (seqNum: number) => `\nOut[${seqNum}]= `;
   const outputPostfix = '\n\n';
   const toChars = new ToCharacters();
   const toToken = new ToToken();
