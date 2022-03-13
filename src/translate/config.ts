@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { concatAll, map, of, zip } from 'rxjs';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
-import { Definition, Expr, IContext } from './interfaces';
+import { Definition, Expr, IContext, NonTerminalExpr } from './interfaces';
 
 // 打印错误信息并退出
 function logErrorAndExit(atWhere: string): void {
@@ -364,7 +364,7 @@ export function RuleExpr(keyExpr: Expr, valueExpr: Expr): Expr {
   };
 }
 
-export function NonTerminalExpr(headExpr: Expr, children: Expr[]): Expr {
+export function MakeNonTerminalExpr(headExpr: Expr, children: Expr[]): Expr {
   return {
     nodeType: 'nonTerminal',
     head: headExpr,
@@ -372,11 +372,8 @@ export function NonTerminalExpr(headExpr: Expr, children: Expr[]): Expr {
   };
 }
 
-export function FunctionExpr(symbols: Expr[], bodyExpr: Expr): Expr {
-  return NonTerminalExpr(allSymbolsMap.FunctionSymbol, [
-    ListExpr(symbols),
-    bodyExpr,
-  ]);
+export function FunctionExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.FunctionSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -515,59 +512,6 @@ export const builtInDefinitions: Definition[] = [
       return of(node);
     },
     displayName: '_[___, _Sequence, ___] -> ?',
-  },
-
-  // Function[{ x, y, z }, expr][___]
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: {
-        nodeType: 'nonTerminal',
-        head: allSymbolsMap.FunctionSymbol,
-        children: [ListExpr([BlankNullSequenceExpr()]), BlankExpr()],
-      },
-      children: [BlankNullSequenceExpr()],
-    },
-    action: (expr, evaluator, context) => {
-      if (expr.nodeType === 'nonTerminal') {
-        const functionExpr = expr.head;
-        if (
-          functionExpr.nodeType === 'nonTerminal' &&
-          functionExpr.children.length === 2
-        ) {
-          const argumentsExpr = functionExpr.children[0];
-          if (argumentsExpr.nodeType === 'nonTerminal') {
-            const functipnBodyExpr = functionExpr.children[1];
-            const tempPattern: Expr = {
-              nodeType: 'nonTerminal',
-              head: BlankExpr(),
-              children: argumentsExpr.children,
-            };
-            const tempContext: IContext = {
-              parent: context,
-              definitions: {
-                arguments: [
-                  {
-                    pattern: tempPattern,
-                    action: (_, _evaluator, _context) => {
-                      return _evaluator.evaluate(functipnBodyExpr, _context);
-                    },
-                    displayName: `${ExprHelper.nodeToString(tempPattern)} -> ?`,
-                  },
-                ],
-                builtin: [],
-                delayedAssign: [],
-                fixedAssign: [],
-              },
-            };
-            return evaluator.evaluate(expr, tempContext);
-          }
-        }
-      }
-
-      return of(expr);
-    },
-    displayName: 'Function[{___}, _][___] -> ?',
   },
 
   // List[...]
@@ -1046,14 +990,43 @@ export const builtInDefinitions: Definition[] = [
 
   // 匿名函数
   {
-    pattern: NonTerminalExpr(
-      FunctionExpr(
-        [TypedBlankNullSequenceExpr(allSymbolsMap.SymbolSymbol)],
-        BlankExpr(),
-      ),
-      [BlankNullSequenceExpr()],
-    ),
-    action: null as any,
-    displayName: null as any,
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: FunctionExpr([BlankSequenceExpr()]),
+      children: [BlankNullSequenceExpr()],
+    },
+    action: (expr, evaluator, context) => {
+      const lambaCallExpr = expr as NonTerminalExpr;
+      const functionExpr = lambaCallExpr.head as any as NonTerminalExpr;
+      const patternPart = functionExpr.children.slice(
+        0,
+        functionExpr.children.length - 1,
+      );
+      const bodyPart = functionExpr.children[functionExpr.children.length - 1];
+      const match = Neo.patternMatch(lambaCallExpr.children, patternPart);
+      if (!match.pass) {
+        return of(expr);
+      }
+
+      const temporaryDefinitions: Definition[] = [];
+      for (const key in match.namedResult) {
+        const keyExpr = NodeFactory.makeSymbol(key);
+        temporaryDefinitions.push({
+          pattern: keyExpr,
+          action: (_, __, ___) => of(SequenceExpr(match.namedResult[key])),
+          displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
+        });
+      }
+      const temporaryCtx: IContext = {
+        parent: context,
+        definitions: {
+          ...context.definitions,
+          arguments: temporaryDefinitions,
+        },
+      };
+
+      return evaluator.evaluate(bodyPart, temporaryCtx);
+    },
+    displayName: 'Function[__][___] -> ?',
   },
 ];

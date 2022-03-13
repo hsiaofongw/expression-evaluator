@@ -155,17 +155,27 @@ export class Evaluator extends Transform implements IEvaluator {
     return definitionQueryResult.definition.action(expr, this, newContext);
   }
 
+  private getRoot(expr: Expr): Expr {
+    let head = expr.head;
+    while (head.head.head !== head.head) {
+      head = head.head;
+    }
+
+    return head;
+  }
+
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
   public evaluate(expr: Expr, context: IContext): Observable<Expr> {
-    const head = expr.head;
+    const root = this.getRoot(expr);
+
     const copy = ExprHelper.shallowCopy(expr);
     let result$: Observable<Expr>;
     if (expr.nodeType === 'terminal' && expr.expressionType !== 'symbol') {
       return of(expr);
     } else if (
-      head.nodeType === 'terminal' &&
-      head.expressionType === 'symbol' &&
-      allNonStandardSymbolsSet.has(head.value)
+      root.nodeType === 'terminal' &&
+      root.expressionType === 'symbol' &&
+      allNonStandardSymbolsSet.has(root.value)
     ) {
       result$ = this.nonStandardEvaluate(copy, context);
     } else {
