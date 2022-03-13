@@ -27,12 +27,15 @@ export type BooleanAtomType = {
 };
 
 export type ExprHead = { head: Expr };
+
 export type TerminalNodeType = { nodeType: 'terminal' };
-export type NonTerminalNodeType = { nodeType: 'nonTerminal' };
+
 export type TerminalSymbolExpr = ExprHead & TerminalNodeType & SymbolAtomType;
 export type TerminalStringExpr = ExprHead & TerminalNodeType & StringAtomType;
 export type TerminalNumberExpr = ExprHead & TerminalNodeType & NumberAtomType;
 export type TerminalBooleanExpr = ExprHead & TerminalNodeType & BooleanAtomType;
+
+export type NonTerminalNodeType = { nodeType: 'nonTerminal' };
 
 export type TerminalExpr =
   | TerminalSymbolExpr
