@@ -10,6 +10,8 @@ This project is based on [Nest.js Framework](https://nestjs.com/), and our own i
 
 ## 项目展示
 
+体验地址：https://fe-evaluator.vercel.app/
+
 ![斐波那契数列求值1](screenshots/fib1.png)
 
 上图为斐波那契数列求值程序的树型递归写法。
@@ -25,33 +27,6 @@ This project is based on [Nest.js Framework](https://nestjs.com/), and our own i
 ![求算术平方根](screenshots/sqrt.png)
 
 上图求出给定实数的正的平方根。
-
-## 安装运行 Setup and Run
-
-分为 3 个步骤：
-
-1. 克隆仓库至运行环境，并切换到 master 分支：
-
-```
-git clone https://github.com/hsiaofongw/expression-evaluator.git
-cd expression-evaluator
-```
-
-2. 安装依赖：
-
-```
-npm i  # 如 npm 提示找不到，则需要先安装 NodeJS 和 NPM 软件
-```
-
-3. 启动运行：
-
-```
-npm run start:dev  # 或者 npm run start:inspect
-```
-
-在本项目的 examples 文件夹下可以找到示例程序。
-
-按两次 Ctrl+c 退出程序。
 
 ## 致敬 Respects
 
