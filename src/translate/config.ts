@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { concatAll, map, of, zip } from 'rxjs';
+import { concatAll, map, Observable, of, zip } from 'rxjs';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
 import { Definition, Expr, IContext, NonTerminalExpr } from './interfaces';
 
@@ -215,6 +215,9 @@ export const allSymbolsMap = {
 
   // Table 符号
   TableSymbol: NodeFactory.makeSymbol('Table', true),
+
+  // Map 符号
+  MapSymbol: NodeFactory.makeSymbol('Map', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -989,6 +992,7 @@ export const builtInDefinitions: Definition[] = [
   ),
 
   // 匿名函数
+  // 用法举例：Function[a_, b_, a+b][1, 2]
   {
     pattern: {
       nodeType: 'nonTerminal',
@@ -1028,5 +1032,37 @@ export const builtInDefinitions: Definition[] = [
       return evaluator.evaluate(bodyPart, temporaryCtx);
     },
     displayName: 'Function[__][___] -> ?',
+  },
+
+  // Map
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.MapSymbol,
+      children: [
+        MakeNonTerminalExpr(BlankExpr(), [BlankNullSequenceExpr()]),
+        BlankExpr(),
+      ],
+    },
+    action: (expr, evaluator, context) => {
+      const mapExpr = expr as NonTerminalExpr;
+      const listLikeExpr = mapExpr.children[0] as NonTerminalExpr;
+      const functionExpr = mapExpr.children[1];
+      const children$s: Observable<Expr>[] = listLikeExpr.children.map(
+        (child) =>
+          evaluator.evaluate(
+            MakeNonTerminalExpr(functionExpr, [child]),
+            context,
+          ),
+      );
+      const childrens$: Observable<Expr[]> = zip(children$s);
+      return childrens$.pipe(
+        map((children) => {
+          listLikeExpr.children = children;
+          return listLikeExpr;
+        }),
+      );
+    },
+    displayName: 'Map[_, _] -> ?',
   },
 ];
