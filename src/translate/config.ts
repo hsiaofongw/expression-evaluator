@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { concatAll, map, Observable, of, zip } from 'rxjs';
+import { concatAll, first, map, Observable, of, zip } from 'rxjs';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
 import { Definition, Expr, IContext, NonTerminalExpr } from './interfaces';
 
@@ -1041,6 +1041,8 @@ export const builtInDefinitions: Definition[] = [
         map((listLike) => {
           if (listLike.nodeType === 'terminal') {
             return of(expr);
+          } else if (listLike.children.length === 0) {
+            return of(listLike);
           } else {
             return zip(
               listLike.children.map((child) =>
@@ -1067,29 +1069,32 @@ export const builtInDefinitions: Definition[] = [
     pattern: ReduceExpr([BlankExpr(), BlankExpr(), BlankExpr()]),
     action: (expr, evaluator, context) => {
       const reduceExpr = expr as NonTerminalExpr;
-      const listLikeExpr = reduceExpr.children[0];
-      const functionExpr = reduceExpr.children[1];
-      const initialValExpr = reduceExpr.children[2];
-      return evaluator.evaluate(listLikeExpr, context).pipe(
-        map((evaluatedListLike) => {
-          if (evaluatedListLike.nodeType === 'terminal') {
-            return expr;
+      const listLike = reduceExpr.children[0];
+      const functionLike = reduceExpr.children[1];
+      const initialLike = reduceExpr.children[2];
+      return evaluator.evaluate(listLike, context).pipe(
+        map((listLike) => {
+          if (listLike.nodeType === 'terminal') {
+            return of(expr);
+          } else if (listLike.children.length === 0) {
+            return of(initialLike);
           } else {
-            const listLen = evaluatedListLike.children.length;
-
-            if (listLen === 0) {
-              return initialValExpr;
-            }
-
-            const first = evaluatedListLike.children[0];
-            const rest = evaluatedListLike.children.slice(1, listLen);
-            return ReduceExpr([
-              MakeNonTerminalExpr(evaluatedListLike.head, rest),
-              functionExpr,
-              MakeNonTerminalExpr(functionExpr, [initialValExpr, first]),
-            ]);
+            return of(
+              ReduceExpr([
+                MakeNonTerminalExpr(
+                  listLike.head,
+                  listLike.children.slice(1, listLike.children.length),
+                ),
+                functionLike,
+                MakeNonTerminalExpr(functionLike, [
+                  initialLike,
+                  listLike.children[0],
+                ]),
+              ]),
+            );
           }
         }),
+        concatAll(),
       );
     },
     displayName: 'Reduce[_, _, _] -> ?',
