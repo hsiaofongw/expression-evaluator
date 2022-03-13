@@ -364,6 +364,21 @@ export function RuleExpr(keyExpr: Expr, valueExpr: Expr): Expr {
   };
 }
 
+export function NonTerminalExpr(headExpr: Expr, children: Expr[]): Expr {
+  return {
+    nodeType: 'nonTerminal',
+    head: headExpr,
+    children,
+  };
+}
+
+export function FunctionExpr(symbols: Expr[], bodyExpr: Expr): Expr {
+  return NonTerminalExpr(allSymbolsMap.FunctionSymbol, [
+    ListExpr(symbols),
+    bodyExpr,
+  ]);
+}
+
 // 返回一个数值型一元运算 Pattern
 class UnaryOperationPatternFactory {
   public static makePattern(
@@ -1028,4 +1043,17 @@ export const builtInDefinitions: Definition[] = [
     allSymbolsMap.GreaterThanOrEqualSymbol,
     (a, b) => (a >= b ? True : False),
   ),
+
+  // 匿名函数
+  {
+    pattern: NonTerminalExpr(
+      FunctionExpr(
+        [TypedBlankNullSequenceExpr(allSymbolsMap.SymbolSymbol)],
+        BlankExpr(),
+      ),
+      [BlankNullSequenceExpr()],
+    ),
+    action: null as any,
+    displayName: null as any,
+  },
 ];

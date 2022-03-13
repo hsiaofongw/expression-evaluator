@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs';
 
-export type SymbolExpressionType = {
+export type SymbolAtomType = {
   /** 表达式类型：符号 */
   expressionType: 'symbol';
 
@@ -11,39 +11,39 @@ export type SymbolExpressionType = {
   nonStandard?: boolean;
 };
 
-export type StringExpressionType = {
+export type StringAtomType = {
   expressionType: 'string';
   value: string;
 };
 
-export type NumberExpressionType = {
+export type NumberAtomType = {
   expressionType: 'number';
   value: number;
 };
 
-export type BooleanExpressionType = {
+export type BooleanAtomType = {
   expressionType: 'boolean';
   value: boolean;
 };
 
-export type ExpressionType =
-  | SymbolExpressionType
-  | StringExpressionType
-  | NumberExpressionType
-  | BooleanExpressionType;
+export type ExprHead = { head: Expr };
+export type TerminalNodeType = { nodeType: 'terminal' };
+export type NonTerminalNodeType = { nodeType: 'nonTerminal' };
+export type TerminalSymbolExpr = ExprHead & TerminalNodeType & SymbolAtomType;
+export type TerminalStringExpr = ExprHead & TerminalNodeType & StringAtomType;
+export type TerminalNumberExpr = ExprHead & TerminalNodeType & NumberAtomType;
+export type TerminalBooleanExpr = ExprHead & TerminalNodeType & BooleanAtomType;
 
-export type TerminalNode = {
-  nodeType: 'terminal';
-} & ExpressionType;
+export type TerminalExpr =
+  | TerminalSymbolExpr
+  | TerminalStringExpr
+  | TerminalNumberExpr
+  | TerminalBooleanExpr;
 
-export type NonTerminalNode = {
-  nodeType: 'nonTerminal';
-  children: Expr[];
-};
+export type NonTerminalExpr = ExprHead &
+  NonTerminalNodeType & { children: Expr[] };
 
-export type Expr = (TerminalNode | NonTerminalNode) & {
-  head: Expr;
-};
+export type Expr = TerminalExpr | NonTerminalExpr;
 
 export type KeyValuePair = { pattern: Expr; value: Observable<Expr> };
 
