@@ -218,6 +218,9 @@ export const allSymbolsMap = {
 
   // Map 符号
   MapSymbol: NodeFactory.makeSymbol('Map', true),
+
+  // Reduce 符号
+  ReduceSymbol: NodeFactory.makeSymbol('Reduce', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -377,6 +380,10 @@ export function MakeNonTerminalExpr(headExpr: Expr, children: Expr[]): Expr {
 
 export function FunctionExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.FunctionSymbol, children);
+}
+
+export function ReduceExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.ReduceSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -567,29 +574,13 @@ export const builtInDefinitions: Definition[] = [
 
   // First
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.FirstSymbol,
-      children: [BlankExpr()],
-    },
+    pattern: MakeNonTerminalExpr(allSymbolsMap.FirstSymbol, [
+      MakeNonTerminalExpr(BlankExpr(), [BlankSequenceExpr()]),
+    ]),
     action: (expr, evaluator, context) => {
-      if (expr.nodeType === 'nonTerminal') {
-        if (expr.children.length === 1) {
-          const x = expr.children[0];
-          return evaluator.evaluate(x, context).pipe(
-            map((x) => {
-              if (x.nodeType === 'nonTerminal') {
-                if (x.children.length >= 1) {
-                  return x.children[0];
-                }
-              }
-              return expr;
-            }),
-          );
-        }
-      }
-
-      return of(expr);
+      const firstExpr = expr as NonTerminalExpr;
+      const listLike = firstExpr.children[0] as NonTerminalExpr;
+      return of(listLike.children[0]);
     },
     displayName: 'First[_] -> ?',
   },
@@ -1064,5 +1055,46 @@ export const builtInDefinitions: Definition[] = [
       );
     },
     displayName: 'Map[_, _] -> ?',
+  },
+
+  // Reduce
+  {
+    pattern: ReduceExpr([
+      MakeNonTerminalExpr(BlankExpr(), [BlankNullSequenceExpr()]),
+      BlankExpr(),
+      BlankExpr(),
+    ]),
+    action: (expr, evaluator, context) => {
+      const reduceExpr = expr as NonTerminalExpr;
+      const listLikeExpr = reduceExpr.children[0] as NonTerminalExpr;
+      const functionExpr = reduceExpr.children[1];
+      const initialValExpr = reduceExpr.children[2];
+      if (listLikeExpr.children.length === 0) {
+        return evaluator.evaluate(initialValExpr, context);
+      } else {
+        return evaluator.evaluate(listLikeExpr, context).pipe(
+          map((evaluatedListLike) => {
+            if (evaluatedListLike.nodeType === 'terminal') {
+              return expr;
+            } else {
+              const listLen = evaluatedListLike.children.length;
+
+              if (listLen === 0) {
+                return initialValExpr;
+              }
+
+              const first = evaluatedListLike.children[0];
+              const rest = evaluatedListLike.children.slice(1, listLen);
+              return ReduceExpr([
+                MakeNonTerminalExpr(evaluatedListLike.head, rest),
+                functionExpr,
+                MakeNonTerminalExpr(functionExpr, [initialValExpr, first]),
+              ]);
+            }
+          }),
+        );
+      }
+    },
+    displayName: 'Reduce[_, _, _] -> ?',
   },
 ];
