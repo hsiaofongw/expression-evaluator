@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { syntaxAnalysisConfiguration } from './parser/helpers';
 import { ToCharacters, ToToken } from './lexer/lexer';
 import { LL1PredictiveParser, ToTerminalNode } from './parser/parser';
-import { stdout } from 'process';
 import { ExpressionTranslate } from './translate/translate';
 import { ExpressionNodeSerialize } from './translate/serialize';
 import { Evaluator, PreEvaluator } from './translate/evaluate';

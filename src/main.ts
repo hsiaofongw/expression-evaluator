@@ -8,16 +8,28 @@ import { stdin, stdout } from 'process';
 import { ExpressionTranslate } from './translate/translate';
 import { ExpressionNodeSerialize } from './translate/serialize';
 import { Evaluator, PreEvaluator } from './translate/evaluate';
-import { EvaluateResultObject, FlushSentinel } from './translate/interfaces';
+import { EvaluateResultObject } from './translate/interfaces';
+import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
+
+  const config = app.get(ConfigService);
+  const inDebug = config.get('NODE_ENV') === 'debug';
+  const logger = new Logger(bootstrap.name);
+  logger.log(`In Debug Mode: ${inDebug}`);
   await app.listen(3000);
+
+  if (inDebug) {
+    console.clear();
+    startCommandLineREPL();
+  }
 }
 bootstrap();
 
-async function startREPL() {
+async function startCommandLineREPL() {
   // 初始化
   const initialSeqNum = 0;
   let currentSeqNum = initialSeqNum;
