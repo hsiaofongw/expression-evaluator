@@ -1039,19 +1039,27 @@ export const builtInDefinitions: Definition[] = [
       const mapExpr = expr as NonTerminalExpr;
       const listLikeExpr = mapExpr.children[0] as NonTerminalExpr;
       const functionExpr = mapExpr.children[1];
-      const children$s: Observable<Expr>[] = listLikeExpr.children.map(
-        (child) =>
-          evaluator.evaluate(
-            MakeNonTerminalExpr(functionExpr, [child]),
-            context,
-          ),
-      );
-      const childrens$: Observable<Expr[]> = zip(children$s);
-      return childrens$.pipe(
-        map((children) => {
-          listLikeExpr.children = children;
-          return listLikeExpr;
+
+      return evaluator.evaluate(listLikeExpr, context).pipe(
+        map((listLike) => {
+          if (listLike.nodeType === 'terminal') {
+            return of(expr);
+          } else {
+            return zip(
+              listLike.children.map((child) =>
+                evaluator.evaluate(
+                  MakeNonTerminalExpr(functionExpr, [child]),
+                  context,
+                ),
+              ),
+            ).pipe(
+              map((children) => {
+                return MakeNonTerminalExpr(listLike.head, children);
+              }),
+            );
+          }
         }),
+        concatAll(),
       );
     },
     displayName: 'Map[_, _] -> ?',
