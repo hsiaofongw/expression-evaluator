@@ -227,6 +227,9 @@ export const allSymbolsMap = {
 
   // ListJoin 符号
   ListJoinSymbol: NodeFactory.makeSymbol('ListJoin', true),
+
+  // Let 符号
+  LetSymbol: NodeFactory.makeSymbol('Let', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -402,6 +405,10 @@ export function MapExpr(children: Expr[]): Expr {
 
 export function ListJoinExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.ListJoinSymbol, children);
+}
+
+export function LetExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.LetSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -1273,5 +1280,55 @@ export const builtInDefinitions: Definition[] = [
       );
     },
     displayName: 'ListJoin[_, _] -> ?',
+  },
+
+  {
+    pattern: LetExpr([BlankExpr(), BlankExpr()]),
+    action: (expr, evaluator, context) => {
+      const letExpr = expr as NonTerminalExpr;
+      const v1 = letExpr.children[0];
+      const v2 = letExpr.children[1];
+      if (
+        v1.nodeType === 'nonTerminal' &&
+        v1.children.length === 2 &&
+        v1.head.nodeType === 'terminal' &&
+        (v1.head.value === 'Assign' || v1.head.value === 'AssignDelayed')
+      ) {
+        const headValue = v1.head.value;
+        const lhs = v1.children[0];
+        const rhs = v1.children[1];
+        const definitions: IContext['definitions'] = {
+          ...context.definitions,
+        };
+        definitions.arguments = [];
+        definitions.builtin = [];
+        definitions.delayedAssign = [];
+        definitions.fixedAssign = [];
+        const newContext: IContext = {
+          parent: context,
+          definitions,
+        };
+
+        if (headValue === 'Assign') {
+          newContext.definitions.fixedAssign.push({
+            pattern: lhs,
+            action: (_, __, ___) => of(rhs),
+            displayName: ExprHelper.nodeToString(lhs) + ' -> ?',
+          });
+        } else {
+          newContext.definitions.delayedAssign.push({
+            pattern: lhs,
+            action: (_, _evaluator, _context) =>
+              _evaluator.evaluate(rhs, _context),
+            displayName: ExprHelper.nodeToString(lhs) + ' -> ?',
+          });
+        }
+
+        return evaluator.evaluate(v2, newContext);
+      }
+
+      return of(expr);
+    },
+    displayName: 'Let[_, _] -> ?',
   },
 ];
