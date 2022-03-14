@@ -10,9 +10,4 @@ findDivisor[n_, testDivisor_] := If[
 ];
 divides[a_, b_] := EqualQ[Remainder[b, a], 0];
 primeQ[n_] := EqualQ[n, smallestDivisor[n]];
-primeQ[2];
-primeQ[3];
-primeQ[4];
-primeQ[5];
-primeQ[9];
-primeQ[7];
+Map[Seq[10],primeQ];
