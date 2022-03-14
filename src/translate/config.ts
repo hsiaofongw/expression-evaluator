@@ -72,8 +72,11 @@ export const allSymbolsMap = {
   // 剩余部分负号
   RestPartSymbol: NodeFactory.makeSymbol('RestPart', true),
 
-  // 或者符号
+  // Or 符号
   OrSymbol: NodeFactory.makeSymbol('Or', true),
+
+  // And 符号
+  AndSymbol: NodeFactory.makeSymbol('And', true),
 
   // 数值符号
   NumberSymbol: NodeFactory.makeSymbol('Number', true),
@@ -418,6 +421,18 @@ export function FilterExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.FilterSymbol, children);
 }
 
+export function IfExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.IfSymbol, children);
+}
+
+export function OrExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.OrSymbol, children);
+}
+
+export function AndExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.AndSymbol, children);
+}
+
 // 返回一个数值型一元运算 Pattern
 class UnaryOperationPatternFactory {
   public static makePattern(
@@ -731,40 +746,34 @@ export const builtInDefinitions: Definition[] = [
 
   // Or[cond1, cond2]
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.OrSymbol,
-      children: [BlankExpr(), BlankExpr()],
-    },
-    action: (node, evaluator, context) => {
-      if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-        return zip([
-          evaluator.evaluate(node.children[0], context),
-          evaluator.evaluate(node.children[1], context),
-        ]).pipe(
-          map(([cond1, cond2]) => {
-            if (
-              cond1.nodeType === 'terminal' &&
-              cond1.expressionType === 'boolean' &&
-              cond1.value === true
-            ) {
-              return True;
-            } else if (
-              cond2.nodeType === 'terminal' &&
-              cond2.expressionType === 'boolean' &&
-              cond2.value === true
-            ) {
-              return True;
-            } else {
-              return False;
-            }
-          }),
-        );
-      }
-
-      return of(node);
+    pattern: OrExpr([BlankExpr(), BlankExpr()]),
+    action: (expr, _, __) => {
+      const orExpr = expr as NonTerminalExpr;
+      return of(
+        IfExpr([
+          orExpr.children[0],
+          True,
+          IfExpr([orExpr.children[1], True, False]),
+        ]),
+      );
     },
     displayName: 'Or[_, _] -> ?',
+  },
+
+  // And[cond1, cond2]
+  {
+    pattern: AndExpr([BlankExpr(), BlankExpr()]),
+    action: (expr, _, __) => {
+      const andExpr = expr as NonTerminalExpr;
+      return of(
+        IfExpr([
+          andExpr.children[0],
+          IfExpr([andExpr.children[1], True, False]),
+          False,
+        ]),
+      );
+    },
+    displayName: 'And[_, _] -> ?',
   },
 
   // If[cond, trueClause, falseClause], 走特殊求值流程
