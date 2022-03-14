@@ -1358,28 +1358,21 @@ export const builtInDefinitions: Definition[] = [
               return of(ListExpr([]));
             }
 
-            const first = listLike.children[0];
-            const rest = listLike.children.slice(1, listLike.children.length);
-            const cond$ = evaluator.evaluate(
-              MakeNonTerminalExpr(pred, [first]),
-              context,
+            const cond$s = listLike.children.map((ele) =>
+              evaluator.evaluate(MakeNonTerminalExpr(pred, [ele]), context),
             );
-            const rest$ = evaluator.evaluate(
-              FilterExpr([ListExpr(rest), pred]),
-              context,
-            );
-            return zip([cond$, rest$]).pipe(
-              map(([cond, rest]) => {
-                const restElements = (rest as NonTerminalExpr).children;
-                if (
-                  cond.nodeType === 'terminal' &&
-                  cond.expressionType === 'boolean' &&
-                  cond.value === true
-                ) {
-                  return ListExpr([first, ...restElements]);
-                } else {
-                  return ListExpr(restElements);
+            const conds$ = zip(cond$s);
+            return conds$.pipe(
+              map((conds) => {
+                const listExprChildren: Expr[] = [];
+                for (let i = 0; i < conds.length; i++) {
+                  const cond = conds[i];
+                  if (cond.nodeType === 'terminal' && cond.value === true) {
+                    listExprChildren.push(listLike.children[i]);
+                  }
                 }
+
+                return ListExpr(listExprChildren);
               }),
             );
           }
