@@ -221,6 +221,9 @@ export const allSymbolsMap = {
 
   // Reduce 符号
   ReduceSymbol: NodeFactory.makeSymbol('Reduce', true),
+
+  // Seq 符号
+  SeqSymbol: NodeFactory.makeSymbol('Seq', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -384,6 +387,14 @@ export function FunctionExpr(children: Expr[]): Expr {
 
 export function ReduceExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.ReduceSymbol, children);
+}
+
+export function SeqExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.SeqSymbol, children);
+}
+
+export function MapExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.MapSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -992,46 +1003,70 @@ export const builtInDefinitions: Definition[] = [
     },
     action: (expr, evaluator, context) => {
       const lambaCallExpr = expr as NonTerminalExpr;
+
       const functionExpr = lambaCallExpr.head as any as NonTerminalExpr;
-      const patternPart = functionExpr.children.slice(
+      const functionPatternPart = functionExpr.children.slice(
         0,
         functionExpr.children.length - 1,
       );
-      const bodyPart = functionExpr.children[functionExpr.children.length - 1];
-      const match = Neo.patternMatch(lambaCallExpr.children, patternPart);
-      if (!match.pass) {
-        return of(expr);
-      }
+      const functionBodyPart =
+        functionExpr.children[functionExpr.children.length - 1];
+      const argumentsPart = lambaCallExpr.children;
 
-      const temporaryDefinitions: Definition[] = [];
-      for (const key in match.namedResult) {
-        const keyExpr = NodeFactory.makeSymbol(key);
-        temporaryDefinitions.push({
-          pattern: keyExpr,
-          action: (_, __, ___) => of(SequenceExpr(match.namedResult[key])),
-          displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
-        });
-      }
-      const temporaryCtx: IContext = {
-        parent: context,
-        definitions: {
-          ...context.definitions,
-          arguments: temporaryDefinitions,
-        },
-      };
+      if (argumentsPart.length === 0) {
+        if (functionPatternPart.length === 0) {
+          return of(functionBodyPart);
+        }
 
-      return evaluator.evaluate(bodyPart, temporaryCtx);
+        const match = Neo.patternMatch(argumentsPart, functionPatternPart);
+        if (match.pass) {
+          return of(functionBodyPart);
+        } else {
+          return of(expr);
+        }
+      } else {
+        return zip(
+          argumentsPart.map((ele) => evaluator.evaluate(ele, context)),
+        ).pipe(
+          map((argumentsPart) => {
+            const match = Neo.patternMatch(argumentsPart, functionPatternPart);
+            if (match.pass) {
+              const temporaryDefinitions: Definition[] = [];
+              for (const key in match.namedResult) {
+                const keyExpr = NodeFactory.makeSymbol(key);
+                temporaryDefinitions.push({
+                  pattern: keyExpr,
+                  action: (_, _evaluator, _context) =>
+                    _evaluator.evaluate(
+                      SequenceExpr(match.namedResult[key]),
+                      _context,
+                    ),
+                  displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
+                });
+              }
+              const temporaryCtx: IContext = {
+                parent: context,
+                definitions: {
+                  ...context.definitions,
+                  arguments: temporaryDefinitions,
+                },
+              };
+
+              return evaluator.evaluate(functionBodyPart, temporaryCtx);
+            } else {
+              return of(MakeNonTerminalExpr(functionExpr, argumentsPart));
+            }
+          }),
+          concatAll(),
+        );
+      }
     },
     displayName: 'Function[__][___] -> ?',
   },
 
   // Map
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.MapSymbol,
-      children: [BlankExpr(), BlankExpr()],
-    },
+    pattern: MapExpr([BlankExpr(), BlankExpr()]),
     action: (expr, evaluator, context) => {
       const mapExpr = expr as NonTerminalExpr;
       const listLikeExpr = mapExpr.children[0];
@@ -1040,7 +1075,7 @@ export const builtInDefinitions: Definition[] = [
       return evaluator.evaluate(listLikeExpr, context).pipe(
         map((listLike) => {
           if (listLike.nodeType === 'terminal') {
-            return of(expr);
+            return of(MapExpr([listLike, functionExpr]));
           } else if (listLike.children.length === 0) {
             return of(listLike);
           } else {
@@ -1075,7 +1110,7 @@ export const builtInDefinitions: Definition[] = [
       return evaluator.evaluate(listLike, context).pipe(
         map((listLike) => {
           if (listLike.nodeType === 'terminal') {
-            return of(expr);
+            return of(ReduceExpr([listLike, functionLike, initialLike]));
           } else if (listLike.children.length === 0) {
             return of(initialLike);
           } else {
@@ -1098,5 +1133,101 @@ export const builtInDefinitions: Definition[] = [
       );
     },
     displayName: 'Reduce[_, _, _] -> ?',
+  },
+
+  // Seq[_]
+  {
+    pattern: SeqExpr([BlankExpr()]),
+    action: (expr, evaluator, context) => {
+      const seqExpr = expr as NonTerminalExpr;
+      return evaluator.evaluate(seqExpr.children[0], context).pipe(
+        map((numberLike) => {
+          if (
+            numberLike.nodeType === 'terminal' &&
+            numberLike.expressionType === 'number'
+          ) {
+            const sequence: number[] = [];
+            for (let i = 1; i <= numberLike.value; i++) {
+              sequence.push(i);
+            }
+            return ListExpr(sequence.map((ele) => NumberExpr(ele)));
+          } else {
+            return SeqExpr([numberLike]);
+          }
+        }),
+      );
+    },
+    displayName: 'Seq[_] -> ?',
+  },
+
+  // Seq[_, _]
+  {
+    pattern: SeqExpr([BlankExpr(), BlankExpr()]),
+    action: (expr, evaluator, context) => {
+      const seqExpr = expr as NonTerminalExpr;
+      return zip(
+        seqExpr.children.map((numberLike) =>
+          evaluator.evaluate(numberLike, context),
+        ),
+      ).pipe(
+        map((numberLikes) => {
+          if (
+            numberLikes[0].nodeType === 'terminal' &&
+            numberLikes[0].expressionType === 'number' &&
+            numberLikes[1].nodeType === 'terminal' &&
+            numberLikes[1].expressionType === 'number'
+          ) {
+            const sequence: number[] = [];
+            for (let i = numberLikes[0].value; i <= numberLikes[1].value; i++) {
+              sequence.push(i);
+            }
+
+            return ListExpr(sequence.map((ele) => NumberExpr(ele)));
+          } else {
+            return SeqExpr(numberLikes);
+          }
+        }),
+      );
+    },
+    displayName: 'Seq[_, _] -> ?',
+  },
+
+  // Seq[_, _, _]
+  {
+    pattern: SeqExpr([BlankExpr(), BlankExpr(), BlankExpr()]),
+    action: (expr, evaluator, context) => {
+      const seqExpr = expr as NonTerminalExpr;
+      return zip(
+        seqExpr.children.map((num) => evaluator.evaluate(num, context)),
+      ).pipe(
+        map((nums) => {
+          if (
+            nums[0].nodeType === 'terminal' &&
+            nums[1].nodeType === 'terminal' &&
+            nums[2].nodeType === 'terminal'
+          ) {
+            if (
+              nums[0].expressionType === 'number' &&
+              nums[1].expressionType === 'number' &&
+              nums[2].expressionType === 'number'
+            ) {
+              const sequence: number[] = [];
+              const start = nums[0].value;
+              const end = nums[1].value;
+              const step = nums[2].value;
+              let x = start;
+              while (x <= end) {
+                sequence.push(x);
+                x = x + step;
+              }
+              return ListExpr(sequence.map((ele) => NumberExpr(ele)));
+            }
+          }
+
+          return SeqExpr(nums);
+        }),
+      );
+    },
+    displayName: 'Seq[_, _, _] -> ?',
   },
 ];
