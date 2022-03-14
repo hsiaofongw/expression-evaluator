@@ -230,6 +230,9 @@ export const allSymbolsMap = {
 
   // Let 符号
   LetSymbol: NodeFactory.makeSymbol('Let', true),
+
+  // Filter 符号
+  FilterSymbol: NodeFactory.makeSymbol('Filter', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -409,6 +412,10 @@ export function ListJoinExpr(children: Expr[]): Expr {
 
 export function LetExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.LetSymbol, children);
+}
+
+export function FilterExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.FilterSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -1282,6 +1289,7 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'ListJoin[_, _] -> ?',
   },
 
+  // Let[_, _]
   {
     pattern: LetExpr([BlankExpr(), BlankExpr()]),
     action: (expr, evaluator, context) => {
@@ -1330,5 +1338,57 @@ export const builtInDefinitions: Definition[] = [
       return of(expr);
     },
     displayName: 'Let[_, _] -> ?',
+  },
+
+  // Filter[_, _]
+  {
+    pattern: FilterExpr([BlankExpr(), BlankExpr()]),
+    action: (expr, evaluator, context) => {
+      const filterExpr = expr as NonTerminalExpr;
+      const listLike = filterExpr.children[0];
+      const pred = filterExpr.children[1];
+      return evaluator.evaluate(listLike, context).pipe(
+        map((listLike) => {
+          if (
+            listLike.nodeType === 'nonTerminal' &&
+            listLike.head.nodeType === 'terminal' &&
+            listLike.head.value === 'List'
+          ) {
+            if (listLike.children.length === 0) {
+              return of(ListExpr([]));
+            }
+
+            const first = listLike.children[0];
+            const rest = listLike.children.slice(1, listLike.children.length);
+            const cond$ = evaluator.evaluate(
+              MakeNonTerminalExpr(pred, [first]),
+              context,
+            );
+            const rest$ = evaluator.evaluate(
+              FilterExpr([ListExpr(rest), pred]),
+              context,
+            );
+            return zip([cond$, rest$]).pipe(
+              map(([cond, rest]) => {
+                const restElements = (rest as NonTerminalExpr).children;
+                if (
+                  cond.nodeType === 'terminal' &&
+                  cond.expressionType === 'boolean' &&
+                  cond.value === true
+                ) {
+                  return ListExpr([first, ...restElements]);
+                } else {
+                  return ListExpr(restElements);
+                }
+              }),
+            );
+          }
+
+          return of(FilterExpr([listLike, pred]));
+        }),
+        concatAll(),
+      );
+    },
+    displayName: 'Filter[_, _] -> ?',
   },
 ];
