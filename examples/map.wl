@@ -1,5 +1,7 @@
 Map[{ a, b, c}, f];
-Map[{-3, -2, -1, 0, 1, 2, 3}, Function[x_, x * x]];
+Map[Seq[-3, 3, 1], Function[x_, x * x]];
+
+Reduce[{a, b, c}, f, init];
 
 join[ { x___ }, { y___ } ] := { x, y };
 
@@ -21,4 +23,4 @@ filter[lst_, pred_] := Reduce[
   {}
 ];
 
-filter[{1,2,3,4,5}, Function[x_, x > 3]];
+filter[Seq[5], Function[x_, x > 3]];

@@ -224,6 +224,9 @@ export const allSymbolsMap = {
 
   // Seq 符号
   SeqSymbol: NodeFactory.makeSymbol('Seq', true),
+
+  // ListJoin 符号
+  ListJoinSymbol: NodeFactory.makeSymbol('ListJoin', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -395,6 +398,10 @@ export function SeqExpr(children: Expr[]): Expr {
 
 export function MapExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.MapSymbol, children);
+}
+
+export function ListJoinExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.ListJoinSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -1229,5 +1236,42 @@ export const builtInDefinitions: Definition[] = [
       );
     },
     displayName: 'Seq[_, _, _] -> ?',
+  },
+
+  // ListJoin[_, _]
+  {
+    pattern: ListJoinExpr([BlankExpr(), BlankExpr()]),
+    action: (expr, evaluator, context) => {
+      const listJoinExpr = expr as NonTerminalExpr;
+      return zip(
+        listJoinExpr.children.map((ele) => evaluator.evaluate(ele, context)),
+      ).pipe(
+        map((children) => {
+          const v1 = children[0];
+          const v2 = children[1];
+          if (
+            v1.nodeType === 'nonTerminal' &&
+            v1.head.nodeType === 'terminal' &&
+            v1.head.expressionType === 'symbol' &&
+            v1.head.value === 'List'
+          ) {
+            if (
+              v2.nodeType === 'nonTerminal' &&
+              v2.head.nodeType === 'terminal' &&
+              v2.head.expressionType === 'symbol' &&
+              v2.head.value === 'List'
+            ) {
+              return MakeNonTerminalExpr(allSymbolsMap.ListSymbol, [
+                ...v1.children,
+                ...v2.children,
+              ]);
+            }
+          }
+
+          return MakeNonTerminalExpr(listJoinExpr.head, children);
+        }),
+      );
+    },
+    displayName: 'ListJoin[_, _] -> ?',
   },
 ];
