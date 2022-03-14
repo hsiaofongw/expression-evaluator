@@ -209,13 +209,6 @@ export class Evaluator extends Transform implements IEvaluator {
    * @returns 定义查询结果
    */
   private findDefinition(expr: Expr, context: IContext): DefinitionQueryResult {
-    if (context.parent !== undefined) {
-      const defQuery = this.findDefinition(expr, this.rootContext);
-      if (defQuery.pass) {
-        return { ...defQuery, definition: defQuery.definition };
-      }
-    }
-
     let contextPtr = context;
     const queryOrder: DefinitionType[] = [
       'arguments',
