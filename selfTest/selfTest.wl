@@ -55,6 +55,21 @@ Reduce[
         ]
       ],
       { 0, 1, 4, 9 }
+    ],
+
+    EqualQ[
+      Let[
+        facIter[prod_, count_, max_] := If[
+          count == max, 
+          count * prod, 
+          facIter[prod * count, count + 1, max]
+        ],
+        Let[
+          factorial[n_] := facIter[1, 1, n],
+          Map[Seq[6], factorial]
+        ]
+      ],
+      { 1, 2, 6, 24, 120, 720 }
     ]
   },
   And, True
