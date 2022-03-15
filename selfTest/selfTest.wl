@@ -44,6 +44,17 @@ Reduce[
         Function[x_, x*x]
       ],
       { 0, 1, 4, 9 }
+    ],
+
+    EqualQ[
+      Let[
+        f[x_] := x*x,
+        Map[
+          Filter[Seq[-3, 3, 1], Function[x_, x>=0]], 
+          f
+        ]
+      ],
+      { 0, 1, 4, 9 }
     ]
   },
   And, True
