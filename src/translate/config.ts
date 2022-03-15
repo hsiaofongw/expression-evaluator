@@ -231,6 +231,12 @@ export const allSymbolsMap = {
   // ListJoin 符号
   ListJoinSymbol: NodeFactory.makeSymbol('ListJoin', true),
 
+  // ListTake 符号
+  ListTakeSymbol: NodeFactory.makeSymbol('ListTake', true),
+
+  // ListSlice 符号
+  ListSlice: NodeFactory.makeSymbol('ListSlice', true),
+
   // Let 符号
   LetSymbol: NodeFactory.makeSymbol('Let', true),
 
@@ -1069,7 +1075,7 @@ export const builtInDefinitions: Definition[] = [
                   action: (_, _evaluator, _context) =>
                     _evaluator.evaluate(
                       SequenceExpr(match.namedResult[key]),
-                      _context,
+                      context,
                     ),
                   displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
                 });
