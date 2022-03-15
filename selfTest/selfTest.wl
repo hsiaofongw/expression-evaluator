@@ -70,6 +70,34 @@ Reduce[
         ]
       ],
       { 1, 2, 6, 24, 120, 720 }
+    ],
+
+    EqualQ[
+      Let[
+        fib1[x_] := If[
+          x == 1, 
+          1, 
+          If[
+            x == 2, 
+            1, 
+            fib1[x-1] + fib1[x-2]
+          ]
+        ],
+        Let[
+          validate[n_] := EqualQ[fib1[n] + fib1[n+1], fib1[n+2]],
+          And[
+            EqualQ[
+              Map[Seq[8], fib1],
+              { 1, 1, 2, 3, 5, 8, 13, 21 }
+            ],
+            Reduce[
+              Map[Seq[8], validate],
+              And, True
+            ]
+          ]
+        ]
+      ],
+      True
     ]
   },
   And, True
