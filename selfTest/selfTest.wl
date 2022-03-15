@@ -26,8 +26,25 @@ Reduce[
         Map[Seq[-4, 4, 1], abs]
       ],
       { 4, 3, 2, 1, 0, 1, 2, 3, 4 }
-    ]
+    ],
 
+    EqualQ[
+      Function[{ Blank[], Blank[], c_, Blank[] }, c][
+        { a, b, c, d }
+      ],
+      c
+    ],
+
+    EqualQ[
+      Map[
+        Filter[
+          Seq[-3, 3, 1],
+          Function[x_, x >= 0]
+        ],
+        Function[x_, x*x]
+      ],
+      { 0, 1, 4, 9 }
+    ]
   },
   And, True
 ];
