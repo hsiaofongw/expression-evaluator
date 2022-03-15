@@ -1337,6 +1337,7 @@ export const builtInDefinitions: Definition[] = [
             pattern: lhs,
             action: (_, __, ___) => of(rhs),
             displayName: ExprHelper.nodeToString(lhs) + ' -> ?',
+            isStrong: true,
           });
         } else {
           newContext.definitions.delayedAssign.push({

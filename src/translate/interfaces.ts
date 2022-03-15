@@ -80,6 +80,9 @@ export type Definition = {
 
   /** 显示名称 */
   displayName: string;
+
+  /** 是否是强定义 */
+  isStrong?: boolean;
 };
 
 export type NoMatchResult = { pass: false };

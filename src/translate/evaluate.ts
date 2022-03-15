@@ -216,17 +216,31 @@ export class Evaluator extends Transform implements IEvaluator {
       'delayedAssign',
       'builtin',
     ];
+    const matches: { result: PatternMatchResult; def: Definition }[] = [];
     while (contextPtr !== undefined) {
       for (const cat of queryOrder) {
         for (const definition of contextPtr.definitions[cat]) {
           const match = Neo.patternMatch([expr], [definition.pattern]);
           if (match.pass) {
-            return { ...match, definition: definition };
+            matches.push({ result: match, def: definition });
+            if (definition.isStrong) {
+              return { ...match, definition: definition };
+            }
           }
         }
       }
       contextPtr = contextPtr.parent;
     }
+
+    if (matches.length === 0) {
+      return { pass: false };
+    }
+
+    const match = matches[0];
+    if (match.result.pass) {
+      return { ...match.result, definition: match.def };
+    }
+
     return { pass: false };
   }
 

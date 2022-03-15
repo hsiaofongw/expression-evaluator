@@ -98,6 +98,37 @@ Let[
         ]
       ],
       True
+    ],
+
+    EqualQ[
+      Let[
+        fib2[1] = 1,
+        Let[
+          fib2[2] = 1,
+          Let[
+            fib2[n_] := fib2[n-1] + fib2[n-2],
+            Map[Seq[8], fib2]
+          ]
+        ]
+      ],
+      { 1, 1, 2, 3, 5, 8, 13, 21 }
+    ],
+
+    EqualQ[
+      Let[
+        fib2[1] = 1,
+        Let[
+          fib2[2] = 1,
+          Let[
+            fib2[n_] := fib2[n-1] + fib2[n-2],
+            Let[
+              validate[n_] := EqualQ[fib2[n] + fib2[n+1], fib2[n+2]],
+              Reduce[Map[Seq[8], validate], And, True]
+            ]
+          ]
+        ]
+      ],
+      True
     ]
   },
   Reduce[testList, And, True]
