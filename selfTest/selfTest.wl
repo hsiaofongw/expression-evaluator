@@ -1,5 +1,5 @@
-Reduce[
-  {
+Let[
+  testList = {
     EqualQ[
       Let[
         absOuter[x_] := If[x < 0, Negative[x], x],
@@ -100,5 +100,5 @@ Reduce[
       True
     ]
   },
-  And, True
+  Reduce[testList, And, True]
 ];
