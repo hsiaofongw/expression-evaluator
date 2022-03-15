@@ -38,6 +38,14 @@ This project is based on [Nest.js Framework](https://nestjs.com/), and our own i
 
 4. 第 3 步完成后，本机的 3000 端口应该处于被某个 node 进程监听的状态，此时我们可以访问[项目的前端地址](https://fe-evaluator.vercel.app/), 并且切换到「本地会话」来使用本地部署的实例，在 Web 页面上的终端虚拟器中，执行 examples 目录下的例程可看到效果。
 
+注：系统默认以生产环境模式启动，要想让系统启动到本地命令行解释器模式，在项目目录下建一个 `.env.development` 文件, 并且在里面加上一行 
+
+```
+NODE_ENV=debug
+```
+
+即可。
+
 ## 致敬 Respects
 
 作者非常喜欢 Wolfram 语言，于是现在是处于上手实现一个简化再简化版本的这么样的一个状态。
@@ -56,8 +64,6 @@ Here are what I found interesting:
 
 ## 已实现函数列表 Currently Supported Functions
 
-当前的版本仍非常不稳定，很多功能没有做，也很容易触发 bug, 但是因为这是一个从 0 到 1 的突破，所以发了 1.0 版本。
-
 ```
 Plus[x, y]                         # x+y
 Minus[x, y]                        # x-y
@@ -73,4 +79,12 @@ Negative[x]                        # 计算 0 - x
 Assign[lhs, rhs]                   # 固定赋值，在全局上下文中对 rhs 求值一次，之后如果对 lhs 求值，得到的都是这次 rhs 求值结果
 AssignDelayed[lhs, rhs]            # 延迟赋值，在之后对 lhs 求值时，结果为那时在全局上下文中对 rhs 求值的结果
 If[cond, trueClause, falseClause]  # 条件求值，先对 cond 求值，若结果不为假，则返回对 trueClause 的求值结果，否则返回对 falseClause 的求值结果
+Reduce[lst, function, init]        # 举例：Reduce[{ a, b, c }, f, init] == f[f[f[init, a], b], c]
+Seq[n]                             # 返回包含前 n 个正整数升序排列的列表
+Seq[n1, n2]                        # 返回以 n1 为首项，1 为公差，n2 为最后一项的等差数列的有限项列表，升序排列
+Seq[n1, n2, step]                  # 返回以 n1 为首项，step 为公差，最后一项 M 满足 M < n2 的列表，升序排列
+Filter[lst, function]              # 返回一个新的列表，它包含原列表中那些使得 function[ele] 为 True 的 ele, 并且保持原先的顺序
+Map[{ e1, e2, ... }, f]            # 对每一项应用 f, 将结果放在一个列表中返回并且列表中的元素保持原先顺序
+Let[assignment, expr]              # 在一个局部的临时的作用域中对 expr 求值并返回求值结果
+Function[ptn1, ptn2, ..., expr]    # 创建一个匿名函数，最后一项是函数体，函数体前面的都是 pattern, 举例：Function[a_, b_, a+b][1, 2] == 3
 ```
