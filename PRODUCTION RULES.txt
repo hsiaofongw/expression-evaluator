@@ -85,10 +85,10 @@ F          ->  (  E  )  # 表示一个括号括起来的表达式
 NUM        ->  num FACTORIAL      # 数字后面可能带有阶乘符号
  
 FACTORIAL  ->  ε                      # 没有阶乘
-           ->  !  DOUBLE_FACTORIAL    # 可能有双阶乘
+            |  !  DOUBLE_FACTORIAL    # 可能有双阶乘
 
 DOUBLE_FACTORIAL  ->  ε               # 单阶乘
-                  ->  !               # 双阶乘
+                   |  !               # 双阶乘
 
 SBL_EXP    ->  id  P            
 
