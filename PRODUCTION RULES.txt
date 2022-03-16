@@ -20,26 +20,32 @@ B4     ->  B3  SUBSTITUTE
 SUBSTITUTE  ->  /.  B3  SUBSTITUTE  # ReplaceAll[expr, rules]
              |  ε  
 
-B3     ->  B2  RULE
+B3     ->  B2L  RULE
 
-RULE   ->  ->  B2    # Rule
-        |  :->  B2   # RuleDelayed
-        |  ε         # 暂时没想到 Nested Rule 有什么用
+RULE   ->  ->  B2L    # Rule
+        |  :->  B2L   # RuleDelayed
+        |  ε          # 暂时没想到 Nested Rule 有什么用
 
-B2      ->  B1  BOOL
+B2L     ->  B2_NOT  LOGIC  # 逻辑运算
 
-BOOL    ->  >  B1  BOOL
-         |  <  B1  BOOL
-         |  >=  B1  BOOL 
-         |  <=  B1  BOOL 
-         |  ==  B1  BOOL   # 直接比较两者是否相等
-         |  ===  B1  BOOL  # 求值后再比较两者是否相等
-         |  !=  B1  BOOL   # 直接比较两者是否不等
-         |  !==  B1  BOOL  # 求值后再比较两者是否不等
+LOGIC   ->  ε
+         |  &&  B2_NOT  LOGIC  # And
+         |  ||  B2_NOT  LOGIC  # Or
+
+B2_NOT  ->  !  B2_NOT  # Not
+         |  B2
+
+B2      ->  E  BOOL
+
+BOOL    ->  >  E  BOOL
+         |  <  E  BOOL
+         |  >=  E  BOOL 
+         |  <=  E  BOOL 
+         |  ==  E  BOOL   # 直接比较两者是否相等
+         |  ===  E  BOOL  # 求值后再比较两者是否相等
+         |  !=  E  BOOL   # 直接比较两者是否不等
+         |  !==  E  BOOL  # 求值后再比较两者是否不等
          |  ε
-
-B1     ->  !  B1
-        |  E
 
 E      ->  T  E'            
 
