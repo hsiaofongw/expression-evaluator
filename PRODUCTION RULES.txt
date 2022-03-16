@@ -2,10 +2,23 @@ PRODUCTION RULES:
 
 注：语法层面只关注运算符的优先级，至于运算符左右两侧的表达式的类型是否符合语义，则是在语义分析阶段进行判断。
 
-B4      ->  B3  L
+S  ->  B5  # 开始符号是 B5
+
+B6      ->  B5  L
 
 L       ->  ε
-         |  ,  B3  L
+         |  ,  B5  L
+
+B5     ->  B4  ASSIGNMENT  
+
+ASSIGNMENT  ->  :=  B4  ASSIGNMENT  # 立即赋值
+             |  ==  B4  ASSIGNMENT  # 延迟赋值
+             |  ε
+
+B4     ->  B3  SUBSTITUTE
+
+SUBSTITUTE  ->  ./  B3  SUBSTITUTE  # ReplaceAll[expr, rules]
+             |  ε  
 
 B3     ->  B2  RULE
 
@@ -16,14 +29,14 @@ RULE   ->  ->  B2    # Rule
 B2      ->  B1  B2
 
 B2      ->  >  B1  B2
-        |  <  B1  B2
-        |  >=  B1  B2
-        |  <=  B1  B2
-        |  ==  B1  B2   # 直接比较两者是否相等
-        |  ===  B1  B2  # 求值后再比较两者是否相等
-        |  !=  B1  B2   # 直接比较两者是否不等
-        |  !==  B1  B2  # 求值后再比较两者是否不等
-        |  ε
+         |  <  B1  B2
+         |  >=  B1  B2
+         |  <=  B1  B2
+         |  ==  B1  B2   # 直接比较两者是否相等
+         |  ===  B1  B2  # 求值后再比较两者是否相等
+         |  !=  B1  B2   # 直接比较两者是否不等
+         |  !==  B1  B2  # 求值后再比较两者是否不等
+         |  ε
 
 B1     ->  !  B1
         |  E
