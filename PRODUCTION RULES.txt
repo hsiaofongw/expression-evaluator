@@ -64,10 +64,18 @@ PTN        ->  ε
             |  ___  F  PTN
 
 F          ->  (  E  )  # 表示一个括号括起来的表达式
-            |  num      # 表示一个数字
+            |  NUM      # 表示一个数字
             |  {  L  }  # 表示一个列表
             |  str      # 表示一个字符串
             |  SBL_EXP  # 表示一个符号表达式 Symbol Expression
+
+NUM        ->  num FACTORIAL      # 数字后面可能带有阶乘符号
+ 
+FACTORIAL  ->  ε                      # 没有阶乘
+           ->  !  DOUBLE_FACTORIAL    # 可能有双阶乘
+
+DOUBLE_FACTORIAL  ->  ε               # 单阶乘
+                  ->  !               # 双阶乘
 
 SBL_EXP    ->  id  P            
 
