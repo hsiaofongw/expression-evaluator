@@ -17,7 +17,7 @@ ASSIGNMENT  ->  :=  B4  ASSIGNMENT  # 立即赋值
 
 B4     ->  B3  SUBSTITUTE
 
-SUBSTITUTE  ->  ./  B3  SUBSTITUTE  # ReplaceAll[expr, rules]
+SUBSTITUTE  ->  /.  B3  SUBSTITUTE  # ReplaceAll[expr, rules]
              |  ε  
 
 B3     ->  B2  RULE
