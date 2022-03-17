@@ -1,0 +1,62 @@
+comma             ,
+
+columnEqual       :=
+columnRightArrow  :->
+
+equal             =
+doubleEqual       ==
+tripleEqual       ===
+
+divide            /
+substitute        /.
+
+minus             -
+rightArrow        ->
+
+and               &&
+
+or                ||
+
+exclamation       !
+notEqual          !=
+notStrictEqual    !==
+
+rightAngle        >
+rightAngleEqual   >=
+
+leftAngle         <
+leftAngleEqual    <=
+
+plus              +
+doublePlus        ++
+
+times             *
+
+percent           %
+
+power             ^
+
+singleUnderline   _
+doubleUnderline   __
+tripleUnderline   ___
+
+leftParentheses   (
+comment           (* ... *)
+
+rightParentheses  )
+
+leftBracket       {
+
+rightBracket      }
+
+str               "string"
+
+num               123
+
+leftSquare        [
+
+rightSquare       ]
+
+identifier        abc
+
+blank             /\s+/
