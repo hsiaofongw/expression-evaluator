@@ -10,6 +10,7 @@ import {
 const presetStates: { default: MatchFunction } = { default: null as any };
 
 const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
+  // 匹配 ( 和 (* ... *)
   {
     type: 'll1',
     lookAhead: '(',
@@ -48,6 +49,8 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
       }
     },
   },
+
+  // 匹配 + 和 ++
   {
     type: 'll1',
     lookAhead: '+',
@@ -76,6 +79,8 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
       }
     },
   },
+
+  // 匹配 ,
   {
     type: 'll1',
     lookAhead: ',',
@@ -92,6 +97,56 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
       cb();
     },
   },
+
+  // 匹配 !, != 或者 !==
+  {
+    lookAhead: '!',
+    type: 'll1',
+    matchFunction: (buffer, cb, emit, setNext) => {
+      if (buffer.length >= 3) {
+        if (buffer.slice(0, 3) === '!==') {
+          emit({ content: '!==', tokenClassName: 'notStrictEqual' });
+          setNext((char, cb, emit, setNext) =>
+            presetStates.default(
+              buffer.slice(3, buffer.length) + char,
+              cb,
+              emit,
+              setNext,
+            ),
+          );
+          cb();
+        } else if (buffer.slice(0, 2) === '!=') {
+          emit({ content: '!=', tokenClassName: 'notEqual' });
+          setNext((char, cb, emit, setNext) =>
+            presetStates.default(
+              buffer.slice(2, buffer.length) + char,
+              cb,
+              emit,
+              setNext,
+            ),
+          );
+          cb();
+        } else {
+          // buffer === '!'
+          emit({ content: '!', tokenClassName: 'exclamation' });
+          setNext((char, cb, emit, setNext) =>
+            presetStates.default(
+              buffer.slice(1, buffer.length) + char,
+              cb,
+              emit,
+              setNext,
+            ),
+          );
+          cb();
+        }
+      } else {
+        setNext((char, cb, emit, setNext) =>
+          presetStates.default(buffer + char, cb, emit, setNext),
+        );
+        cb();
+      }
+    },
+  },
 ];
 
 const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [];
@@ -106,27 +161,30 @@ const ll1MatchFunctionMap: Record<string, LL1MatchFunctionDescriptor> = ((
   return map;
 })(ll1MatchFunctionDescriptors);
 
-export const initialState: MatchFunction = (
-  buffer: string,
-  moreChar: () => void,
-  emitToken: (token: MatchResult) => void,
-  setNextState: (nextState: MatchFunction) => void,
-) => {
-  let nextMatchFn: MatchFunction = initialState;
+export const initialState: MatchFunction = (buffer, cb, emit, setNext) => {
   if (ll1MatchFunctionMap[buffer[0]]) {
-    nextMatchFn = ll1MatchFunctionMap[buffer].matchFunction;
+    const nextMatchFn = ll1MatchFunctionMap[buffer].matchFunction;
+    setNext((char, cb, emit, setNext) =>
+      nextMatchFn(buffer + char, cb, emit, setNext),
+    );
+    cb();
+    return;
   }
 
   const patternFn: MatchFunctionDescriptor | undefined =
     patternMatchFuntions.find((desc) => desc.pattern.test(buffer[0]));
   if (patternFn) {
-    nextMatchFn = patternFn.matchFunction;
+    setNext((char, cb, emit, setNext) =>
+      patternFn.matchFunction(buffer + char, cb, emit, setNext),
+    );
+    cb();
+    return;
   }
 
-  setNextState((char, more, emit, setNext) =>
-    nextMatchFn(buffer + char, more, emit, setNext),
+  setNext((char, cb, emit, setNext) =>
+    presetStates.default(buffer + char, cb, emit, setNext),
   );
-  moreChar();
+  cb();
 };
 
 presetStates.default = initialState;
