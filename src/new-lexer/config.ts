@@ -5,9 +5,54 @@ import {
   MatchFunctionDescriptor,
   MatchResult,
   PatternMatchFunctionDescriptor,
+  TokenType,
 } from './interfaces';
 
 const presetStates: { default: MatchFunction } = { default: null as any };
+
+function makeLL1MatchDescriptor(
+  lookAhead: string,
+  group: { prefix: string; tokenClassName: TokenType }[],
+): LL1MatchFunctionDescriptor {
+  group.sort((a, b) => b.prefix.length - a.prefix.length);
+  return {
+    lookAhead,
+    type: 'll1',
+    matchFunction: (buffer, cb, emit, setNext) => {
+      const maxPrefixLen = group[0].prefix.length;
+      if (buffer.length >= maxPrefixLen) {
+        for (const item of group) {
+          if (buffer.slice(0, item.prefix.length) === item.prefix) {
+            emit({ content: item.prefix, tokenClassName: item.tokenClassName });
+            setNext((char, cb, emit, setNext) =>
+              presetStates.default(
+                buffer.slice(item.prefix.length, buffer.length) + char,
+                cb,
+                emit,
+                setNext,
+              ),
+            );
+            cb();
+            return;
+          }
+        }
+        setNext((char, cb, emit, setNext) =>
+          presetStates.default(
+            buffer.slice(1, buffer.length) + char,
+            cb,
+            emit,
+            setNext,
+          ),
+        );
+      } else {
+        setNext((char, cb, emit, setNext) =>
+          presetStates.default(buffer + char, cb, emit, setNext),
+        );
+      }
+      cb();
+    },
+  };
+}
 
 const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
   // 匹配 ( 和 (* ... *)
@@ -51,102 +96,26 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
   },
 
   // 匹配 + 和 ++
-  {
-    type: 'll1',
-    lookAhead: '+',
-    matchFunction: (buffer, cb, emit, setNext) => {
-      if (buffer.length >= 2) {
-        if (buffer.slice(0, 2) === '++') {
-          const restBuffer = buffer.slice(2, buffer.length);
-          emit({ content: '++', tokenClassName: 'doublePlus' });
-          setNext((char, cb, emit, setNext) =>
-            presetStates.default(restBuffer + char, cb, emit, setNext),
-          );
-          cb();
-        } else {
-          const restBuffer = buffer.slice(1, buffer.length);
-          emit({ content: '+', tokenClassName: 'plus' });
-          setNext((char, cb, emit, setNext) =>
-            presetStates.default(restBuffer + char, cb, emit, setNext),
-          );
-          cb();
-        }
-      } else {
-        setNext((char, cb, emit, setNext) =>
-          presetStates.default(buffer + char, cb, emit, setNext),
-        );
-        cb();
-      }
-    },
-  },
+  makeLL1MatchDescriptor('+', [
+    { prefix: '++', tokenClassName: 'doublePlus' },
+    { prefix: '+', tokenClassName: 'plus' },
+  ]),
 
   // 匹配 ,
-  {
-    type: 'll1',
-    lookAhead: ',',
-    matchFunction: (buffer, cb, emit, setNext) => {
-      emit({ content: ',', tokenClassName: 'comma' });
-      setNext((char, cb, emit, setNext) =>
-        presetStates.default(
-          buffer.slice(1, buffer.length) + char,
-          cb,
-          emit,
-          setNext,
-        ),
-      );
-      cb();
-    },
-  },
+  makeLL1MatchDescriptor(',', [{ prefix: ',', tokenClassName: 'comma' }]),
 
   // 匹配 !, != 或者 !==
-  {
-    lookAhead: '!',
-    type: 'll1',
-    matchFunction: (buffer, cb, emit, setNext) => {
-      if (buffer.length >= 3) {
-        if (buffer.slice(0, 3) === '!==') {
-          emit({ content: '!==', tokenClassName: 'notStrictEqual' });
-          setNext((char, cb, emit, setNext) =>
-            presetStates.default(
-              buffer.slice(3, buffer.length) + char,
-              cb,
-              emit,
-              setNext,
-            ),
-          );
-          cb();
-        } else if (buffer.slice(0, 2) === '!=') {
-          emit({ content: '!=', tokenClassName: 'notEqual' });
-          setNext((char, cb, emit, setNext) =>
-            presetStates.default(
-              buffer.slice(2, buffer.length) + char,
-              cb,
-              emit,
-              setNext,
-            ),
-          );
-          cb();
-        } else {
-          // buffer === '!'
-          emit({ content: '!', tokenClassName: 'exclamation' });
-          setNext((char, cb, emit, setNext) =>
-            presetStates.default(
-              buffer.slice(1, buffer.length) + char,
-              cb,
-              emit,
-              setNext,
-            ),
-          );
-          cb();
-        }
-      } else {
-        setNext((char, cb, emit, setNext) =>
-          presetStates.default(buffer + char, cb, emit, setNext),
-        );
-        cb();
-      }
-    },
-  },
+  makeLL1MatchDescriptor(',', [
+    { prefix: '!==', tokenClassName: 'notStrictEqual' },
+    { prefix: '!=', tokenClassName: 'notEqual' },
+    { prefix: '!', tokenClassName: 'exclamation' },
+  ]),
+
+  // 匹配 &&
+  makeLL1MatchDescriptor('&', [{ prefix: '&&', tokenClassName: 'and' }]),
+
+  // 匹配 ||
+  makeLL1MatchDescriptor('|', [{ prefix: '||', tokenClassName: 'or' }]),
 ];
 
 const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [];
