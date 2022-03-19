@@ -223,12 +223,23 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
             content: modifiedBuffer,
             tokenClassName: 'string',
           });
+          setNext((char, cb, emit, setNext) =>
+            presetStates.default(
+              buffer.slice(i + 1, buffer.length),
+              cb,
+              emit,
+              setNext,
+            ),
+          );
+          cb();
+          return;
         } else if (buffer[i] === '\\' && i === buffer.length - 1) {
           setNext((char, cb, emit, setNext) => {
             const escaped = StringHelper.processRawStringEscape('\\' + char);
             processString(modifiedBuffer + escaped, cb, emit, setNext);
           });
           cb();
+          return;
         } else if (buffer[i] === '\\' && i <= buffer.length - 2) {
           modifiedBuffer =
             modifiedBuffer +
@@ -253,43 +264,22 @@ const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [
   // 匹配数字
   {
     type: 'pattern',
-    pattern: /\d/,
+    pattern: /[\d.]/,
     matchFunction: (buffer, cb, emit, setNext) => {
+      // const processMantissa: MatchFunction = (buffer, cb, emit, setNext) => {};
+
+      let numberBuffer = '';
       for (let i = 0; i < buffer.length; i++) {
         if (/\d/.test(buffer[i])) {
-          continue;
+          numberBuffer = numberBuffer + buffer[i];
+        } else if (buffer[i] === '.') {
+          numberBuffer = numberBuffer + buffer[i];
+          // processMantissa(numberBuffer, )
         } else {
-          emit({ content: buffer.slice(0, i), tokenClassName: 'number' });
-          setNext((char, cb, emit, setNext) =>
-            presetStates.default(
-              buffer.slice(i + 1, buffer.length) + char,
-              cb,
-              emit,
-              setNext,
-            ),
-          );
-          cb();
+          emit;
           return;
         }
       }
-
-      // 这会儿说明 buffer 里边全都是数字
-
-      const matchNumber: MatchFunction = (numberBuffer, cb, emit, setNext) => {
-        setNext((char, cb, emit, setNext) => {
-          if (/\d/.test(char)) {
-            matchNumber(numberBuffer + char, cb, emit, setNext);
-          } else {
-            emit({ content: numberBuffer, tokenClassName: 'number' });
-            setNext((nextChar, cb, emit, setNext) =>
-              presetStates.default(char + nextChar, cb, emit, setNext),
-            );
-            cb();
-          }
-        });
-        cb();
-      };
-      matchNumber(buffer, cb, emit, setNext);
     },
   },
 ];
@@ -306,21 +296,14 @@ const ll1MatchFunctionMap: Record<string, LL1MatchFunctionDescriptor> = ((
 
 export const initialState: MatchFunction = (buffer, cb, emit, setNext) => {
   if (ll1MatchFunctionMap[buffer[0]]) {
-    const nextMatchFn = ll1MatchFunctionMap[buffer].matchFunction;
-    setNext((char, cb, emit, setNext) =>
-      nextMatchFn(buffer + char, cb, emit, setNext),
-    );
-    cb();
+    ll1MatchFunctionMap[buffer].matchFunction(buffer, cb, emit, setNext);
     return;
   }
 
   const patternFn: MatchFunctionDescriptor | undefined =
     patternMatchFuntions.find((desc) => desc.pattern.test(buffer[0]));
   if (patternFn) {
-    setNext((char, cb, emit, setNext) =>
-      patternFn.matchFunction(buffer + char, cb, emit, setNext),
-    );
-    cb();
+    patternFn.matchFunction(buffer, cb, emit, setNext);
     return;
   }
 
