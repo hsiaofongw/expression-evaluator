@@ -55,6 +55,81 @@ function makeLL1MatchDescriptor(
 }
 
 const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
+  // 匹配 ,
+  makeLL1MatchDescriptor(',', [{ prefix: ',', tokenClassName: 'comma' }]),
+
+  // 匹配 :=, :->
+  makeLL1MatchDescriptor(':', [
+    { prefix: ':->', tokenClassName: 'columnRightArrow' },
+    { prefix: ':=', tokenClassName: 'columnEqual' },
+  ]),
+
+  // 匹配 =, ==, ===
+  makeLL1MatchDescriptor('=', [
+    { prefix: '===', tokenClassName: 'tripleEqual' },
+    { prefix: '==', tokenClassName: 'doubleEqual' },
+    { prefix: '=', tokenClassName: 'equal' },
+  ]),
+
+  // 匹配 /, /.
+  makeLL1MatchDescriptor('/', [
+    { prefix: '/.', tokenClassName: 'substitute' },
+    { prefix: '/', tokenClassName: 'divide' },
+  ]),
+
+  // 匹配 -, ->
+  makeLL1MatchDescriptor('-', [
+    { prefix: '->', tokenClassName: 'rightArrow' },
+    { prefix: '-', tokenClassName: 'minus' },
+  ]),
+
+  // 匹配 &&
+  makeLL1MatchDescriptor('&', [{ prefix: '&&', tokenClassName: 'and' }]),
+
+  // 匹配 ||
+  makeLL1MatchDescriptor('|', [{ prefix: '||', tokenClassName: 'or' }]),
+
+  // 匹配 !, != 或者 !==
+  makeLL1MatchDescriptor(',', [
+    { prefix: '!==', tokenClassName: 'notStrictEqual' },
+    { prefix: '!=', tokenClassName: 'notEqual' },
+    { prefix: '!', tokenClassName: 'exclamation' },
+  ]),
+
+  // 匹配 >, >=
+  makeLL1MatchDescriptor('>', [
+    { prefix: '>=', tokenClassName: 'rightAngleEqual' },
+    { prefix: '>', tokenClassName: 'rightAngle' },
+  ]),
+
+  // 匹配 <, <=
+  makeLL1MatchDescriptor('<', [
+    { prefix: '<=', tokenClassName: 'leftAngleEqual' },
+    { prefix: '<', tokenClassName: 'leftAngle' },
+  ]),
+
+  // 匹配 + 和 ++
+  makeLL1MatchDescriptor('+', [
+    { prefix: '++', tokenClassName: 'doublePlus' },
+    { prefix: '+', tokenClassName: 'plus' },
+  ]),
+
+  // 匹配 *
+  makeLL1MatchDescriptor('*', [{ prefix: '*', tokenClassName: 'times' }]),
+
+  // 匹配 %
+  makeLL1MatchDescriptor('%', [{ prefix: '%', tokenClassName: 'percent' }]),
+
+  // 匹配 ^
+  makeLL1MatchDescriptor('^', [{ prefix: '^', tokenClassName: 'power' }]),
+
+  // 匹配 _, __, ___
+  makeLL1MatchDescriptor('_', [
+    { prefix: '___', tokenClassName: 'tripleUnderline' },
+    { prefix: '__', tokenClassName: 'doubleUnderline' },
+    { prefix: '_', tokenClassName: 'singleUnderline' },
+  ]),
+
   // 匹配 ( 和 (* ... *)
   {
     type: 'll1',
@@ -95,27 +170,20 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
     },
   },
 
-  // 匹配 + 和 ++
-  makeLL1MatchDescriptor('+', [
-    { prefix: '++', tokenClassName: 'doublePlus' },
-    { prefix: '+', tokenClassName: 'plus' },
+  // 匹配 )
+  makeLL1MatchDescriptor(')', [
+    { prefix: ')', tokenClassName: 'rightParentheses' },
   ]),
 
-  // 匹配 ,
-  makeLL1MatchDescriptor(',', [{ prefix: ',', tokenClassName: 'comma' }]),
+  // 匹配 {
+  makeLL1MatchDescriptor('{', [{ prefix: '{', tokenClassName: 'leftBracket' }]),
 
-  // 匹配 !, != 或者 !==
-  makeLL1MatchDescriptor(',', [
-    { prefix: '!==', tokenClassName: 'notStrictEqual' },
-    { prefix: '!=', tokenClassName: 'notEqual' },
-    { prefix: '!', tokenClassName: 'exclamation' },
+  // 匹配 }
+  makeLL1MatchDescriptor('}', [
+    { prefix: '}', tokenClassName: 'rightBracket' },
   ]),
 
-  // 匹配 &&
-  makeLL1MatchDescriptor('&', [{ prefix: '&&', tokenClassName: 'and' }]),
-
-  // 匹配 ||
-  makeLL1MatchDescriptor('|', [{ prefix: '||', tokenClassName: 'or' }]),
+  // 匹配 字符串
 ];
 
 const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [];
