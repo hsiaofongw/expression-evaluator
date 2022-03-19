@@ -31,13 +31,16 @@ export type EqualLikeTokenType = 'equal' | 'doubleEqual' | 'tripleEqual';
 export type DivideLikeTokenType = 'divide' | 'substitute';
 export type MinusLikeTokenType = 'minus' | 'rightArrow';
 export type AndLikeTokenType = 'and';
-export type OrLikeTokenType = 'or';
+export type OrLikeTokenType = 'or' | 'columnRightAngle';
 export type ExclamationLikeTokenType =
   | 'exclamation'
   | 'notEqual'
   | 'notStrictEqual';
 export type RightAngleLikeTokenType = 'rightAngle' | 'rightAngleEqual';
-export type LeftAngleLikeTokenType = 'leftAngle' | 'leftAngleEqual';
+export type LeftAngleLikeTokenType =
+  | 'leftAngle'
+  | 'leftAngleColumn'
+  | 'leftAngleEqual';
 export type PlusLikeTokenType = 'plus' | 'doublePlus';
 export type TimesLikeTokenType = 'times';
 export type PercentLikeTokenType = 'percent';

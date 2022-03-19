@@ -15,6 +15,7 @@ rightArrow        ->
 
 and               &&
 
+columnRightAngle  |>
 or                ||
 
 exclamation       !
@@ -26,6 +27,7 @@ rightAngleEqual   >=
 
 leftAngle         <
 leftAngleEqual    <=
+leftAngleColumn   <|
 
 plus              +
 doublePlus        ++

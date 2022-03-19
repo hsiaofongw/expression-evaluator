@@ -87,8 +87,11 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
   // 匹配 &&
   makeLL1MatchDescriptor('&', [{ prefix: '&&', tokenClassName: 'and' }]),
 
-  // 匹配 ||
-  makeLL1MatchDescriptor('|', [{ prefix: '||', tokenClassName: 'or' }]),
+  // 匹配 |>, ||
+  makeLL1MatchDescriptor('|', [
+    { prefix: '||', tokenClassName: 'or' },
+    { prefix: '|>', tokenClassName: 'columnRightAngle' },
+  ]),
 
   // 匹配 !, != 或者 !==
   makeLL1MatchDescriptor(',', [
@@ -103,9 +106,10 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
     { prefix: '>', tokenClassName: 'rightAngle' },
   ]),
 
-  // 匹配 <, <=
+  // 匹配 <, <|, <=
   makeLL1MatchDescriptor('<', [
     { prefix: '<=', tokenClassName: 'leftAngleEqual' },
+    { prefix: '<|', tokenClassName: 'leftAngleColumn' },
     { prefix: '<', tokenClassName: 'leftAngle' },
   ]),
 
@@ -189,78 +193,106 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
     type: 'll1',
     lookAhead: '"',
     matchFunction: (buffer, cb, emit, setNext) => {
-      const rest = StringHelper.processRawStringEscape(
-        buffer.slice(1, buffer.length),
-      );
-      for (let i = 0; i < rest.length; i++) {
-        if (rest[i] === '"') {
-          const stringContent = rest.slice(0, rest.length - 1);
-          emit({ content: stringContent, tokenClassName: 'string' });
-          if (i === rest.length - 1) {
+      const processString: MatchFunction = (buffer, cb, emit, setNext) => {
+        setNext((char, cb, emit, setNext) => {
+          if (char === '"') {
+            emit({ content: buffer, tokenClassName: 'string' });
             setNext(presetStates.default);
             cb();
-            return;
-          } else {
-            setNext((char, cb, emit, setNext) =>
-              presetStates.default(
-                rest.slice(i + 1, rest.length) + char,
+          } else if (char === '\\') {
+            setNext((char, cb, emit, setNext) => {
+              processString(
+                buffer + StringHelper.processRawStringEscape('\\' + char),
                 cb,
                 emit,
                 setNext,
-              ),
-            );
+              );
+            });
             cb();
-            return;
+          } else {
+            processString(buffer + char, cb, emit, setNext);
           }
+        });
+        cb();
+      };
+
+      let modifiedBuffer = '';
+      for (let i = 1; i < buffer.length; i++) {
+        if (buffer[i] === '"') {
+          emit({
+            content: modifiedBuffer,
+            tokenClassName: 'string',
+          });
+        } else if (buffer[i] === '\\' && i === buffer.length - 1) {
+          setNext((char, cb, emit, setNext) => {
+            const escaped = StringHelper.processRawStringEscape('\\' + char);
+            processString(modifiedBuffer + escaped, cb, emit, setNext);
+          });
+          cb();
+        } else if (buffer[i] === '\\' && i <= buffer.length - 2) {
+          modifiedBuffer =
+            modifiedBuffer +
+            StringHelper.processRawStringEscape('\\' + buffer[i + 1]);
+          i = i + 1;
+        } else {
+          modifiedBuffer = modifiedBuffer + buffer[i];
+        }
+      }
+      processString(modifiedBuffer, cb, emit, setNext);
+    },
+  },
+
+  // 匹配 [
+  makeLL1MatchDescriptor('[', [{ prefix: '[', tokenClassName: 'leftSquare' }]),
+
+  // 匹配 ]
+  makeLL1MatchDescriptor(']', [{ prefix: ']', tokenClassName: 'rightSquare' }]),
+];
+
+const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [
+  // 匹配数字
+  {
+    type: 'pattern',
+    pattern: /\d/,
+    matchFunction: (buffer, cb, emit, setNext) => {
+      for (let i = 0; i < buffer.length; i++) {
+        if (/\d/.test(buffer[i])) {
+          continue;
+        } else {
+          emit({ content: buffer.slice(0, i), tokenClassName: 'number' });
+          setNext((char, cb, emit, setNext) =>
+            presetStates.default(
+              buffer.slice(i + 1, buffer.length) + char,
+              cb,
+              emit,
+              setNext,
+            ),
+          );
+          cb();
+          return;
         }
       }
 
-      const processStringMatch: MatchFunction = (buffer, cb, emit, setNext) => {
-        if (buffer.length === 0) {
-          setNext((char, cb, emit, setNext) =>
-            processStringMatch(buffer + char, cb, emit, setNext),
-          );
-          cb();
-        } else {
-          if (buffer[buffer.length - 1] === '"') {
-            // 字符串结束
-            emit({
-              content: buffer.slice(0, buffer.length - 1),
-              tokenClassName: 'string',
-            });
-            setNext(presetStates.default);
-            cb();
-          } else if (buffer[buffer.length - 1] === '\\') {
-            // 转义
-            setNext((char, cb, emit, setNext) =>
-              processStringMatch(
-                buffer.slice(0, buffer.length - 2) +
-                  StringHelper.processRawStringEscape('\\' + char),
-                cb,
-                emit,
-                setNext,
-              ),
-            );
-            cb();
+      // 这会儿说明 buffer 里边全都是数字
+
+      const matchNumber: MatchFunction = (numberBuffer, cb, emit, setNext) => {
+        setNext((char, cb, emit, setNext) => {
+          if (/\d/.test(char)) {
+            matchNumber(numberBuffer + char, cb, emit, setNext);
           } else {
-            // 吸收
-            setNext((char, cb, emit, setNext) =>
-              processStringMatch(buffer + char, cb, emit, setNext),
+            emit({ content: numberBuffer, tokenClassName: 'number' });
+            setNext((nextChar, cb, emit, setNext) =>
+              presetStates.default(char + nextChar, cb, emit, setNext),
             );
             cb();
           }
-        }
+        });
+        cb();
       };
-
-      setNext((char, cb, emit, setNext) =>
-        processStringMatch(rest + char, cb, emit, setNext),
-      );
-      cb();
+      matchNumber(buffer, cb, emit, setNext);
     },
   },
 ];
-
-const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [];
 
 const ll1MatchFunctionMap: Record<string, LL1MatchFunctionDescriptor> = ((
   descriptors: LL1MatchFunctionDescriptor[],
