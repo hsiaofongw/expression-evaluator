@@ -307,8 +307,9 @@ export const initialState: MatchFunction = (buffer, cb, emit, setNext) => {
     return;
   }
 
+  // 若无法找到对应的处理函数，则丢弃该字符，读取下一个字符，再用读取到的下一个字符寻找处理函数
   setNext((char, cb, emit, setNext) =>
-    presetStates.default(buffer + char, cb, emit, setNext),
+    presetStates.default(char, cb, emit, setNext),
   );
   cb();
 };
