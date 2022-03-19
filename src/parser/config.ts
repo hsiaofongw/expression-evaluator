@@ -1,4 +1,4 @@
-import { ArrayHelper } from 'src/helpers/to-array';
+import { ArrayHelper } from 'src/helpers/array-helper';
 import { SyntaxSymbol, ProductionRule } from './interfaces';
 
 export const allSymbols: Record<string, SyntaxSymbol> = {

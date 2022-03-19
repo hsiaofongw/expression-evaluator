@@ -51,11 +51,11 @@ rightBracket      }
 
 str               "string"
 
-num               123
-
 leftSquare        [
 
 rightSquare       ]
+
+num               123
 
 identifier        abc
 

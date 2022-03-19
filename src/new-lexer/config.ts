@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { StringHelper } from 'src/helpers/string-helper';
 import {
   LL1MatchFunctionDescriptor,
   MatchFunction,
@@ -184,6 +185,79 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
   ]),
 
   // 匹配 字符串
+  {
+    type: 'll1',
+    lookAhead: '"',
+    matchFunction: (buffer, cb, emit, setNext) => {
+      const rest = StringHelper.processRawStringEscape(
+        buffer.slice(1, buffer.length),
+      );
+      for (let i = 0; i < rest.length; i++) {
+        if (rest[i] === '"') {
+          const stringContent = rest.slice(0, rest.length - 1);
+          emit({ content: stringContent, tokenClassName: 'string' });
+          if (i === rest.length - 1) {
+            setNext(presetStates.default);
+            cb();
+            return;
+          } else {
+            setNext((char, cb, emit, setNext) =>
+              presetStates.default(
+                rest.slice(i + 1, rest.length) + char,
+                cb,
+                emit,
+                setNext,
+              ),
+            );
+            cb();
+            return;
+          }
+        }
+      }
+
+      const processStringMatch: MatchFunction = (buffer, cb, emit, setNext) => {
+        if (buffer.length === 0) {
+          setNext((char, cb, emit, setNext) =>
+            processStringMatch(buffer + char, cb, emit, setNext),
+          );
+          cb();
+        } else {
+          if (buffer[buffer.length - 1] === '"') {
+            // 字符串结束
+            emit({
+              content: buffer.slice(0, buffer.length - 1),
+              tokenClassName: 'string',
+            });
+            setNext(presetStates.default);
+            cb();
+          } else if (buffer[buffer.length - 1] === '\\') {
+            // 转义
+            setNext((char, cb, emit, setNext) =>
+              processStringMatch(
+                buffer.slice(0, buffer.length - 2) +
+                  StringHelper.processRawStringEscape('\\' + char),
+                cb,
+                emit,
+                setNext,
+              ),
+            );
+            cb();
+          } else {
+            // 吸收
+            setNext((char, cb, emit, setNext) =>
+              processStringMatch(buffer + char, cb, emit, setNext),
+            );
+            cb();
+          }
+        }
+      };
+
+      setNext((char, cb, emit, setNext) =>
+        processStringMatch(rest + char, cb, emit, setNext),
+      );
+      cb();
+    },
+  },
 ];
 
 const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [];
