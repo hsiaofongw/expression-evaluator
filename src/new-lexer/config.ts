@@ -266,6 +266,28 @@ const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [
     type: 'pattern',
     pattern: /[\d.]/,
     matchFunction: (buffer, cb, emit, setNext) => {
+      const matchNumber: MatchFunction = (buffer, cb, emit, setNext) => {
+        if (/\d/.test(buffer[buffer.length - 1])) {
+          setNext((char, cb, emit, setNext) => {
+            matchNumber(buffer + char, cb, emit, setNext);
+          });
+        } else {
+          emit({
+            content: buffer.slice(0, buffer.length - 1),
+            tokenClassName: 'number',
+          });
+          setNext((char, cb, emit, setNext) => {
+            presetStates.default(
+              buffer[buffer.length - 1] + char,
+              cb,
+              emit,
+              setNext,
+            );
+          });
+        }
+        cb();
+      };
+
       if (buffer[0] === '.') {
         // then expecting one or more \d
         for (let i = 1; i < buffer.length; i++) {
@@ -288,31 +310,46 @@ const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [
         }
 
         // reach here means: buffer are all numbers
-        const matchNumber: MatchFunction = (buffer, cb, emit, setNext) => {
-          if (/\d/.test(buffer[buffer.length - 1])) {
-            setNext((char, cb, emit, setNext) => {
-              matchNumber(buffer + char, cb, emit, setNext);
-            });
-          } else {
-            emit({
-              content: buffer.slice(0, buffer.length - 1),
-              tokenClassName: 'number',
-            });
-            setNext((char, cb, emit, setNext) => {
-              presetStates.default(
-                buffer[buffer.length - 1] + char,
-                cb,
-                emit,
-                setNext,
-              );
-            });
-          }
-          cb();
-        };
-        matchNumber(buffer, cb, emit, setNext);
+        setNext((char, cb, emit, setNext) =>
+          matchNumber(buffer + char, cb, emit, setNext),
+        );
+        cb();
       } else {
         // buffer[0] is \d
         // then expecting: zero or more \d, then zero or one \., then zero or more \d
+        let sentinelPtr = 1;
+        while (sentinelPtr < buffer.length && /\d/.test(buffer[sentinelPtr])) {
+          sentinelPtr = sentinelPtr + 1;
+        }
+
+        if (sentinelPtr < buffer.length && buffer[sentinelPtr] === '.') {
+          sentinelPtr = sentinelPtr + 1;
+        }
+
+        while (sentinelPtr < buffer.length && /\d/.test(buffer[sentinelPtr])) {
+          sentinelPtr = sentinelPtr + 1;
+        }
+
+        if (sentinelPtr < buffer.length) {
+          emit({
+            content: buffer.slice(0, sentinelPtr),
+            tokenClassName: 'number',
+          });
+          setNext((char, cb, emit, setNext) =>
+            presetStates.default(
+              buffer.slice(sentinelPtr, buffer.length) + char,
+              cb,
+              emit,
+              setNext,
+            ),
+          );
+          cb();
+        } else {
+          setNext((char, cb, emit, setNext) =>
+            matchNumber(buffer + char, cb, emit, setNext),
+          );
+          cb();
+        }
       }
     },
   },
