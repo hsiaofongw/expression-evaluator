@@ -97,7 +97,7 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
   ]),
 
   // 匹配 !, != 或者 !==
-  makeLL1MatchDescriptor(',', [
+  makeLL1MatchDescriptor('!', [
     { prefix: '!==', tokenClassName: 'notStrictEqual' },
     { prefix: '!=', tokenClassName: 'notEqual' },
     { prefix: '!', tokenClassName: 'exclamation' },
@@ -355,8 +355,9 @@ const ll1MatchFunctionMap: Record<string, LL1MatchFunctionDescriptor> = ((
 })(ll1MatchFunctionDescriptors);
 
 export const initialState: MatchFunction = (buffer, cb, emit, setNext) => {
-  if (ll1MatchFunctionMap[buffer[0]]) {
-    ll1MatchFunctionMap[buffer[0]].matchFunction(buffer, cb, emit, setNext);
+  const prefixMatchFunctionDescriptor = ll1MatchFunctionMap[buffer[0]];
+  if (prefixMatchFunctionDescriptor) {
+    prefixMatchFunctionDescriptor.matchFunction(buffer, cb, emit, setNext);
     return;
   }
 
