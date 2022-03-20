@@ -58,6 +58,55 @@ function makeLL1MatchDescriptor(
   };
 }
 
+const makeGeneralReceiver: (
+  terminatePredicate: (buffer: string) => boolean,
+  tokenClassName: TokenType,
+  contentExtractor: (buffer: string) => string,
+) => MatchFunction = (terminatePredicate, tokenClassName, contentExtractor) => {
+  const matchFunction: MatchFunction = (buffer, cb, emit, setNext) => {
+    if (terminatePredicate(buffer)) {
+      const content = contentExtractor(buffer);
+      const rest = buffer.slice(content.length, buffer.length);
+      emit({ content, tokenClassName });
+      setNext((char, cb, emit, setNext) =>
+        presetStates.default(rest + char, cb, emit, setNext),
+      );
+    } else {
+      setNext((char, cb, emit, setNext) =>
+        matchFunction(buffer + char, cb, emit, setNext),
+      );
+    }
+    cb();
+  };
+
+  return matchFunction;
+};
+
+const windowSlide = (
+  buffer: string,
+  skip: number,
+  windowSize: number,
+  terminatePredicate: (window: string) => boolean,
+) => {
+  const doWindowSlide: (windowPtr: number, buffer: string) => number = (
+    windowPtr,
+    buffer,
+  ) => {
+    if (windowPtr + windowSize > buffer.length) {
+      return windowPtr;
+    }
+
+    const window = buffer.slice(windowPtr, windowPtr + windowSize);
+    if (terminatePredicate(window)) {
+      return windowPtr;
+    }
+
+    return doWindowSlide(windowPtr + 1, buffer);
+  };
+
+  return doWindowSlide(skip, buffer);
+};
+
 const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
   // 匹配 ,
   makeLL1MatchDescriptor(',', [{ prefix: ',', tokenClassName: 'comma' }]),
@@ -150,25 +199,29 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
     lookAhead: '(',
     matchFunction: (buffer, cb, emit, setNext) => {
       if (buffer === '(*') {
-        const matchCommentEnd: MatchFunction = (buffer, cb, emit, setNext) => {
-          if (
-            buffer.length >= 4 &&
-            buffer.slice(buffer.length - 2, buffer.length) === '*)'
-          ) {
-            emit({ content: buffer, tokenClassName: 'comment' });
-            setNext(presetStates.default);
-            cb();
-          } else {
-            setNext((char, cb, emit, setNext) =>
-              matchCommentEnd(buffer + char, cb, emit, setNext),
-            );
-            cb();
-          }
-        };
-        setNext((char, cb, emit, setNext) =>
-          matchCommentEnd(buffer + char, cb, emit, setNext),
+        const windowSkip = 2;
+        const windowSize = 2;
+        const sentinelPtr = windowSlide(
+          buffer,
+          windowSkip,
+          windowSize,
+          (window) => window === '*)',
         );
-        cb();
+        if (sentinelPtr + windowSize > buffer.length) {
+          const restMatchFn = makeGeneralReceiver(
+            (buffer) => buffer.slice(buffer.length - 2, buffer.length) === '*)',
+            'comment',
+            (buffer) => buffer,
+          );
+          restMatchFn(buffer, cb, emit, setNext);
+        } else {
+          const content = buffer.slice(0, sentinelPtr + windowSize);
+          const rest = buffer.slice(content.length, buffer.length);
+          setNext((char, cb, emit, setNext) =>
+            presetStates.default(rest + char, cb, emit, setNext),
+          );
+          cb();
+        }
       } else {
         emit({ content: '(', tokenClassName: 'leftParentheses' });
         setNext((char, cb, emit, setNext) =>
@@ -202,63 +255,38 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
     type: 'll1',
     lookAhead: '"',
     matchFunction: (buffer, cb, emit, setNext) => {
-      const processString: MatchFunction = (buffer, cb, emit, setNext) => {
-        setNext((char, cb, emit, setNext) => {
-          if (char === '"') {
-            emit({ content: buffer, tokenClassName: 'string' });
-            setNext(presetStates.default);
-            cb();
-          } else if (char === '\\') {
-            setNext((char, cb, emit, setNext) => {
-              processString(
-                buffer + StringHelper.processRawStringEscape('\\' + char),
-                cb,
-                emit,
-                setNext,
-              );
-            });
-            cb();
-          } else {
-            processString(buffer + char, cb, emit, setNext);
-          }
+      const windowSkip = 1;
+      const windowSize = 2;
+      const sentinelPtr = windowSlide(
+        buffer,
+        windowSkip,
+        windowSize,
+        (window) => window[0] !== '\\' && window[1] === '"',
+      );
+      if (sentinelPtr + windowSize > buffer.length) {
+        const restMatchFn = makeGeneralReceiver(
+          (buffer) =>
+            buffer.length >= 2 &&
+            buffer[buffer.length - 2] !== '\\' &&
+            buffer[buffer.length - 1] === '"',
+          'string',
+          (buffer) => buffer,
+        );
+        setNext((char, cb, emit, setNext) =>
+          restMatchFn(buffer + char, cb, emit, setNext),
+        );
+      } else {
+        const content = buffer.slice(0, sentinelPtr + 1);
+        const rest = buffer.slice(content.length, buffer.length);
+        emit({
+          content: content,
+          tokenClassName: 'string',
         });
-        cb();
-      };
-
-      let modifiedBuffer = '';
-      for (let i = 1; i < buffer.length; i++) {
-        if (buffer[i] === '"') {
-          emit({
-            content: modifiedBuffer,
-            tokenClassName: 'string',
-          });
-          setNext((char, cb, emit, setNext) =>
-            presetStates.default(
-              buffer.slice(i + 1, buffer.length),
-              cb,
-              emit,
-              setNext,
-            ),
-          );
-          cb();
-          return;
-        } else if (buffer[i] === '\\' && i === buffer.length - 1) {
-          setNext((char, cb, emit, setNext) => {
-            const escaped = StringHelper.processRawStringEscape('\\' + char);
-            processString(modifiedBuffer + escaped, cb, emit, setNext);
-          });
-          cb();
-          return;
-        } else if (buffer[i] === '\\' && i <= buffer.length - 2) {
-          modifiedBuffer =
-            modifiedBuffer +
-            StringHelper.processRawStringEscape('\\' + buffer[i + 1]);
-          i = i + 1;
-        } else {
-          modifiedBuffer = modifiedBuffer + buffer[i];
-        }
+        setNext((char, cb, emit, setNext) =>
+          presetStates.default(rest + char, cb, emit, setNext),
+        );
       }
-      processString(modifiedBuffer, cb, emit, setNext);
+      cb();
     },
   },
 
@@ -269,59 +297,27 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
   makeLL1MatchDescriptor(']', [{ prefix: ']', tokenClassName: 'rightSquare' }]),
 ];
 
-const makeReceiver: (
-  regex: RegExp,
-  tokenClassName: TokenType,
-) => MatchFunction = (regex, tokenClassName) => {
+const makePatternMatchFn: (_: RegExp, __: TokenType) => MatchFunction = (
+  terminateWhenLastCharIsNot,
+  tokenClassName,
+) => {
   const matchFunction: MatchFunction = (buffer, cb, emit, setNext) => {
-    if (regex.test(buffer[buffer.length - 1])) {
-      setNext((char, cb, emit, setNext) => {
-        matchFunction(buffer + char, cb, emit, setNext);
-      });
-    } else {
-      emit({
-        content: buffer.slice(0, buffer.length - 1),
-        tokenClassName: tokenClassName,
-      });
-      setNext((char, cb, emit, setNext) => {
-        presetStates.default(
-          buffer[buffer.length - 1] + char,
-          cb,
-          emit,
-          setNext,
-        );
-      });
-    }
-    cb();
-  };
-  return matchFunction;
-};
-
-const makePatternMatchFn: (
-  pattern: RegExp,
-  tokenClassName: TokenType,
-) => MatchFunction =
-  (pattern, tokenClassName) => (buffer, cb, emit, setNext) => {
-    let sentinelPtr = 1;
-    const patternTest = (char: string) => pattern.test(char);
-    const matchFunction = makeReceiver(pattern, tokenClassName);
-    while (sentinelPtr < buffer.length && patternTest(buffer[sentinelPtr])) {
-      sentinelPtr = sentinelPtr + 1;
-    }
-
-    if (sentinelPtr === buffer.length) {
+    if (terminateWhenLastCharIsNot.test(buffer[buffer.length - 1])) {
       setNext((char, cb, emit, setNext) =>
         matchFunction(buffer + char, cb, emit, setNext),
       );
     } else {
-      emit({ content: buffer.slice(0, sentinelPtr), tokenClassName });
-      const rest = buffer.slice(sentinelPtr, buffer.length);
+      const content = buffer.slice(0, buffer.length - 1);
+      const rest = buffer.slice(content.length, buffer.length);
+      emit({ content, tokenClassName });
       setNext((char, cb, emit, setNext) =>
         presetStates.default(rest + char, cb, emit, setNext),
       );
     }
     cb();
   };
+  return matchFunction;
+};
 
 const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [
   // 匹配数字
