@@ -82,11 +82,20 @@ PTN        ->  ε
             |  __  F  PTN
             |  ___  F  PTN
 
-F          ->  (  E  )  # 表示一个括号括起来的表达式
-            |  NUM      # 表示一个数字
-            |  {  L  }  # 表示一个列表
-            |  str      # 表示一个字符串
-            |  SBL_EXP  # 表示一个符号表达式 Symbol Expression
+F          ->  id  ID_EXT
+
+ID_EXT     ->  ε                     # 纯 identifier
+            |  [  PARAMS_EXT         # 带函数调用参数列表或者数组/字典元素选择子
+
+PARAMS_EXT  ->  L  ]  ID_EXT         # 函数调用
+             |  [  S  ]  ]  ID_EXT   # 数组访问或者对象访问选择子，表达式都是 Take
+
+BASE       ->  (  E  )               # 表示一个括号括起来的表达式, BASE 表示「不能再拆分的东西」
+            |  NUM                   # 表示一个数字
+            |  {  L  }               # 表示一个列表
+            |  <|  L  |>             # 表示一个字典，系统在语法分析阶段不会关心 L 是不是一个关于 Rule 的列表，那是语义分析阶段的事情
+            |  str                   # 表示一个字符串
+            |  id                    # 表示一个标识符
 
 NUM        ->  num  NUM_EXT
 
@@ -104,8 +113,3 @@ FACTORIAL  ->  ε                      # 没有阶乘
 
 DOUBLE_FACTORIAL  ->  ε               # 单阶乘
                    |  !               # 双阶乘
-
-SBL_EXP    ->  id  P            
-
-P          ->  ε                # 参数为空
-            |  [  L  ]  P       # 参数非空
