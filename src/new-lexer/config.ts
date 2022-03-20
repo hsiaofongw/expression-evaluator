@@ -322,6 +322,20 @@ const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [
       cb();
     },
   },
+
+  // 匹配 identifier
+  {
+    type: 'pattern',
+    pattern: /[a-zA-Z]/,
+    matchFunction: makeReceiver(/[a-zA-Z]/, 'identifier'),
+  },
+
+  // 匹配 blank
+  {
+    type: 'pattern',
+    pattern: /\s/,
+    matchFunction: makeReceiver(/\s/, 'blank'),
+  },
 ];
 
 const ll1MatchFunctionMap: Record<string, LL1MatchFunctionDescriptor> = ((
