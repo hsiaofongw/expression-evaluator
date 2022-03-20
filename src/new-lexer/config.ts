@@ -128,6 +128,9 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
   // 匹配 ^
   makeLL1MatchDescriptor('^', [{ prefix: '^', tokenClassName: 'power' }]),
 
+  // 匹配 ;
+  makeLL1MatchDescriptor(';', [{ prefix: ';', tokenClassName: 'semicolumn' }]),
+
   // 匹配 _, __, ___
   makeLL1MatchDescriptor('_', [
     { prefix: '___', tokenClassName: 'tripleUnderline' },
@@ -350,7 +353,7 @@ const ll1MatchFunctionMap: Record<string, LL1MatchFunctionDescriptor> = ((
 
 export const initialState: MatchFunction = (buffer, cb, emit, setNext) => {
   if (ll1MatchFunctionMap[buffer[0]]) {
-    ll1MatchFunctionMap[buffer].matchFunction(buffer, cb, emit, setNext);
+    ll1MatchFunctionMap[buffer[0]].matchFunction(buffer, cb, emit, setNext);
     return;
   }
 

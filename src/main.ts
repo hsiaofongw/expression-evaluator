@@ -10,7 +10,9 @@ import { ExpressionNodeSerialize } from './translate/serialize';
 import { Evaluator, PreEvaluator } from './translate/evaluate';
 import { EvaluateResultObject } from './translate/interfaces';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
+import { NewLexerFactoryService } from './new-lexer/services/new-lexer-factory/new-lexer-factory.service';
+import { MatchResult } from './new-lexer/interfaces';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,10 +26,26 @@ async function bootstrap() {
 
   if (inDebug) {
     console.clear();
-    startCommandLineREPL();
+    startTestREPL(app);
   }
 }
 bootstrap();
+
+async function startTestREPL(app: INestApplication) {
+  const lexerFactory = app.get(NewLexerFactoryService);
+  const toToken = lexerFactory.makeLexer();
+
+  // 开始 REPL
+  toToken.on('data', (resultString: MatchResult) => {
+    console.log(resultString);
+  });
+  stdin.on('data', (d) => {
+    const inputContent = d.toString('utf-8').replace(/\s/g, ' ');
+    for (const char of inputContent) {
+      toToken.write(char);
+    }
+  });
+}
 
 async function startCommandLineREPL() {
   // 初始化

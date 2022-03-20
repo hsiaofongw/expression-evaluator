@@ -13,6 +13,7 @@ export type TokenType =
   | TimesLikeTokenType
   | PercentLikeTokenType
   | PowerLikeTokenType
+  | SemiColumnLikeTokenType
   | UnderlineLikeTokenType
   | ParenthesesLikeTokenType
   | RightParenthesesLikeTokenType
@@ -45,6 +46,7 @@ export type PlusLikeTokenType = 'plus' | 'doublePlus';
 export type TimesLikeTokenType = 'times';
 export type PercentLikeTokenType = 'percent';
 export type PowerLikeTokenType = 'power';
+export type SemiColumnLikeTokenType = 'semicolumn';
 export type UnderlineLikeTokenType =
   | 'singleUnderline'
   | 'doubleUnderline'

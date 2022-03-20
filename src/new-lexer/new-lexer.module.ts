@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { NewLexerFactoryService } from './services/new-lexer-factory/new-lexer-factory.service';
 
-@Module({})
+@Module({ providers: [NewLexerFactoryService] })
 export class NewLexerModule {}

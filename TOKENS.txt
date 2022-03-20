@@ -38,6 +38,8 @@ percent           %
 
 power             ^
 
+semicolumn        ;
+
 singleUnderline   _
 doubleUnderline   __
 tripleUnderline   ___
