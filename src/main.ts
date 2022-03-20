@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { INestApplication, Logger } from '@nestjs/common';
 import { NewLexerFactoryService } from './new-lexer/services/new-lexer-factory/new-lexer-factory.service';
 import { MatchResult } from './new-lexer/interfaces';
+import { StringHelper } from './helpers/string-helper';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,9 +35,11 @@ bootstrap();
 async function startTestREPL(app: INestApplication) {
   const lexerFactory = app.get(NewLexerFactoryService);
   const toToken = lexerFactory.makeLexer();
+  const stringEscapeTransform = StringHelper.makeStringEscapeTransform();
+  toToken.pipe(stringEscapeTransform);
 
   // 开始 REPL
-  toToken.on('data', (resultString: MatchResult) => {
+  stringEscapeTransform.on('data', (resultString: MatchResult) => {
     console.log(resultString);
   });
   stdin.on('data', (d) => {

@@ -65,6 +65,7 @@ export type IdentifierLikeTokenType = 'identifier';
 export type BlankLikeTokenType = 'blank';
 
 export type MatchResult = { content: string; tokenClassName: TokenType };
+export type Token = MatchResult;
 
 export type MatchFunction = (
   lookAhead: string,
