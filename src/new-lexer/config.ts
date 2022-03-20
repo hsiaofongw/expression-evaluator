@@ -16,41 +16,44 @@ function makeLL1MatchDescriptor(
   group: { prefix: string; tokenClassName: TokenType }[],
 ): LL1MatchFunctionDescriptor {
   group.sort((a, b) => b.prefix.length - a.prefix.length);
+  const maxPrefixLen = group[0].prefix.length;
+
   return {
     lookAhead,
     type: 'll1',
     matchFunction: (buffer, cb, emit, setNext) => {
-      const maxPrefixLen = group[0].prefix.length;
-      if (buffer.length >= maxPrefixLen) {
-        for (const item of group) {
-          if (buffer.slice(0, item.prefix.length) === item.prefix) {
-            emit({ content: item.prefix, tokenClassName: item.tokenClassName });
-            setNext((char, cb, emit, setNext) =>
-              presetStates.default(
-                buffer.slice(item.prefix.length, buffer.length) + char,
-                cb,
-                emit,
-                setNext,
-              ),
-            );
-            cb();
-            return;
+      const prefixMatchFunction: MatchFunction = (
+        buffer,
+        cb,
+        emit,
+        setNext,
+      ) => {
+        if (buffer.length < maxPrefixLen) {
+          setNext((char, cb, emit, setNext) =>
+            prefixMatchFunction(buffer + char, cb, emit, setNext),
+          );
+        } else {
+          for (const item of group) {
+            const prefix = item.prefix;
+            if (prefix === buffer.slice(0, prefix.length)) {
+              emit({ content: prefix, tokenClassName: item.tokenClassName });
+              const rest = buffer.slice(prefix.length, buffer.length);
+              setNext((char, cb, emit, setNext) =>
+                presetStates.default(rest + char, cb, emit, setNext),
+              );
+              cb();
+              return;
+            }
           }
+
+          const rest = buffer.slice(1, buffer.length);
+          setNext((char, cb, emit, setNext) =>
+            presetStates.default(rest + char, cb, emit, setNext),
+          );
         }
-        setNext((char, cb, emit, setNext) =>
-          presetStates.default(
-            buffer.slice(1, buffer.length) + char,
-            cb,
-            emit,
-            setNext,
-          ),
-        );
-      } else {
-        setNext((char, cb, emit, setNext) =>
-          presetStates.default(buffer + char, cb, emit, setNext),
-        );
-      }
-      cb();
+        cb();
+      };
+      prefixMatchFunction(buffer, cb, emit, setNext);
     },
   };
 }
