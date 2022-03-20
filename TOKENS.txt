@@ -40,6 +40,8 @@ power             ^
 
 semicolumn        ;
 
+dot               .
+
 singleUnderline   _
 doubleUnderline   __
 tripleUnderline   ___

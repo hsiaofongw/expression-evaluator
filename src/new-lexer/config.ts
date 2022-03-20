@@ -134,6 +134,9 @@ const ll1MatchFunctionDescriptors: LL1MatchFunctionDescriptor[] = [
   // 匹配 ;
   makeLL1MatchDescriptor(';', [{ prefix: ';', tokenClassName: 'semicolumn' }]),
 
+  // 匹配 .
+  makeLL1MatchDescriptor('.', [{ prefix: '.', tokenClassName: 'dot' }]),
+
   // 匹配 _, __, ___
   makeLL1MatchDescriptor('_', [
     { prefix: '___', tokenClassName: 'tripleUnderline' },
@@ -294,53 +297,52 @@ const makeReceiver: (
   return matchFunction;
 };
 
+const makePatternMatchFn: (
+  pattern: RegExp,
+  tokenClassName: TokenType,
+) => MatchFunction =
+  (pattern, tokenClassName) => (buffer, cb, emit, setNext) => {
+    let sentinelPtr = 1;
+    const patternTest = (char: string) => pattern.test(char);
+    const matchFunction = makeReceiver(pattern, tokenClassName);
+    while (sentinelPtr < buffer.length && patternTest(buffer[sentinelPtr])) {
+      sentinelPtr = sentinelPtr + 1;
+    }
+
+    if (sentinelPtr === buffer.length) {
+      setNext((char, cb, emit, setNext) =>
+        matchFunction(buffer + char, cb, emit, setNext),
+      );
+    } else {
+      emit({ content: buffer.slice(0, sentinelPtr), tokenClassName });
+      const rest = buffer.slice(sentinelPtr, buffer.length);
+      setNext((char, cb, emit, setNext) =>
+        presetStates.default(rest + char, cb, emit, setNext),
+      );
+    }
+    cb();
+  };
+
 const patternMatchFuntions: PatternMatchFunctionDescriptor[] = [
   // 匹配数字
   {
     type: 'pattern',
-    pattern: /[\d.]/,
-    matchFunction: (buffer, cb, emit, setNext) => {
-      const matchNumber: MatchFunction = makeReceiver(/[\d.]/, 'number');
-      setNext((char, cb, emit, setNext) => {
-        matchNumber(
-          buffer + char,
-          cb,
-          (token) => {
-            // 如果有小数点，忽略掉第一个小数点后面出现的所有小数点
-            for (let i = 0; i < token.content.length; i++) {
-              if (token.content[i] === '.') {
-                emit({
-                  content:
-                    token.content.slice(0, i) +
-                    token.content
-                      .slice(i, token.content.length)
-                      .replace(/\./g, ''),
-                  tokenClassName: 'number',
-                });
-                return;
-              }
-            }
-            emit(token);
-          },
-          setNext,
-        );
-      });
-      cb();
-    },
+    pattern: /\d/,
+    matchFunction: makePatternMatchFn(/\d/, 'number'),
   },
 
   // 匹配 identifier
   {
     type: 'pattern',
     pattern: /[a-zA-Z]/,
-    matchFunction: makeReceiver(/[a-zA-Z]/, 'identifier'),
+    matchFunction: makePatternMatchFn(/[a-zA-Z\d]/, 'identifier'),
   },
 
   // 匹配 blank
   {
     type: 'pattern',
     pattern: /\s/,
-    matchFunction: makeReceiver(/\s/, 'blank'),
+    matchFunction: makePatternMatchFn(/\s/, 'blank'),
   },
 ];
 
