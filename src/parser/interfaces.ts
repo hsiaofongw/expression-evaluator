@@ -1,17 +1,30 @@
-import { TokenClass, TypedToken } from 'src/lexer/interfaces';
+import { TypedToken } from 'src/lexer/interfaces';
+import { TokenType } from 'src/new-lexer/interfaces';
 import { SyntaxSymbolHelper } from './helpers';
 
-export type SyntaxSymbol = {
+export type SyntaxSymbolBasic = {
   id: string;
-  name: string;
-  description: string;
-  displayName: string;
-  zhName: string;
-} & (
-  | { type: 'nonTerminal' }
-  | { type: 'terminal'; definition: { tokenClassName: TokenClass['name'] } }
-);
+  name?: string;
+  description?: string;
+  displayName?: string;
+  zhName?: string;
+};
 
+/** 非终结语法符号，基本上就只有一个名字（也就是 id） */
+export type NonTerminalSyntaxSymbol = SyntaxSymbolBasic & {
+  type: 'nonTerminal';
+};
+
+/** 终结语法符号，除了 id, 还必须指定一个 tokenClassName（类型为 TokenType） */
+export type TerminalSyntaxSymbol = SyntaxSymbolBasic & {
+  type: 'terminal';
+  definition: { tokenClassName: TokenType };
+};
+
+/** 语法符号分为终结语法符号和非终结语法符号，前者和词法分析中的 TokenType 是一一对应的 */
+export type SyntaxSymbol = NonTerminalSyntaxSymbol | TerminalSyntaxSymbol;
+
+/** 语法产生式 */
 export type ProductionRule = {
   name: string;
   lhs: SyntaxSymbol;
@@ -20,8 +33,10 @@ export type ProductionRule = {
 
 export type ProductionRuleId = number;
 
+/** 语法树节点 */
 export type Node = NonTerminalNode | TerminalNode;
 
+/** 语法树的分支节点 */
 export type NonTerminalNode = {
   type: 'nonTerminal';
   children: Node[];
@@ -29,6 +44,7 @@ export type NonTerminalNode = {
   ruleName: ProductionRule['name'];
 };
 
+/** 语法树的叶节点 */
 export type TerminalNode = {
   type: 'terminal';
   token?: TypedToken;
