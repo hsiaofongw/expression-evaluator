@@ -12,7 +12,7 @@ export type NonterminalSymbolType =
   | 'b1'
   | 'l'
   | 'assign'
-  | 'substitute'
+  | 'Substitute'
   | 'factorial'
   | 'dfactorial'
   | 'scientific_ext'
