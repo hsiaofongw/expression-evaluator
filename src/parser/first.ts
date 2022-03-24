@@ -4,15 +4,22 @@ import { ProductionRule, SymbolType, SyntaxSymbol } from './interfaces';
 
 /** 提供计算 FIRST, EPS, FOLLOW 和 PREDICT 的方法 */
 export class PredictHelper {
+  /**
+   * 此函数用于判断一个符号串 alpha 能否经过 0 步或更多步推导为空串
+   *
+   * @param alpha 符号串
+   * @param rules 语法规则集
+   * @returns 如果 alpha *=> epsilon, 返回 true, 否则返回 false
+   */
   public static epsilon(
-    symbols: SyntaxSymbol[],
+    alpha: SyntaxSymbol[],
     rules: ProductionRule[],
   ): boolean {
-    if (symbols.length === 0) {
+    if (alpha.length === 0) {
       return true;
     }
 
-    const head = symbols[0];
+    const head = alpha[0];
     if (head.type === 'terminal') {
       return false;
     }
@@ -21,7 +28,7 @@ export class PredictHelper {
       if (rule.lhs.id === head.id) {
         const rhs = rule.rhs;
         if (PredictHelper.epsilon(rhs, rules)) {
-          return PredictHelper.epsilon(symbols.slice(1, symbols.length), rules);
+          return PredictHelper.epsilon(alpha.slice(1, alpha.length), rules);
         }
       }
     }
@@ -29,11 +36,6 @@ export class PredictHelper {
     return false;
   }
 
-  /**
-   *
-   * @param sbls
-   * @param productionRulesMap 假如输入的是一个符号的 id, 则返回以这个符号作为 lhs 的语法产生式的列表
-   */
   public static first(
     sbls: SyntaxSymbol[],
     productionRules: ProductionRule[],
@@ -136,5 +138,23 @@ export class PredictHelper {
     }
 
     return result;
+  }
+
+  public static predictSet(
+    productionRule: ProductionRule,
+    productionRules: ProductionRule[],
+  ): Set<SyntaxSymbol['id']> {
+    const firstSet = PredictHelper.first(
+      productionRule.rhs,
+      productionRules,
+    ).symbolIdSet;
+    const eps = PredictHelper.epsilon(productionRule.rhs, productionRules);
+    if (eps) {
+      const followSetMap = PredictHelper.calculateFollowSet(productionRules);
+      const followSet = followSetMap[productionRule.lhs.id];
+      return SetHelper.union(firstSet, followSet);
+    }
+
+    return firstSet;
   }
 }
