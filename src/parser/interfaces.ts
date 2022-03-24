@@ -1,5 +1,4 @@
-import { TypedToken } from 'src/lexer/interfaces';
-import { TokenType } from 'src/new-lexer/interfaces';
+import { Token, TokenType } from 'src/new-lexer/interfaces';
 import { SyntaxSymbolHelper } from './helpers';
 
 export type NonterminalSymbolType =
@@ -91,7 +90,7 @@ export type NonTerminalNode = {
 /** 语法树的叶节点 */
 export type TerminalNode = {
   type: 'terminal';
-  token?: TypedToken;
+  token?: Token;
   symbol: SyntaxSymbol;
 };
 
