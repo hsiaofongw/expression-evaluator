@@ -1,7 +1,33 @@
 import { SetHelper } from 'src/helpers/set-helper';
+import { sbl } from './config';
 import { ProductionRule, SymbolType, SyntaxSymbol } from './interfaces';
 
 export class FirstHelper {
+  public static epsilon(
+    symbols: SyntaxSymbol[],
+    rules: ProductionRule[],
+  ): boolean {
+    if (symbols.length === 0) {
+      return true;
+    }
+
+    const head = symbols[0];
+    if (head.type === 'terminal') {
+      return false;
+    }
+
+    for (const rule of rules) {
+      if (rule.lhs.id === head.id) {
+        const rhs = rule.rhs;
+        if (FirstHelper.epsilon(rhs, rules)) {
+          return FirstHelper.epsilon(symbols.slice(1, symbols.length), rules);
+        }
+      }
+    }
+
+    return false;
+  }
+
   /**
    *
    * @param sbls
@@ -9,7 +35,7 @@ export class FirstHelper {
    */
   public static first(
     sbls: SyntaxSymbol[],
-    productionRulesMap: Record<SyntaxSymbol['id'], ProductionRule[]>,
+    productionRules: ProductionRule[],
   ): {
     symbolIdSet: Set<SyntaxSymbol['id']>;
   } {
@@ -26,9 +52,9 @@ export class FirstHelper {
     // 记它为 A, 我们要找的所有 A -> x 这样的产生式（x 可以是 epsilon）
     // 检查每一个这样的 x 的 First 集，如果有空的（也就是说 A *=> eps），那么，我们还要再计算 sbls[1..] 的 First
 
-    const rules = productionRulesMap[head.id];
+    const rules = productionRules.filter((rule) => rule.lhs.id === head.id);
     const firstResults = rules.map((rule) =>
-      FirstHelper.first(rule.rhs, productionRulesMap),
+      FirstHelper.first(rule.rhs, productionRules),
     );
 
     const firstUnion: Set<SymbolType> = firstResults
@@ -41,7 +67,7 @@ export class FirstHelper {
 
         const rest = FirstHelper.first(
           sbls.slice(1, sbls.length),
-          productionRulesMap,
+          productionRules,
         );
 
         return { symbolIdSet: SetHelper.union(firstUnion, rest.symbolIdSet) };
@@ -51,5 +77,60 @@ export class FirstHelper {
     // 到了这，说明 A 推不出 eps
 
     return { symbolIdSet: firstUnion };
+  }
+
+  public static calculateFollowSet(
+    productionRules: ProductionRule[],
+  ): Record<SyntaxSymbol['id'], Set<SyntaxSymbol['id']>> {
+    const makeEmptySet: () => Set<SyntaxSymbol['id']> = () =>
+      new Set<SyntaxSymbol['id']>();
+    const result: Record<
+      SyntaxSymbol['id'],
+      Set<SyntaxSymbol['id']>
+    > = {} as any;
+    result[sbl.start.id] = new Set<SyntaxSymbol['id']>([sbl.eof.id]); // Follow(S) = { $$ };
+    let updated = true;
+    while (updated) {
+      updated = false;
+      for (const rule of productionRules) {
+        const lhs = rule.lhs;
+        const rhs = rule.rhs;
+        for (let i = 0; i < rhs.length; i++) {
+          const x = rhs[i];
+          let beta: SyntaxSymbol[] = [];
+          if (i <= rhs.length - 1) {
+            beta = rhs.slice(i + 1, rhs.length);
+          }
+
+          if (beta.length === 0 || FirstHelper.epsilon(beta, productionRules)) {
+            // A -> alpha B beta, beta *=> epsilon, or A -> alpha B
+            const followA = result[lhs.id] ?? makeEmptySet();
+            if (result[x.id] === undefined) {
+              result[x.id] = makeEmptySet();
+            }
+            for (const followToken of followA) {
+              result[x.id].add(followToken);
+              updated = true;
+            }
+          } else {
+            // A -> alpha B beta, beta *=>/ epsilon
+            const firstBeta = FirstHelper.first(
+              beta,
+              productionRules,
+            ).symbolIdSet;
+            if (result[x.id] === undefined) {
+              result[x.id] = makeEmptySet();
+            }
+
+            for (const sblId of firstBeta) {
+              updated = true;
+              result[x.id].add(sblId);
+            }
+          }
+        }
+      }
+    }
+
+    return result;
   }
 }
