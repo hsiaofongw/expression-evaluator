@@ -1,7 +1,7 @@
 import { ArrayHelper } from 'src/helpers/array-helper';
 import {
   allRules,
-  allSymbols,
+  sb,
   nonTerminalSymbols,
   terminalSymbols,
 } from './config';
@@ -429,12 +429,12 @@ export class SyntaxSymbolHelper {
 }
 
 export const syntaxConfiguration: SyntaxConfiguration = {
-  symbols: allSymbols,
+  symbols: sb,
   rules: allRules,
   specialSymbol: {
-    entrySymbol: allSymbols.start,
-    epsilonSymbol: allSymbols.epsilon,
-    endOfFileSymbol: allSymbols.endOfFile,
+    entrySymbol: sb.start,
+    epsilonSymbol: sb.epsilon,
+    endOfFileSymbol: sb.endOfFile,
   },
 };
 

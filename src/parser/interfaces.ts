@@ -2,8 +2,50 @@ import { TypedToken } from 'src/lexer/interfaces';
 import { TokenType } from 'src/new-lexer/interfaces';
 import { SyntaxSymbolHelper } from './helpers';
 
+export type NonterminalSymbolType =
+  | 'start'
+  | 'b6'
+  | 'b5'
+  | 'b4'
+  | 'b3'
+  | 'b2'
+  | 'b1'
+  | 'l'
+  | 'assign'
+  | 'substitute'
+  | 'factorial'
+  | 'dfactorial'
+  | 'scientific_ext'
+  | 'dot_ext'
+  | 'num_ext'
+  | 'Num'
+  | 'base'
+  | 'params_ext'
+  | 'id_ext'
+  | 'f'
+  | 'ptn'
+  | 'f0'
+  | 'pow'
+  | 'f1'
+  | 'f2'
+  | 'rem'
+  | 'f3'
+  | 'tp'
+  | 't'
+  | 'ep'
+  | 'e'
+  | 'bool'
+  | 'b2'
+  | 'b2_not'
+  | 'logic'
+  | 'b2l'
+  | 'rule';
+
+export type TerminalSymbolType = TokenType;
+
+export type SymbolType = NonterminalSymbolType | TerminalSymbolType;
+
 export type SyntaxSymbolBasic = {
-  id: string;
   name?: string;
   description?: string;
   displayName?: string;
@@ -12,11 +54,13 @@ export type SyntaxSymbolBasic = {
 
 /** 非终结语法符号，基本上就只有一个名字（也就是 id） */
 export type NonTerminalSyntaxSymbol = SyntaxSymbolBasic & {
+  id: NonterminalSymbolType;
   type: 'nonTerminal';
 };
 
 /** 终结语法符号，除了 id, 还必须指定一个 tokenClassName（类型为 TokenType） */
 export type TerminalSyntaxSymbol = SyntaxSymbolBasic & {
+  id: TerminalSymbolType;
   type: 'terminal';
   definition: { tokenClassName: TokenType };
 };

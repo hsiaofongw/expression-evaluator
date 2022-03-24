@@ -25,7 +25,8 @@ export type TokenType =
   | LeftSquareLikeTokenType
   | RightSquareLikeTokenType
   | IdentifierLikeTokenType
-  | BlankLikeTokenType;
+  | BlankLikeTokenType
+  | EndOfFileTokenType;
 
 export type CommaLikeTokenType = 'comma';
 export type ColumnLikeTokenType = 'columnEqual' | 'columnRightArrow';
@@ -63,6 +64,7 @@ export type LeftSquareLikeTokenType = 'leftSquare';
 export type RightSquareLikeTokenType = 'rightSquare';
 export type IdentifierLikeTokenType = 'identifier';
 export type BlankLikeTokenType = 'blank';
+export type EndOfFileTokenType = 'eof';
 
 export type MatchResult = { content: string; tokenClassName: TokenType };
 export type Token = MatchResult;

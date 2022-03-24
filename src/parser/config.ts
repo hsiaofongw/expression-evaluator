@@ -1,62 +1,124 @@
 import { ArrayHelper } from 'src/helpers/array-helper';
-import { SyntaxSymbol, ProductionRule } from './interfaces';
+import {
+  SyntaxSymbol,
+  ProductionRule,
+  SymbolType,
+  NonterminalSymbolType,
+  TerminalSymbolType,
+} from './interfaces';
 
-type NonterminalSymbolType =
-  | 'start'
-  | 'b6'
-  | 'b5'
-  | 'b4'
-  | 'b3'
-  | 'b2'
-  | 'b1'
-  | 'l'
-  | 'assign'
-  | 'eps'
-  | 'substitute'
-  | 
-type TerminalSymbolType = 'equal';
+const NonTerminal: (name: NonterminalSymbolType) => SyntaxSymbol = (name) => ({
+  id: name,
+  type: 'nonTerminal',
+});
 
-type SymbolType = NonterminalSymbolType | TerminalSymbolType;
+const Terminal: (name: TerminalSymbolType) => SyntaxSymbol = (name) => ({
+  id: name,
+  type: 'terminal',
+  definition: { tokenClassName: name },
+});
 
-export const allSymbols: Record<SymbolType, SyntaxSymbol> = {
-  start: { id: 'start', type: 'nonTerminal' },
-  b1: { id: 'b1', type: 'nonTerminal' },
-  b2: { id: 'b2', type: 'nonTerminal' },
-  b3: { id: 'b3', type: 'nonTerminal' },
-  b4: { id: 'b4', type: 'nonTerminal' },
-  b5: { id: 'b5', type: 'nonTerminal' },
-  b6: { id: 'b6', type: 'nonTerminal' },
-  l: { id: 'l', type: 'nonTerminal' },
-
-  equal: {
-    id: 'singleEqual',
-    type: 'terminal',
-    definition: {
-      tokenClassName: 'equal',
-    },
-  },
+export const sb: Record<SymbolType, SyntaxSymbol> = {
+  start: NonTerminal('start'),
+  b1: NonTerminal('b1'),
+  b2: NonTerminal('b2'),
+  b3: NonTerminal('b3'),
+  b4: NonTerminal('b4'),
+  b5: NonTerminal('b5'),
+  b6: NonTerminal('b6'),
+  f3: NonTerminal('f3'),
+  l: NonTerminal('l'),
+  assign: NonTerminal('assign'),
+  rule: NonTerminal('rule'),
+  b2l: NonTerminal('b2l'),
+  logic: NonTerminal('logic'),
+  b2_not: NonTerminal('b2_not'),
+  bool: NonTerminal('bool'),
+  e: NonTerminal('e'),
+  ep: NonTerminal('ep'),
+  t: NonTerminal('t'),
+  tp: NonTerminal('tp'),
+  rem: NonTerminal('rem'),
+  f2: NonTerminal('f2'),
+  f1: NonTerminal('f1'),
+  pow: NonTerminal('pow'),
+  f0: NonTerminal('f0'),
+  ptn: NonTerminal('ptn'),
+  f: NonTerminal('f'),
+  id_ext: NonTerminal('id_ext'),
+  params_ext: NonTerminal('params_ext'),
+  base: NonTerminal('base'),
+  Num: NonTerminal('Num'),
+  num_ext: NonTerminal('num_ext'),
+  dot_ext: NonTerminal('dot_ext'),
+  scientific_ext: NonTerminal('scientific_ext'),
+  factorial: NonTerminal('factorial'),
+  dfactorial: NonTerminal('dfactorial'),
+  exclamation: Terminal('exclamation'),
+  equal: Terminal('equal'),
+  eof: Terminal('eof'),
+  plus: Terminal('plus'),
+  minus: Terminal('minus'),
+  times: Terminal('times'),
+  divide: Terminal('divide'),
+  dot: Terminal('dot'),
+  identifier: Terminal('identifier'),
+  string: Terminal('string'),
+  leftAngle: Terminal('leftAngle'),
+  leftAngleColumn: Terminal('leftAngleColumn'),
+  leftParentheses: Terminal('leftParentheses'),
+  leftBracket: Terminal('leftBracket'),
+  leftAngleEqual: Terminal('leftAngleEqual'),
+  leftSquare: Terminal('leftSquare'),
+  rightAngle: Terminal('rightAngle'),
+  rightAngleEqual: Terminal('rightAngleEqual'),
+  rightArrow: Terminal('rightArrow'),
+  rightBracket: Terminal('rightBracket'),
+  rightParentheses: Terminal('rightParentheses'),
+  rightSquare: Terminal('rightSquare'),
+  number: Terminal('number'),
+  doubleEqual: Terminal('doubleEqual'),
+  doublePlus: Terminal('doublePlus'),
+  doubleUnderline: Terminal('doubleUnderline'),
+  singleUnderline: Terminal('singleUnderline'),
+  tripleEqual: Terminal('tripleEqual'),
+  tripleUnderline: Terminal('tripleUnderline'),
+  percent: Terminal('percent'),
+  power: Terminal('power'),
+  and: Terminal('and'),
+  or: Terminal('or'),
+  columnEqual: Terminal('columnEqual'),
+  semicolumn: Terminal('semicolumn'),
+  substitute: Terminal('substitute'),
+  columnRightAngle: Terminal('columnRightAngle'),
+  columnRightArrow: Terminal('columnRightArrow'),
+  comma: Terminal('comma'),
+  comment: Terminal('comment'),
+  blank: Terminal('blank'),
+  notEqual: Terminal('notEqual'),
+  notStrictEqual: Terminal('notStrictEqual'),
 };
 
 /** 文法中的全体非终结符号 */
 export const nonTerminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(
-  allSymbols,
+  sb,
 ).filter((sbl) => sbl.type === 'nonTerminal');
 
 /** 文法中的全体终结符号 */
-export const terminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(
-  allSymbols,
-).filter((sbl) => sbl.type === 'terminal');
+export const terminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(sb).filter(
+  (sbl) => sbl.type === 'terminal',
+);
 
 /** 全体产生式规则 */
 export const allRules: ProductionRule[] = [
   {
     name: 'S -> B5',
-    lhs: allSymbols.start,
-    rhs: [allSymbols.b5],
+    lhs: sb.start,
+    rhs: [sb.b5],
   },
   {
     name: 'B6 -> B5 L',
-    lhs: allSymbols.b6,
-    rhs: [allSymbols.b5, allSymbols.l],
+    lhs: sb.b6,
+    rhs: [sb.b5, sb.l],
   },
 ];
