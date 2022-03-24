@@ -1,10 +1,5 @@
 import { ArrayHelper } from 'src/helpers/array-helper';
-import {
-  allRules,
-  sb,
-  nonTerminalSymbols,
-  terminalSymbols,
-} from './config';
+import { allRules, sbl, nonTerminalSymbols, terminalSymbols } from './config';
 import {
   PredictiveAnalysisTable,
   ProductionRule,
@@ -429,12 +424,12 @@ export class SyntaxSymbolHelper {
 }
 
 export const syntaxConfiguration: SyntaxConfiguration = {
-  symbols: sb,
+  symbols: sbl,
   rules: allRules,
   specialSymbol: {
-    entrySymbol: sb.start,
-    epsilonSymbol: sb.epsilon,
-    endOfFileSymbol: sb.endOfFile,
+    entrySymbol: sbl.start,
+    epsilonSymbol: sbl.epsilon,
+    endOfFileSymbol: sbl.endOfFile,
   },
 };
 
