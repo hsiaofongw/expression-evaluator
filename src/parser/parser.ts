@@ -1,166 +1,116 @@
-import { ArrayHelper } from 'src/helpers/array-helper';
-import { TokenClass, TypedToken } from 'src/lexer/interfaces';
+import { Token } from 'src/new-lexer/interfaces';
 import { Transform, TransformCallback } from 'stream';
-import { SyntaxSymbolHelper } from './helpers';
-import {
-  Node,
-  SyntaxAnalysisConfiguration,
-  SyntaxSymbol,
-  TerminalNode,
-} from './interfaces';
-
-export class ToTerminalNode extends Transform {
-  private _tokenClassNameToSyntaxSymbol: Record<
-    TokenClass['name'],
-    SyntaxSymbol
-  > = {};
-
-  constructor(config: SyntaxAnalysisConfiguration) {
-    super({ objectMode: true });
-
-    this._tokenClassNameToSyntaxSymbol = {};
-    const symbolMap = this._tokenClassNameToSyntaxSymbol;
-    const symbols = Array.isArray(config.symbols)
-      ? config.symbols
-      : ArrayHelper.toArray(config.symbols);
-    for (const symbol of symbols) {
-      if (symbol.type === 'terminal') {
-        symbolMap[symbol.definition.tokenClassName] = symbol;
-      }
-    }
-  }
-
-  _transform(
-    token: TypedToken,
-    encoding: BufferEncoding,
-    callback: TransformCallback,
-  ): void {
-    const tokenClass = token.type;
-    const tokenClassName = tokenClass.name;
-    const terminalSymbol = this._tokenClassNameToSyntaxSymbol[tokenClassName];
-    const node: TerminalNode = {
-      type: 'terminal',
-      token: token,
-      symbol: terminalSymbol,
-    };
-    this.push(node);
-    callback();
-  }
-}
+import { allRules, sbl } from './config';
+import { PredictHelper } from './first';
+import { Node } from './interfaces';
 
 export class LL1PredictiveParser extends Transform {
-  private _nodeStack!: Node[];
-  private _rootNode!: Node; // root node of syntax tree
-  private get _nodeStackTop(): Node {
-    // top of node stack
-    return this._nodeStack[this._nodeStack.length - 1];
+  private parseStack!: Node[];
+  private rootNode!: Node; // root node of syntax tree
+
+  private get stackTop(): Node {
+    return this.parseStack[this.parseStack.length - 1];
   }
 
-  private _syntaxAnalysisPartner!: SyntaxSymbolHelper;
-  private _config!: SyntaxAnalysisConfiguration;
-
-  constructor(config: SyntaxAnalysisConfiguration) {
+  constructor() {
     super({ objectMode: true });
-
-    this._initialize(config);
+    this.init();
   }
 
-  private _initialize(config: SyntaxAnalysisConfiguration): void {
-    this._nodeStack = [];
-    const root: Node = {
+  /** 初始化或者重置都是调用这个函数 */
+  private init(): void {
+    this.rootNode = {
       type: 'nonTerminal',
-      symbol: config.specialSymbol.entrySymbol,
+      symbol: sbl.start,
       children: [],
-      ruleName: '',
+      ruleName: '', // 在解析的过程中，展开它的时候再写上
     };
-    this._rootNode = root;
-    this._nodeStack.push(root);
-    this._syntaxAnalysisPartner = config.syntaxAnalysisPartner;
-    this._config = config;
-  }
-
-  private _reset(): void {
-    this._initialize(this._config);
+    this.parseStack = [this.rootNode];
   }
 
   _transform(
-    lookAhead: TerminalNode,
+    inputBufferHead: Token,
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    while (
-      this._nodeStack.length > 0 &&
-      this._nodeStackTop.type === 'nonTerminal'
-    ) {
-      const currentNode = this._nodeStack.pop() as Node;
+    if (this.parseStack.length === 0) {
+      this.push(this.rootNode);
+      this.init();
+      callback();
+    } else {
+      // 如果能展开则先尝试展开，展开后再匹配，展开不了就报错
+      // stacktop 的非终结符号节点展开之后可能仍是非终结符号节点，所以要用 while 循环重复几遍
+      while (this.stackTop.type === 'nonTerminal') {
+        const lhs = this.stackTop.symbol;
+        const rules = allRules.filter((rule) => rule.lhs.id === lhs.id);
+        const expandSbl = this.stackTop;
+        this.parseStack.pop();
 
-      const rules = this._syntaxAnalysisPartner.getRulesFromPAT(
-        currentNode.symbol,
-        lookAhead.symbol,
-      );
+        // 寻找规则展开 expandSbl, 并且把规则右边的符号转换成语法树节点倒序入栈
+        let expanded = false;
+        for (const rule of rules) {
+          // 对每个 rule: expandSbl -> x, 计算 rule 的 predictSet
+          const predictSet = PredictHelper.predictSet(rule, allRules);
 
-      if (rules.length > 0) {
-        const rule = rules[0];
-        const ruleName = rule.name;
-        const rhs = rule.rhs;
-        const rhsNodes: Node[] = [];
-        for (const symbol of rhs) {
-          if (symbol.id !== this._syntaxAnalysisPartner.epsilonSymbol.id) {
-            if (symbol.type === 'nonTerminal') {
-              const node: Node = {
-                type: 'nonTerminal',
-                symbol: symbol,
-                children: [],
-                ruleName: '',
-              };
-              rhsNodes.push(node);
-            } else {
-              const node: Node = {
-                type: 'terminal',
-                symbol: symbol,
-              };
-              rhsNodes.push(node);
+          // 若当前输入 token 处在 predictSet 中，则选择这个 rule 展开 expandSbl
+          if (predictSet.has(inputBufferHead.tokenClassName)) {
+            expanded = true;
+            // 记下这条 rule 的名字
+            expandSbl.ruleName = rule.name;
+            const rhs = rule.rhs;
+
+            // 对这条 rule 的 RHS 中的每个符号 rhsSbl（倒序）
+            for (let i = 0; i < rhs.length; i++) {
+              const rhsSbl = rhs[rhs.length - 1 - i];
+
+              if (rhsSbl.type === 'terminal') {
+                // 若 rhsSbl 是一个 terminal 类型的语法符号
+                const node: Node = {
+                  type: 'terminal',
+                  symbol: rhsSbl,
+                };
+
+                // 则在被展开的这个节点的 children 中入栈一个 terminal 类型的 Node
+                expandSbl.children.push(node);
+
+                // 并且在当前 parse Stack 入栈一个 terminal 类型的 Node, 这两个是同一个
+                this.parseStack.push(node);
+              } else {
+                // 以此类推
+                // 只不过，对于 RHS 中的 nonTerminal 符号，要把它转为 NonTerminal 树节点
+                const node: Node = {
+                  type: 'nonTerminal',
+                  children: [],
+                  symbol: rhsSbl,
+                  ruleName: '',
+                };
+                expandSbl.children.push(node);
+                this.parseStack.push(node);
+              }
             }
+
+            // 展开完成之后 break 这个寻找 rule 的过程
+            break;
           }
         }
 
-        const parentNode = currentNode;
-        for (let i = 0; i < rhsNodes.length; i++) {
-          const node = rhsNodes[rhsNodes.length - i - 1];
-          this._nodeStack.push(node);
-        }
-
-        if (parentNode.type === 'nonTerminal') {
-          parentNode.ruleName = ruleName;
-          parentNode.children = rhsNodes;
+        // 如果展开不了当前语法符号则需要报语法错误，让开发者去调试
+        if (expanded === false) {
+          console.error('在语法解析时遇到错误：找不到规则来展开当前符号');
+          process.exit(1);
         }
       }
-    }
 
-    if (
-      this._nodeStack.length > 0 &&
-      this._nodeStackTop.type === 'terminal' &&
-      this._nodeStackTop.symbol.id === lookAhead.symbol.id
-    ) {
-      this._nodeStackTop.token = lookAhead.token;
-      this._nodeStack.pop();
+      if (this.parseStack.length) {
+        if (this.stackTop.type === 'terminal') {
+          this.stackTop.token = inputBufferHead;
+          this.parseStack.pop();
+        }
+      } else {
+        this.push(this.rootNode);
+      }
 
       callback();
-      return;
     }
-
-    if (
-      this._nodeStack.length === 0 &&
-      lookAhead.symbol.id === this._syntaxAnalysisPartner.endOfFileSymbol.id
-    ) {
-      // console.log('push');
-      // console.log(this._rootNode);
-      // console.log('lookAhead');
-      // console.log(lookAhead);
-      this.push(this._rootNode);
-      this._reset();
-    }
-
-    callback();
   }
 }

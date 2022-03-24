@@ -1,5 +1,4 @@
 import { Token, TokenType } from 'src/new-lexer/interfaces';
-import { SyntaxSymbolHelper } from './helpers';
 
 export type NonterminalSymbolType =
   | 'start'
@@ -93,22 +92,3 @@ export type TerminalNode = {
   token?: Token;
   symbol: SyntaxSymbol;
 };
-
-export type SyntaxConfiguration = {
-  symbols: SyntaxSymbol[] | Record<string, SyntaxSymbol>;
-  rules: ProductionRule[];
-  specialSymbol: {
-    entrySymbol: SyntaxSymbol;
-    epsilonSymbol: SyntaxSymbol;
-    endOfFileSymbol: SyntaxSymbol;
-  };
-};
-
-export type SyntaxAnalysisConfiguration = SyntaxConfiguration & {
-  syntaxAnalysisPartner: SyntaxSymbolHelper;
-};
-
-export type PredictiveAnalysisTable = Record<
-  SyntaxSymbol['id'],
-  Record<SyntaxSymbol['id'], ProductionRuleId[]>
->;
