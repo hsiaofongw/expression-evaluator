@@ -272,4 +272,220 @@ export const allRules: ProductionRule[] = [
     lhs: sbl.e,
     rhs: [sbl.t, sbl.ep],
   },
+  {
+    name: 'ep -> + t ep',
+    lhs: sbl.ep,
+    rhs: [sbl.plus, sbl.t, sbl.ep],
+  },
+  {
+    name: 'ep -> - t ep',
+    lhs: sbl.ep,
+    rhs: [sbl.minus, sbl.t, sbl.ep],
+  },
+  {
+    name: 'ep -> eps',
+    lhs: sbl.ep,
+    rhs: [],
+  },
+  {
+    name: 't -> f3 tp',
+    lhs: sbl.t,
+    rhs: [sbl.f3, sbl.tp],
+  },
+  {
+    name: 'tp -> * f3 tp',
+    lhs: sbl.tp,
+    rhs: [sbl.times, sbl.f3, sbl.tp],
+  },
+  {
+    name: 'tp -> / f3 tp',
+    lhs: sbl.tp,
+    rhs: [sbl.divide, sbl.f3, sbl.tp],
+  },
+  {
+    name: 'tp -> eps',
+    lhs: sbl.tp,
+    rhs: [],
+  },
+  {
+    name: 'f3 -> f2 rem',
+    lhs: sbl.f3,
+    rhs: [sbl.f2, sbl.rem],
+  },
+  {
+    name: 'rem -> % f2 rem',
+    lhs: sbl.rem,
+    rhs: [sbl.percent, sbl.f2, sbl.rem],
+  },
+  {
+    name: 'rem -> eps',
+    lhs: sbl.rem,
+    rhs: [],
+  },
+  {
+    name: 'f2 -> -  f1',
+    lhs: sbl.f2,
+    rhs: [sbl.minus, sbl.f1],
+  },
+  {
+    name: 'f2 -> f1',
+    lhs: sbl.f2,
+    rhs: [sbl.f1],
+  },
+  {
+    name: 'f1 -> f0 pow',
+    lhs: sbl.f1,
+    rhs: [sbl.f0, sbl.pow],
+  },
+  {
+    name: 'pow -> eps',
+    lhs: sbl.pow,
+    rhs: [],
+  },
+  {
+    name: 'pow -> ^ f0 pow',
+    lhs: sbl.pow,
+    rhs: [sbl.pow, sbl.f0, sbl.pow],
+  },
+  {
+    name: 'f0 -> f ptn',
+    lhs: sbl.f0,
+    rhs: [sbl.f, sbl.ptn],
+  },
+  {
+    name: 'f0 -> _ f ptn',
+    lhs: sbl.f0,
+    rhs: [sbl.singleUnderline, sbl.f, sbl.ptn],
+  },
+  {
+    name: 'f0 -> __ f ptn',
+    lhs: sbl.f0,
+    rhs: [sbl.doubleUnderline, sbl.f, sbl.ptn],
+  },
+  {
+    name: 'f0 -> ___ f ptn',
+    lhs: sbl.f0,
+    rhs: [sbl.tripleUnderline, sbl.f, sbl.ptn],
+  },
+  {
+    name: 'ptn -> eps',
+    lhs: sbl.ptn,
+    rhs: [],
+  },
+  {
+    name: 'ptn -> _ f ptn',
+    lhs: sbl.ptn,
+    rhs: [sbl.singleUnderline, sbl.f, sbl.ptn],
+  },
+  {
+    name: 'ptn -> __ f ptn',
+    lhs: sbl.ptn,
+    rhs: [sbl.doubleUnderline, sbl.f, sbl.ptn],
+  },
+  {
+    name: 'ptn -> ___ f ptn',
+    lhs: sbl.ptn,
+    rhs: [sbl.tripleUnderline, sbl.f, sbl.ptn],
+  },
+  {
+    name: 'f -> id id_ext',
+    lhs: sbl.f,
+    rhs: [sbl.identifier, sbl.id_ext],
+  },
+  {
+    name: 'id_ext -> eps',
+    lhs: sbl.id_ext,
+    rhs: [],
+  },
+  {
+    name: 'id_ext -> [ params_ext',
+    lhs: sbl.id_ext,
+    rhs: [sbl.leftSquare, sbl.params_ext],
+  },
+  {
+    name: 'params_ext -> l ] id_ext',
+    lhs: sbl.params_ext,
+    rhs: [sbl.l, sbl.rightSquare, sbl.id_ext],
+  },
+  {
+    name: 'params_ext -> [ s ] ] id_ext',
+    lhs: sbl.params_ext,
+    rhs: [
+      sbl.leftSquare,
+      sbl.start,
+      sbl.rightSquare,
+      sbl.rightSquare,
+      sbl.id_ext,
+    ],
+  },
+  {
+    name: 'base -> ( e )',
+    lhs: sbl.base,
+    rhs: [sbl.leftParentheses, sbl.e, sbl.rightParentheses],
+  },
+  {
+    name: 'base -> Num',
+    lhs: sbl.base,
+    rhs: [sbl.Num],
+  },
+  {
+    name: 'base -> { L }',
+    lhs: sbl.base,
+    rhs: [sbl.leftBracket, sbl.l, sbl.rightBracket],
+  },
+  {
+    name: 'base -> <| L |>',
+    lhs: sbl.base,
+    rhs: [sbl.leftAngleColumn, sbl.l, sbl.columnRightAngle],
+  },
+  {
+    name: 'base -> str',
+    lhs: sbl.base,
+    rhs: [sbl.string],
+  },
+  {
+    name: 'base -> identifier',
+    lhs: sbl.base,
+    rhs: [sbl.identifier],
+  },
+  {
+    name: 'Num -> num num_ext',
+    lhs: sbl.Num,
+    rhs: [sbl.number, sbl.num_ext],
+  },
+  {
+    name: 'num_ext -> factorial',
+    lhs: sbl.num_ext,
+    rhs: [sbl.factorial],
+  },
+  {
+    name: 'num_ext -> . num dot_ext',
+    lhs: sbl.num_ext,
+    rhs: [sbl.dot, sbl.number, sbl.dot_ext],
+  },
+  {
+    name: 'dot_ext -> eps',
+    lhs: sbl.dot_ext,
+    rhs: [],
+  },
+  {
+    name: 'dot_ext -> e scientific_ext',
+    lhs: sbl.dot_ext,
+    rhs: [sbl.e, sbl.scientific_ext],
+  },
+  {
+    name: 'factorial -> eps',
+    lhs: sbl.factorial,
+    rhs: [],
+  },
+  {
+    name: 'dfactorial -> eps',
+    lhs: sbl.dfactorial,
+    rhs: [],
+  },
+  {
+    name: 'dfactorial -> !',
+    lhs: sbl.dfactorial,
+    rhs: [sbl.exclamation],
+  },
 ];
