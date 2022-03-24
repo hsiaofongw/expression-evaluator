@@ -2,7 +2,8 @@ import { SetHelper } from 'src/helpers/set-helper';
 import { sbl } from './config';
 import { ProductionRule, SymbolType, SyntaxSymbol } from './interfaces';
 
-export class FirstHelper {
+/** 提供计算 FIRST, EPS, FOLLOW 和 PREDICT 的方法 */
+export class PredictHelper {
   public static epsilon(
     symbols: SyntaxSymbol[],
     rules: ProductionRule[],
@@ -19,8 +20,8 @@ export class FirstHelper {
     for (const rule of rules) {
       if (rule.lhs.id === head.id) {
         const rhs = rule.rhs;
-        if (FirstHelper.epsilon(rhs, rules)) {
-          return FirstHelper.epsilon(symbols.slice(1, symbols.length), rules);
+        if (PredictHelper.epsilon(rhs, rules)) {
+          return PredictHelper.epsilon(symbols.slice(1, symbols.length), rules);
         }
       }
     }
@@ -54,7 +55,7 @@ export class FirstHelper {
 
     const rules = productionRules.filter((rule) => rule.lhs.id === head.id);
     const firstResults = rules.map((rule) =>
-      FirstHelper.first(rule.rhs, productionRules),
+      PredictHelper.first(rule.rhs, productionRules),
     );
 
     const firstUnion: Set<SymbolType> = firstResults
@@ -65,7 +66,7 @@ export class FirstHelper {
       if (res.symbolIdSet.size === 0) {
         // rules 中存在 A -> eps 这样的
 
-        const rest = FirstHelper.first(
+        const rest = PredictHelper.first(
           sbls.slice(1, sbls.length),
           productionRules,
         );
@@ -102,7 +103,10 @@ export class FirstHelper {
             beta = rhs.slice(i + 1, rhs.length);
           }
 
-          if (beta.length === 0 || FirstHelper.epsilon(beta, productionRules)) {
+          if (
+            beta.length === 0 ||
+            PredictHelper.epsilon(beta, productionRules)
+          ) {
             // A -> alpha B beta, beta *=> epsilon, or A -> alpha B
             const followA = result[lhs.id] ?? makeEmptySet();
             if (result[x.id] === undefined) {
@@ -114,7 +118,7 @@ export class FirstHelper {
             }
           } else {
             // A -> alpha B beta, beta *=>/ epsilon
-            const firstBeta = FirstHelper.first(
+            const firstBeta = PredictHelper.first(
               beta,
               productionRules,
             ).symbolIdSet;
