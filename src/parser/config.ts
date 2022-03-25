@@ -113,12 +113,12 @@ export const terminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(sbl).filter(
 /** 全体产生式规则 */
 export const allRules: ProductionRule[] = [
   {
-    name: 'S -> B5',
+    name: 's -> b5',
     lhs: sbl.start,
     rhs: [sbl.b5],
   },
   {
-    name: 'B6 -> B5 L',
+    name: 'b6 -> b5 l',
     lhs: sbl.b6,
     rhs: [sbl.b5, sbl.l],
   },

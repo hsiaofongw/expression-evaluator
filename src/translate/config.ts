@@ -207,6 +207,12 @@ export const allSymbolsMap = {
   // Rule 符号
   RuleSymbol: NodeFactory.makeSymbol('Rule', true),
 
+  // RuleDelayed 符号
+  RuleDelayedSymbol: NodeFactory.makeSymbol('RuleDelayed', true),
+
+  // Not 符号
+  NotSymbol: NodeFactory.makeSymbol('Not', true),
+
   // CurrentInputFlushSentinel 符号
   currentInputFlushSentinelSymbol: NodeFactory.makeSymbol(
     'CurrentInputFlushSentinel',
@@ -242,6 +248,9 @@ export const allSymbolsMap = {
 
   // Filter 符号
   FilterSymbol: NodeFactory.makeSymbol('Filter', true),
+
+  // ReplaceAll 符号
+  ReplaceAllSymbol: NodeFactory.makeSymbol('ReplaceAll', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -383,11 +392,20 @@ export function ListExpr(elements: Expr[]): Expr {
 }
 
 // 返回一个 Rule
-export function RuleExpr(keyExpr: Expr, valueExpr: Expr): Expr {
+export function RuleExpr(children: Expr[]): Expr {
   return {
     nodeType: 'nonTerminal',
     head: allSymbolsMap.RuleSymbol,
-    children: [keyExpr, valueExpr],
+    children,
+  };
+}
+
+// 返回一个 RuleDelayedExpr
+export function RuleDelayedExpr(children: Expr[]): Expr {
+  return {
+    nodeType: 'nonTerminal',
+    head: allSymbolsMap.RuleDelayedSymbol,
+    children,
   };
 }
 
@@ -437,6 +455,42 @@ export function OrExpr(children: Expr[]): Expr {
 
 export function AndExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.AndSymbol, children);
+}
+
+export function AssignDelayedExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.AssignDelayedSymbol, children);
+}
+
+export function AssignExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.AssignSymbol, children);
+}
+
+export function ReplaceAllExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.ReplaceAllSymbol, children);
+}
+
+export function NotExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.NotSymbol, children);
+}
+
+export function GreaterThanExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.GreaterThanSymbol, children);
+}
+
+export function GreaterThanOrEqualExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.GreaterThanOrEqualSymbol, children);
+}
+
+export function LessThanOrEqualExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.LessThanOrEqualSymbol, children);
+}
+
+export function LessThanExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.LessThanSymbol, children);
+}
+
+export function EqualQExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.EqualQSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern

@@ -1,9 +1,8 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { syntaxAnalysisConfiguration } from './parser/helpers';
-import { ToCharacters, ToToken } from './lexer/lexer';
-import { LL1PredictiveParser, ToTerminalNode } from './parser/parser';
+import { LL1PredictiveParser } from './parser/parser';
 import { stdin, stdout } from 'process';
 import { ExpressionTranslate } from './translate/translate';
 import { ExpressionNodeSerialize } from './translate/serialize';
@@ -50,7 +49,7 @@ async function startTestREPL(app: INestApplication) {
   });
 }
 
-async function startCommandLineREPL() {
+async function startCommandLineREPL(app: INestApplication) {
   // 初始化
   const initialSeqNum = 0;
   let currentSeqNum = initialSeqNum;
@@ -58,20 +57,20 @@ async function startCommandLineREPL() {
   const promptContentFn = (seqNum: number) => `In[${seqNum}]:= `;
   const outputPrefixFn = (seqNum: number) => `\nOut[${seqNum}]= `;
   const outputPostfix = '\n\n';
-  const toChars = new ToCharacters();
-  const toToken = new ToToken();
-  const toTerminalNode = new ToTerminalNode(syntaxAnalysisConfiguration);
-  const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
-  const translate = new ExpressionTranslate();
-  const preEvaluate = new PreEvaluator();
-  const evaluate = new Evaluator(currentSeqNum);
-  const serialize = new ExpressionNodeSerialize();
-  let inputBuffer = '';
+
+  const lexerFactory = app.get(NewLexerFactoryService);
+
+  const toToken     = lexerFactory.makeLexer();          // Tokenizing
+  const parse       = new LL1PredictiveParser();         // Parsing, i.e. build tree
+  const translate   = new ExpressionTranslate();         // Tree to Expr transformation
+  const preEvaluate = new PreEvaluator();                // Pre-Evaluate
+  const evaluate    = new Evaluator(currentSeqNum);      // Evaluate Expr
+  const serialize   = new ExpressionNodeSerialize();     // Expr to string transformation
+
+  let inputBuffer  = '';
 
   /** 组建解释器 */
-  toChars
-    .pipe(toToken)
-    .pipe(toTerminalNode)
+    toToken
     .pipe(parse)
     .pipe(translate)
     .pipe(preEvaluate)
@@ -110,7 +109,7 @@ async function startCommandLineREPL() {
       for (let i = 0; i < inputContent.length; i++) {
         if (inputContent[i] === ';') {
           if (inputBuffer.trim().length) {
-            toChars.write(inputBuffer.trim());
+            toToken.write(inputBuffer.trim());
             inputBuffer = '';
           }
           continue;

@@ -2,7 +2,24 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { Node, NonTerminalNode } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
-import { allSymbolsMap, BlankExpr, BlankSequenceExpr, NodeFactory } from './config';
+import {
+  allSymbolsMap,
+  AndExpr,
+  AssignDelayedExpr,
+  AssignExpr,
+  BlankExpr,
+  EqualQExpr,
+  GreaterThanExpr,
+  GreaterThanOrEqualExpr,
+  LessThanExpr,
+  LessThanOrEqualExpr,
+  NodeFactory,
+  NotExpr,
+  OrExpr,
+  ReplaceAllExpr,
+  RuleDelayedExpr,
+  RuleExpr,
+} from './config';
 import { Expr } from './interfaces';
 
 type Evaluator = (node: NonTerminalNode) => void;
@@ -11,87 +28,161 @@ type EvaluatorMap = Record<string, Evaluator>;
 const doNothing = (_: any) => {};
 
 export class ExpressionTranslate extends Transform {
-  _nodeStack: Expr[] = [];
+  private exprStack: Expr[] = [];
 
-  _evaluatorMap: EvaluatorMap = {
-    "S -> S' CMP_0": (node) => this._evaluateEveryChild(node),
+  private evaluatorMap: EvaluatorMap = {
+    's -> b5': (n) => this.evaluateEveryChild(n),
+
+    'l -> eps': doNothing,
+
+    'b6 -> b5 l': (n) => this.reduceByAppend(n, 0, 1),
+
+    'l -> , b5 l': (n) => this.reduceByAppend(n, 1, 2),
+
+    'b5 -> b4 assign': (n) => this.evaluateEveryChild(n),
+
+    'assign -> := b4 assign': (n) =>
+      this.rightReduce(n, [1, 2], AssignDelayedExpr),
+
+    'assign -> == b4 assign': (n) => this.rightReduce(n, [1, 2], AssignExpr),
+
+    'assign -> eps': doNothing,
+
+    'b4 -> b3 sub': (n) => this.evaluateEveryChild(n),
+
+    'sub -> /. b3 sub': (n) => this.rightReduce(n, [1, 2], ReplaceAllExpr),
+
+    'sub -> eps': doNothing,
+
+    'b3 -> b2l rule': (n) => this.evaluateEveryChild(n),
+
+    'rule -> -> b2l': (n) => this.rightReduce(n, [1], RuleExpr),
+
+    'rule -> :-> b2l': (n) => this.rightReduce(n, [1], RuleDelayedExpr),
+
+    'rule -> eps': doNothing,
+
+    'b2l -> b2_not logic': (n) => this.evaluateEveryChild(n),
+
+    'logic -> || b2_not logic': (n) => this.rightReduce(n, [1, 2], OrExpr),
+
+    'logic -> && b2_not logic': (n) => this.rightReduce(n, [1, 2], AndExpr),
+
+    'logic -> eps': doNothing,
+
+    'b2_not -> ! b2_not': (n) => {
+      this.evaluate(n.children[1]);
+      const expr = this.popNode();
+      this.pushNode(NotExpr([expr]));
+    },
+    'b2_not -> b2': (n) => this.evaluateEveryChild(n.children[0]),
+
+    'b2 -> e bool': (n) => this.evaluateEveryChild(n),
+
+    'bool -> > e bool': (n) => this.rightReduce(n, [1, 2], GreaterThanExpr),
+
+    'bool -> >= e bool': (n) =>
+      this.rightReduce(n, [1, 2], GreaterThanOrEqualExpr),
+
+    'bool -> < e bool': (n) => this.rightReduce(n, [1, 2], LessThanExpr),
+
+    'bool -> <= e bool': (n) =>
+      this.rightReduce(n, [1, 2], LessThanOrEqualExpr),
+
+    'bool -> == e bool': (n) => this.rightReduce(n, [1, 2], EqualQExpr),
+
+    'bool -> === e bool': (n) => this.rightReduce(n, [1, 2], EqualQExpr),
+
+    'bool -> !== e bool': (n) =>
+      this.rightReduce(n, [1, 2], (children) =>
+        NotExpr([EqualQExpr(children)]),
+      ),
+
+    'bool -> != e bool': (n) =>
+      this.rightReduce(n, [1, 2], (children) =>
+        NotExpr([EqualQExpr(children)]),
+      ),
+
+    'e -> t ep': (n) => this.evaluateEveryChild(n),
+
+    "S -> S' CMP_0": (node) => this.evaluateEveryChild(node),
 
     "CMP_0 -> == S' CMP_0": (node) =>
-      this._reduce(node, allSymbolsMap.EqualQSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.EqualQSymbol, 1, 2),
 
     'CMP_0 -> ε': doNothing,
 
-    "S' -> E CMP_2": (node) => this._evaluateEveryChild(node),
+    "S' -> E CMP_2": (node) => this.evaluateEveryChild(node),
 
     'L -> ε': doNothing,
 
-    "L -> S L'": (node) => this._reduceByAppend(node, 0, 1),
+    "L -> S L'": (node) => this.reduceByAppend(node, 0, 1),
 
-    "L' -> , S L'": (node) => this._reduceByAppend(node, 1, 2),
+    "L' -> , S L'": (node) => this.reduceByAppend(node, 1, 2),
 
     "L' -> ε": doNothing,
 
     'CMP_2 -> > E CMP_2': (node) =>
-      this._reduce(node, allSymbolsMap.GreaterThanSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.GreaterThanSymbol, 1, 2),
 
     'CMP_2 -> < E CMP_2': (node) =>
-      this._reduce(node, allSymbolsMap.LessThanSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.LessThanSymbol, 1, 2),
 
     'CMP_2 -> >= E CMP_2': (node) =>
-      this._reduce(node, allSymbolsMap.GreaterThanOrEqualSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.GreaterThanOrEqualSymbol, 1, 2),
 
     'CMP_2 -> <= E CMP_2': (node) =>
-      this._reduce(node, allSymbolsMap.LessThanOrEqualSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.LessThanOrEqualSymbol, 1, 2),
 
     'CMP_2 -> ε': doNothing,
 
-    "E -> T E'": (node) => this._evaluateEveryChild(node),
+    "E -> T E'": (node) => this.evaluateEveryChild(node),
 
     "E' -> '+' T E'": (node) =>
-      this._reduce(node, allSymbolsMap.PlusSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.PlusSymbol, 1, 2),
 
     "E' -> '-' T E'": (node) =>
-      this._reduce(node, allSymbolsMap.MinusSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.MinusSymbol, 1, 2),
 
     "E' -> ε": doNothing,
 
-    "T -> REM_0 T'": (node) => this._evaluateEveryChild(node),
+    "T -> REM_0 T'": (node) => this.evaluateEveryChild(node),
 
     "T' -> '*' REM_0 T'": (node) =>
-      this._reduce(node, allSymbolsMap.TimesSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.TimesSymbol, 1, 2),
 
     "T' -> '/' REM_0 T'": (node) =>
-      this._reduce(node, allSymbolsMap.DivideSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.DivideSymbol, 1, 2),
 
     "T' -> ε": doNothing,
 
-    'REM_0 -> NEG REM_1': (node) => this._evaluateEveryChild(node),
+    'REM_0 -> NEG REM_1': (node) => this.evaluateEveryChild(node),
 
     'REM_1 -> % NEG REM_1': (node) =>
-      this._reduce(node, allSymbolsMap.RemainderSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.RemainderSymbol, 1, 2),
     'REM_1 -> ε': doNothing,
 
     'NEG -> - POW_0': (node) => {
-      this._evaluate(node.children[1]);
-      const theValue = this._popNode();
+      this.evaluate(node.children[1]);
+      const theValue = this.popNode();
       const negativeNode: Expr = {
         head: allSymbolsMap.NegativeSymbol,
         nodeType: 'nonTerminal',
         children: [theValue],
       };
-      this._pushNode(negativeNode);
+      this.pushNode(negativeNode);
     },
 
-    'NEG -> POW_0': (node) => this._evaluateEveryChild(node),
+    'NEG -> POW_0': (node) => this.evaluateEveryChild(node),
 
-    'POW_0 -> F POW_1': (node) => this._evaluateEveryChild(node),
+    'POW_0 -> F POW_1': (node) => this.evaluateEveryChild(node),
     'POW_1 -> ^ F POW_1': (node) =>
-      this._reduce(node, allSymbolsMap.PowerSymbol, 1, 2),
+      this.reduce(node, allSymbolsMap.PowerSymbol, 1, 2),
     'POW_1 -> ε': doNothing,
 
-    "F -> F' P": (node) => this._evaluateEveryChild(node),
+    "F -> F' P": (node) => this.evaluateEveryChild(node),
 
-    "F' -> ( E )": (node) => this._evaluate(node.children[1]),
+    "F' -> ( E )": (node) => this.evaluate(node.children[1]),
 
     "F' -> number": (node) => {
       const v1 = node.children[0];
@@ -103,7 +194,7 @@ export class ExpressionTranslate extends Transform {
           expressionType: 'number',
           value: value,
         };
-        this._pushNode(numberNode);
+        this.pushNode(numberNode);
       }
     },
 
@@ -117,40 +208,40 @@ export class ExpressionTranslate extends Transform {
           expressionType: 'symbol',
           value: identifier,
         };
-        this._pushNode(symbolNode);
-        this._evaluate(node.children[1]);
+        this.pushNode(symbolNode);
+        this.evaluate(node.children[1]);
       }
     },
 
     'PTN -> ε': doNothing,
     'PTN -> _ PTN_0': (node) => {
-      const patternNameExpr = this._popNode();
+      const patternNameExpr = this.popNode();
       const blankExpr = BlankExpr();
       const patternExpr: Expr = {
         head: allSymbolsMap.PatternSymbol,
         nodeType: 'nonTerminal',
         children: [patternNameExpr, blankExpr],
       };
-      this._pushNode(patternExpr);
-      this._evaluate(node.children[1]);
+      this.pushNode(patternExpr);
+      this.evaluate(node.children[1]);
     },
 
     'PTN_0 -> ε': doNothing,
     'PTN_0 -> id': (node) => {
       const v1 = node.children[0];
       if (v1.type === 'terminal' && v1.token?.content) {
-        const patternExpr = this._popNode();
+        const patternExpr = this.popNode();
         if (patternExpr.nodeType === 'nonTerminal') {
           const blankExpr = patternExpr.children[1];
           if (blankExpr.nodeType === 'nonTerminal') {
             blankExpr.children = [NodeFactory.makeSymbol(v1.token.content)];
           }
         }
-        this._pushNode(patternExpr);
+        this.pushNode(patternExpr);
       }
     },
     'PTN_0 -> _ PTN_1': (node) => {
-      const patternExpr = this._popNode();
+      const patternExpr = this.popNode();
       if (patternExpr.nodeType === 'nonTerminal') {
         patternExpr.children[1] = {
           nodeType: 'nonTerminal',
@@ -158,15 +249,15 @@ export class ExpressionTranslate extends Transform {
           children: [],
         };
       }
-      this._pushNode(patternExpr);
-      this._evaluate(node.children[1]);
+      this.pushNode(patternExpr);
+      this.evaluate(node.children[1]);
     },
 
     'PTN_1 -> ε': doNothing,
     'PTN_1 -> id': (node) => {
       const v1 = node.children[0];
       if (v1.type === 'terminal' && v1.token) {
-        const patternExpr = this._popNode();
+        const patternExpr = this.popNode();
         if (patternExpr.nodeType === 'nonTerminal') {
           const blankSequenceExpr = patternExpr.children[1];
           if (blankSequenceExpr.nodeType === 'nonTerminal') {
@@ -175,11 +266,11 @@ export class ExpressionTranslate extends Transform {
             ];
           }
         }
-        this._pushNode(patternExpr);
+        this.pushNode(patternExpr);
       }
     },
     'PTN_1 -> _ PTN_2': (node) => {
-      const patternExpr = this._popNode();
+      const patternExpr = this.popNode();
       if (patternExpr.nodeType === 'nonTerminal') {
         patternExpr.children[1] = {
           nodeType: 'nonTerminal',
@@ -187,15 +278,15 @@ export class ExpressionTranslate extends Transform {
           children: [],
         };
       }
-      this._pushNode(patternExpr);
-      this._evaluate(node.children[1]);
+      this.pushNode(patternExpr);
+      this.evaluate(node.children[1]);
     },
 
     'PTN_2 -> ε': doNothing,
     'PTN_2 -> id': (node) => {
       const v1 = node.children[0];
       if (v1.type === 'terminal' && v1.token) {
-        const patternExpr = this._popNode();
+        const patternExpr = this.popNode();
         if (patternExpr.nodeType === 'nonTerminal') {
           const blankNullSequenceExpr = patternExpr.children[1];
           if (blankNullSequenceExpr.nodeType === 'nonTerminal') {
@@ -204,7 +295,7 @@ export class ExpressionTranslate extends Transform {
             ];
           }
         }
-        this._pushNode(patternExpr);
+        this.pushNode(patternExpr);
       }
     },
 
@@ -218,7 +309,7 @@ export class ExpressionTranslate extends Transform {
           expressionType: 'string',
           value: stringContent,
         };
-        this._pushNode(stringNode);
+        this.pushNode(stringNode);
       }
     },
 
@@ -229,50 +320,50 @@ export class ExpressionTranslate extends Transform {
         nodeType: 'nonTerminal',
         children: [],
       };
-      this._pushNode(listNode);
-      this._evaluate(list);
+      this.pushNode(listNode);
+      this.evaluate(list);
     },
 
     'P -> [ L ] P': (node) => {
-      const previousNode: Expr = this._popNode();
+      const previousNode: Expr = this.popNode();
       const functionNode: Expr = {
         head: previousNode,
         nodeType: 'nonTerminal',
         children: [],
       };
-      this._pushNode(functionNode);
-      this._evaluate(node.children[1]);
-      this._evaluate(node.children[3]);
+      this.pushNode(functionNode);
+      this.evaluate(node.children[1]);
+      this.evaluate(node.children[3]);
     },
 
     'P -> = S': (node) => {
-      const leftValueNode = this._popNode();
+      const leftValueNode = this.popNode();
       const assignNode: Expr = {
         head: allSymbolsMap.AssignSymbol,
         nodeType: 'nonTerminal',
         children: [leftValueNode],
       };
 
-      this._evaluate(node.children[1]);
-      const rightValue = this._popNode();
+      this.evaluate(node.children[1]);
+      const rightValue = this.popNode();
       assignNode.children.push(rightValue);
 
-      this._pushNode(assignNode);
+      this.pushNode(assignNode);
     },
 
     'P -> := S': (node) => {
-      const leftValueNode = this._popNode();
+      const leftValueNode = this.popNode();
       const assignDelayedNode: Expr = {
         head: allSymbolsMap.AssignDelayedSymbol,
         nodeType: 'nonTerminal',
         children: [leftValueNode],
       };
 
-      this._evaluate(node.children[1]);
-      const rightValue = this._popNode();
+      this.evaluate(node.children[1]);
+      const rightValue = this.popNode();
       assignDelayedNode.children.push(rightValue);
 
-      this._pushNode(assignDelayedNode);
+      this.pushNode(assignDelayedNode);
     },
 
     'P -> ε': (_) => {},
@@ -282,16 +373,16 @@ export class ExpressionTranslate extends Transform {
     super({ objectMode: true });
   }
 
-  private _reduce(
+  private reduce(
     node: Node,
     head: Expr,
     currIdx: number,
     nextIdx: number,
   ): void {
     if (node.type === 'nonTerminal') {
-      const prev = this._popNode();
-      this._evaluate(node.children[currIdx]);
-      const current = this._popNode();
+      const prev = this.popNode();
+      this.evaluate(node.children[currIdx]);
+      const current = this.popNode();
 
       const reduced: Expr = {
         nodeType: 'nonTerminal',
@@ -299,48 +390,60 @@ export class ExpressionTranslate extends Transform {
         children: [prev, current],
       };
 
-      this._pushNode(reduced);
+      this.pushNode(reduced);
 
-      this._evaluate(node.children[nextIdx]);
+      this.evaluate(node.children[nextIdx]);
     }
   }
+  private rightReduce(
+    expr: NonTerminalNode,
+    rightOperandsIndices: number[],
+    exprMaker: (children: Expr[]) => Expr,
+  ): void {
+    const lhs = this.popNode();
+    for (const idx of rightOperandsIndices) {
+      this.evaluate(expr.children[idx]);
+    }
+    const rhs = this.popNode();
+    this.pushNode(exprMaker([lhs, rhs]));
+  }
 
-  private _reduceByAppend(
+  private reduceByAppend(
     node: NonTerminalNode,
     currIdx: number,
     nextIdx: number,
   ): void {
-    const prev = this._popNode();
+    const prev = this.popNode();
     if (prev.nodeType === 'nonTerminal') {
-      this._evaluate(node.children[currIdx]);
-      const current = this._popNode();
+      this.evaluate(node.children[currIdx]);
+      const current = this.popNode();
       const appended: Expr = {
         nodeType: 'nonTerminal',
         head: prev.head,
         children: [...prev.children, current],
       };
-      this._pushNode(appended);
-      this._evaluate(node.children[nextIdx]);
+      this.pushNode(appended);
+      this.evaluate(node.children[nextIdx]);
     }
   }
 
-  private _evaluateEveryChild(node: Node): void {
+  private evaluateEveryChild(node: Node): void {
     if (node.type === 'nonTerminal') {
-      node.children.forEach((child) => this._evaluate(child));
+      node.children.forEach((child) => this.evaluate(child));
     }
   }
 
-  private _pushNode(node: Expr): void {
-    this._nodeStack.push(node);
+  private pushNode(node: Expr): void {
+    this.exprStack.push(node);
   }
 
-  private _popNode(): Expr {
-    return this._nodeStack.pop() as Expr;
+  private popNode(): Expr {
+    return this.exprStack.pop() as Expr;
   }
 
-  private _evaluate(node: Node): void {
+  private evaluate(node: Node): void {
     if (node.type === 'nonTerminal') {
-      const evaluator = this._evaluatorMap[node.ruleName];
+      const evaluator = this.evaluatorMap[node.ruleName];
       if (typeof evaluator === 'function') {
         evaluator(node);
       } else {
@@ -355,14 +458,14 @@ export class ExpressionTranslate extends Transform {
     }
   }
 
-  _transform(
+  public _transform(
     node: Node,
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
     if (node.type === 'nonTerminal') {
-      this._evaluate(node);
-      this.push(this._nodeStack.pop());
+      this.evaluate(node);
+      this.push(this.exprStack.pop());
     }
     callback();
   }
