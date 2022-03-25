@@ -8,17 +8,24 @@ import {
   AssignDelayedExpr,
   AssignExpr,
   BlankExpr,
+  DivideExpr,
   EqualQExpr,
   GreaterThanExpr,
   GreaterThanOrEqualExpr,
   LessThanExpr,
   LessThanOrEqualExpr,
+  MinusExpr,
+  NegativeExpr,
   NodeFactory,
   NotExpr,
   OrExpr,
+  PlusExpr,
+  PowerExpr,
+  RemainderExpr,
   ReplaceAllExpr,
   RuleDelayedExpr,
   RuleExpr,
+  TimesExpr,
 } from './config';
 import { Expr } from './interfaces';
 
@@ -104,6 +111,42 @@ export class ExpressionTranslate extends Transform {
       ),
 
     'e -> t ep': (n) => this.evaluateEveryChild(n),
+
+    'ep -> + t ep': (n) => this.rightReduce(n, [1, 2], PlusExpr),
+
+    'ep -> - t ep': (n) => this.rightReduce(n, [1, 2], MinusExpr),
+
+    'ep -> eps': doNothing,
+
+    't -> f3 tp': (n) => this.evaluateEveryChild(n),
+
+    'tp -> * f3 tp': (n) => this.rightReduce(n, [1, 2], TimesExpr),
+
+    'tp -> / f3 tp': (n) => this.rightReduce(n, [1, 2], DivideExpr),
+
+    'tp -> eps': doNothing,
+
+    'f3 -> f2 rem': (n) => this.evaluateEveryChild(n),
+
+    'rem -> % f2 rem': (n) => this.rightReduce(n, [1, 2], RemainderExpr),
+
+    'rem -> eps': doNothing,
+
+    'f2 -> - f1': (n) => {
+      this.evaluate(n.children[1]);
+      const expr = this.popNode();
+      this.pushNode(NegativeExpr([expr]));
+    },
+
+    'f2 -> f1': (n) => this.evaluateEveryChild(n),
+
+    'f1 -> f0 pow': (n) => this.evaluateEveryChild(n),
+
+    'pow -> eps': doNothing,
+
+    'pow -> ^ f0 pow': (n) => this.leftReduce(n, 1, 2, PowerExpr),
+
+    'f0 -> f ptn': (n) => this.evaluateEveryChild(n),
 
     "S -> S' CMP_0": (node) => this.evaluateEveryChild(node),
 
@@ -395,6 +438,20 @@ export class ExpressionTranslate extends Transform {
       this.evaluate(node.children[nextIdx]);
     }
   }
+
+  private leftReduce(
+    expr: NonTerminalNode,
+    rhsOpIdx: number,
+    restOpIdx: number,
+    exprMaker: (children: Expr[]) => Expr,
+  ): void {
+    const lhs = this.popNode();
+    this.evaluate(expr.children[rhsOpIdx]);
+    const rhs = this.popNode();
+    this.pushNode(exprMaker([lhs, rhs]));
+    this.evaluate(expr.children[restOpIdx]);
+  }
+
   private rightReduce(
     expr: NonTerminalNode,
     rightOperandsIndices: number[],

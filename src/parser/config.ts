@@ -323,7 +323,7 @@ export const allRules: ProductionRule[] = [
     rhs: [],
   },
   {
-    name: 'f2 -> -  f1',
+    name: 'f2 -> - f1',
     lhs: sbl.f2,
     rhs: [sbl.minus, sbl.f1],
   },

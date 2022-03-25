@@ -493,6 +493,34 @@ export function EqualQExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.EqualQSymbol, children);
 }
 
+export function PlusExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.PlusSymbol, children);
+}
+
+export function MinusExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.MinusSymbol, children);
+}
+
+export function TimesExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.TimesSymbol, children);
+}
+
+export function DivideExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.DivideSymbol, children);
+}
+
+export function RemainderExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.RemainderSymbol, children);
+}
+
+export function NegativeExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.NegativeSymbol, children);
+}
+
+export function PowerExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.PowerSymbol, children);
+}
+
 // 返回一个数值型一元运算 Pattern
 class UnaryOperationPatternFactory {
   public static makePattern(
