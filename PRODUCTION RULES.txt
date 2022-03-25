@@ -72,23 +72,24 @@ F1         ->  F0  POW
 POW        ->  ε
             |  ^  F0  POW
 
-F0         ->  F  PTN
-            |  _  F  PTN
-            |  __  F  PTN
-            |  ___  F  PTN
 
-PTN        ->  ε
-            |  _  F  PTN
-            |  __  F  PTN
-            |  ___  F  PTN
+F0  ->  PATTERN_OP  PATTERN_EXT
+     |  COMPOUND  PATTERN_OP  PATTERN_EXT
 
-F          ->  id  ID_EXT
+PATTERN_EXT  ->  eps
+              |  COMPOUND
 
-ID_EXT     ->  ε                     # 纯 identifier
-            |  [  PARAMS_EXT         # 带函数调用参数列表或者数组/字典元素选择子
+PATTERN_OP    ->  _         # Blank
+               |  __        # BlankSequence
+               |  ___       # BlankNullSequence
 
-PARAMS_EXT  ->  L  ]  ID_EXT         # 函数调用
-             |  [  S  ]  ]  ID_EXT   # 数组访问或者对象访问选择子，表达式都是 Take
+COMPOUND   ->  BASE  COMPOUND_EXT
+
+COMPOUND_EXT  ->  eps
+               |  [  COMPOUND_EXT_2
+
+COMPOUND_EXT_2  ->  L  ]  COMPOUND_EXT           # 函数调用
+                 |  [  S  ]  ]  COMPOUND_EXT     # 数组访问或者对象访问选择子，表达式都是 Take
 
 BASE       ->  (  E  )               # 表示一个括号括起来的表达式, BASE 表示「不能再拆分的东西」
             |  NUM                   # 表示一个数字
@@ -99,7 +100,8 @@ BASE       ->  (  E  )               # 表示一个括号括起来的表达式, 
 
 NUM        ->  num  NUM_EXT
 
-NUM_EXT    ->  FACTORIAL
+NUM_EXT    ->  ε
+            |  !  DOUBLE_FACTORIAL
             |  .  num  DOT_EXT
 
 DOT_EXT     ->  ε
@@ -107,9 +109,5 @@ DOT_EXT     ->  ε
 
 SCIENTIFIC_EXT  ->  +  num
                  |  -  num
- 
-FACTORIAL  ->  ε                      # 没有阶乘
-            |  !  DOUBLE_FACTORIAL    # 可能有双阶乘
 
-DOUBLE_FACTORIAL  ->  ε               # 单阶乘
-                   |  !               # 双阶乘
+
