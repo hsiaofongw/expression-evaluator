@@ -417,5 +417,111 @@ export const allRules: ProductionRule[] = [
     rhs: [sbl.compound],
   },
 
-  
+  {
+    name: 'pattern_op -> _',
+    lhs: sbl.pattern_op,
+    rhs: [sbl.singleUnderline],
+  },
+
+  {
+    name: 'pattern_op -> __',
+    lhs: sbl.pattern_op,
+    rhs: [sbl.doubleUnderline],
+  },
+
+  {
+    name: 'pattern_op -> ___',
+    lhs: sbl.pattern_op,
+    rhs: [sbl.tripleUnderline],
+  },
+
+  {
+    name: 'compound -> base compound_ext',
+    lhs: sbl.compound,
+    rhs: [sbl.base, sbl.compound_ext],
+  },
+
+  {
+    name: 'compound_ext -> eps',
+    lhs: sbl.compound_ext,
+    rhs: [],
+  },
+
+  {
+    name: 'compound_ext -> [ compound_ext_2',
+    lhs: sbl.compound_ext,
+    rhs: [sbl.leftSquare, sbl.compound_ext_2],
+  },
+
+  {
+    name: 'compound_ext_2 -> l ] compound_ext',
+    lhs: sbl.compound_ext_2,
+    rhs: [sbl.l, sbl.rightSquare, sbl.compound_ext],
+  },
+
+  {
+    name: 'compound_ext_2 -> [ S ] ] compound_ext',
+    lhs: sbl.compound_ext_2,
+    rhs: [
+      sbl.leftSquare,
+      sbl.s,
+      sbl.rightSquare,
+      sbl.rightSquare,
+      sbl.compound_ext,
+    ],
+  },
+
+  {
+    name: 'base -> ( e )',
+    lhs: sbl.base,
+    rhs: [sbl.leftParentheses, sbl.e, sbl.rightParentheses],
+  },
+
+  {
+    name: 'base -> Number',
+    lhs: sbl.base,
+    rhs: [sbl.Number],
+  },
+
+  {
+    name: 'base -> { L }',
+    lhs: sbl.base,
+    rhs: [sbl.leftBracket, sbl.l, sbl.rightBracket],
+  },
+
+  {
+    name: 'base -> <| L |>',
+    lhs: sbl.base,
+    rhs: [sbl.leftAngleColumn, sbl.l, sbl.columnRightAngle],
+  },
+
+  {
+    name: 'base -> str',
+    lhs: sbl.base,
+    rhs: [sbl.string],
+  },
+
+  {
+    name: 'base -> id',
+    lhs: sbl.base,
+    rhs: [sbl.identifier],
+  },
+
+  {
+    name: 'Number -> num num_ext',
+    lhs: sbl.Number,
+    rhs: [sbl.number, sbl.number_ext],
+  },
+
+  {
+    name: 'num_ext -> eps',
+    lhs: sbl.number_ext,
+    rhs: [],
+  },
+
+  {
+    name: 'num_ext -> ! double_factorial',
+    lhs: sbl.number_ext,
+    rhs: [sbl.exclamation, sbl.double]
+  }
 ];
