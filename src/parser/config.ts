@@ -396,12 +396,6 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'f0 -> pattern_op pattern_ext',
-    lhs: sbl.f0,
-    rhs: [sbl.pattern_op, sbl.pattern_ext],
-  },
-
-  {
     name: 'f0 -> compound',
     lhs: sbl.f0,
     rhs: [sbl.compound],

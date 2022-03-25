@@ -8,6 +8,8 @@ import {
   AssignDelayedExpr,
   AssignExpr,
   BlankExpr,
+  BlankNullSequenceExpr,
+  BlankSequenceExpr,
   DivideExpr,
   EqualQExpr,
   GreaterThanExpr,
@@ -28,7 +30,7 @@ import {
   RuleExpr,
   TimesExpr,
 } from './config';
-import { Expr } from './interfaces';
+import { Expr, NonTerminalExpr } from './interfaces';
 
 type Evaluator = (node: NonTerminalNode) => void;
 type EvaluatorMap = Record<string, Evaluator>;
@@ -159,13 +161,40 @@ export class ExpressionTranslate extends Transform {
 
     'pow -> ^ f0 pow': (n) => this.leftReduce(n, 1, 2, PowerExpr),
 
-    'f0 -> pattern_op pattern_ext': (n) => this.evaluateEveryChild(n),
+    'f0 -> compound': (n) => this.evaluateEveryChild(n),
 
-    'f0 -> compound pattern_op pattern_ext': (n) => this.evaluateEveryChild(n),
+    'f0 -> pattern_compound': (n) => this.evaluateEveryChild(n),
+
+    'pattern_compound -> pattern_op pattern_ext': (n) =>
+      this.evaluateEveryChild(n),
+
+    'pattern_compound -> compound pattern_op pattern_ext': (n) => {
+      this.evaluate(n.children[0]);
+      const lhs = this.popNode();
+
+      this.evaluate(n.children[1]);
+      this.evaluate(n.children[2]);
+      const blankLikeExpr = this.popNode();
+      this.pushNode(PatternExpr([lhs, blankLikeExpr]));
+    },
 
     'pattern_ext -> eps': doNothing,
-
-    'pattern_ext -> compound': (n) => this.evaluateEveryChild(n),
+    'pattern_ext -> compound': (n) => {
+      const blankLikeExpr = this.popNode();
+      this.evaluate(n.children[0]);
+      const headExpr = this.popNode();
+      (blankLikeExpr as NonTerminalExpr).children = [headExpr];
+      this.pushNode(blankLikeExpr);
+    },
+    'pattern_op -> _': (n) => {
+      this.pushNode(BlankExpr([]));
+    },
+    'pattern_op -> __': (n) => {
+      this.pushNode(BlankSequenceExpr([]));
+    },
+    'pattern_op -> ___': (n) => {
+      this.pushNode(BlankNullSequenceExpr([]));
+    },
   };
 
   constructor() {
