@@ -34,7 +34,8 @@ export type NonterminalSymbolType =
   | 'Number'
   | 'number_ext'
   | 'dot_ext'
-  | 'scientific_ext';
+  | 'scientific_ext'
+  | 'double_factorial';
 
 export type TerminalSymbolType = TokenType;
 

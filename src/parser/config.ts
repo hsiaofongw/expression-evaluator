@@ -53,6 +53,7 @@ export const sbl: Record<SymbolType, SyntaxSymbol> = {
   number_ext: NonTerminal('number_ext'),
   dot_ext: NonTerminal('dot_ext'),
   scientific_ext: NonTerminal('scientific_ext'),
+  double_factorial: NonTerminal('double_factorial'),
 
   exclamation: Terminal('exclamation'),
   equal: Terminal('equal'),
@@ -522,6 +523,48 @@ export const allRules: ProductionRule[] = [
   {
     name: 'num_ext -> ! double_factorial',
     lhs: sbl.number_ext,
-    rhs: [sbl.exclamation, sbl.double]
-  }
+    rhs: [sbl.exclamation, sbl.double_factorial],
+  },
+
+  {
+    name: 'num_ext -> . num dot_ext',
+    lhs: sbl.number_ext,
+    rhs: [sbl.dot, sbl.number, sbl.dot_ext],
+  },
+
+  {
+    name: 'dot_ext -> eps',
+    lhs: sbl.dot_ext,
+    rhs: [],
+  },
+
+  {
+    name: 'dot_ext -> id scientific_ext',
+    lhs: sbl.dot_ext,
+    rhs: [sbl.identifier, sbl.scientific_ext],
+  },
+
+  {
+    name: 'scientific_ext -> + num',
+    lhs: sbl.scientific_ext,
+    rhs: [sbl.plus, sbl.number],
+  },
+
+  {
+    name: 'scientific_ext -> - num',
+    lhs: sbl.scientific_ext,
+    rhs: [sbl.minus, sbl.number],
+  },
+
+  {
+    name: 'double_factorial -> eps',
+    lhs: sbl.double_factorial,
+    rhs: [],
+  },
+
+  {
+    name: 'double_factorial -> !',
+    lhs: sbl.double_factorial,
+    rhs: [sbl.exclamation],
+  },
 ];

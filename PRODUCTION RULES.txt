@@ -105,9 +105,11 @@ NUM_EXT    ->  ε
             |  .  num  DOT_EXT
 
 DOT_EXT     ->  ε
-             |  E  SCIENTIFIC_EXT
+             |  id  SCIENTIFIC_EXT    # 在语义分析阶段检查 id 是不是 E
 
-SCIENTIFIC_EXT  ->  +  num
+SCIENTIFIC_EXT  ->  +  num    
                  |  -  num
 
+DOUBLE_FACTORIAL  ->  ε
+                   |  !
 
