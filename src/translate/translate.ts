@@ -19,6 +19,7 @@ import {
   NodeFactory,
   NotExpr,
   OrExpr,
+  PatternExpr,
   PlusExpr,
   PowerExpr,
   RemainderExpr,
@@ -147,6 +148,8 @@ export class ExpressionTranslate extends Transform {
     'pow -> ^ f0 pow': (n) => this.leftReduce(n, 1, 2, PowerExpr),
 
     'f0 -> f ptn': (n) => this.evaluateEveryChild(n),
+
+    'f0 -> _ f ptn': (n) => this.rightReduce(n, [1, 2], PatternExpr),
 
     "S -> S' CMP_0": (node) => this.evaluateEveryChild(node),
 

@@ -281,69 +281,6 @@ function makeNonStandardSymbolSet(): Set<string> {
 }
 export const allNonStandardSymbolsSet: Set<string> = makeNonStandardSymbolSet();
 
-// 返回一个 Blank Pattern
-export function BlankExpr(): Expr {
-  return {
-    nodeType: 'nonTerminal',
-    head: allSymbolsMap.BlankSymbol,
-    children: [],
-  };
-}
-
-// 返回一个 Typed Blank Pattern
-export function TypedBlankExpr(h: Expr): Expr {
-  return {
-    nodeType: 'nonTerminal',
-    head: allSymbolsMap.BlankSymbol,
-    children: [h],
-  };
-}
-
-// 返回一个 BlankSequence Pattern
-export function BlankSequenceExpr(): Expr {
-  return {
-    nodeType: 'nonTerminal',
-    head: allSymbolsMap.BlankSequenceSymbol,
-    children: [],
-  };
-}
-
-// 返回一个 BlankSequenceNull Pattern
-export function BlankNullSequenceExpr(): Expr {
-  return {
-    nodeType: 'nonTerminal',
-    head: allSymbolsMap.BlankNullSequenceSymbol,
-    children: [],
-  };
-}
-
-// 返回一个 BlankNullSequence[h] Pattern
-export function TypedBlankNullSequenceExpr(headExpected: Expr): Expr {
-  return {
-    nodeType: 'nonTerminal',
-    head: allSymbolsMap.BlankNullSequenceSymbol,
-    children: [headExpected],
-  };
-}
-
-// 返回一个 BlankSequence[h] Pattern
-export function TypedBlankSequenceExpr(headExpected: Expr): Expr {
-  return {
-    nodeType: 'nonTerminal',
-    head: allSymbolsMap.BlankSequenceSymbol,
-    children: [headExpected],
-  };
-}
-
-// 返回一个命名 Pattern
-export function NamedPatternExpr(identifier: string, pattern: Expr): Expr {
-  return {
-    nodeType: 'nonTerminal',
-    head: allSymbolsMap.PatternSymbol,
-    children: [NodeFactory.makeSymbol(identifier), pattern],
-  };
-}
-
 // 返回一个 Sequence
 export function SequenceExpr(children: Expr[]): Expr {
   return {
@@ -519,6 +456,22 @@ export function NegativeExpr(children: Expr[]): Expr {
 
 export function PowerExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.PowerSymbol, children);
+}
+
+export function PatternExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.PatternSymbol, children);
+}
+
+export function BlankExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.BlankSymbol, children);
+}
+
+export function BlankSequenceExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.BlankSequenceSymbol, children);
+}
+
+export function BlankNullSequenceExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.BlankNullSequenceSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern

@@ -353,17 +353,17 @@ export const allRules: ProductionRule[] = [
     rhs: [sbl.f, sbl.ptn],
   },
   {
-    name: 'f0 -> _ f ptn',
+    name: 'f0 -> _ f',
     lhs: sbl.f0,
     rhs: [sbl.singleUnderline, sbl.f, sbl.ptn],
   },
   {
-    name: 'f0 -> __ f ptn',
+    name: 'f0 -> __ f',
     lhs: sbl.f0,
     rhs: [sbl.doubleUnderline, sbl.f, sbl.ptn],
   },
   {
-    name: 'f0 -> ___ f ptn',
+    name: 'f0 -> ___ f',
     lhs: sbl.f0,
     rhs: [sbl.tripleUnderline, sbl.f, sbl.ptn],
   },
