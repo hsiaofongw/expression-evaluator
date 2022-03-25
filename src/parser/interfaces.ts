@@ -25,6 +25,7 @@ export type NonterminalSymbolType =
   | 'f1'
   | 'pow'
   | 'f0'
+  | 'pattern_compound'
   | 'pattern_ext'
   | 'pattern_op'
   | 'compound'

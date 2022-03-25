@@ -43,6 +43,7 @@ export const sbl: Record<SymbolType, SyntaxSymbol> = {
   f1: NonTerminal('f1'),
   pow: NonTerminal('pow'),
   f0: NonTerminal('f0'),
+  pattern_compound: NonTerminal('pattern_compound'),
   pattern_ext: NonTerminal('pattern_ext'),
   pattern_op: NonTerminal('pattern_op'),
   compound: NonTerminal('compound'),
@@ -401,7 +402,25 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'f0 -> compound pattern_op pattern_ext',
+    name: 'f0 -> compound',
+    lhs: sbl.f0,
+    rhs: [sbl.compound],
+  },
+
+  {
+    name: 'f0 -> pattern_compound',
+    lhs: sbl.f0,
+    rhs: [sbl.pattern_compound],
+  },
+
+  {
+    name: 'pattern_compound -> pattern_op pattern_ext',
+    lhs: sbl.f0,
+    rhs: [sbl.pattern_op, sbl.pattern_ext],
+  },
+
+  {
+    name: 'pattern_compound -> compound pattern_op pattern_ext',
     lhs: sbl.f0,
     rhs: [sbl.compound, sbl.pattern_op, sbl.pattern_ext],
   },

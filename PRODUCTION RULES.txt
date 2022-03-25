@@ -72,9 +72,11 @@ F1         ->  F0  POW
 POW        ->  ε
             |  ^  F0  POW
 
+F0  ->  COMPOUND          # F0 不是一个带下划线的 pattern, 基本上就只是一个 BASE 或者 COMPOUND
+     |  PATTERN_COMPOUND  # F0 是一个下划线 pattern, 类似于 _, x_h, _h, __h 这样的
 
-F0  ->  PATTERN_OP  PATTERN_EXT
-     |  COMPOUND  PATTERN_OP  PATTERN_EXT
+PATTERN_COMPOUND  ->  PATTERN_OP  PATTERN_EXT            # 此时 F0 是这样：_ 或者这样：_h
+                   |  COMPOUND  PATTERN_OP  PATTERN_EXT  # 此时 F0 是这样：f[x]_ 或者这样：expr_g
 
 PATTERN_EXT  ->  eps
               |  COMPOUND
