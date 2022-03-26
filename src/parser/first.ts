@@ -2,169 +2,185 @@ import { SetHelper } from 'src/helpers/set-helper';
 import { sbl } from './config';
 import { ProductionRule, SymbolType, SyntaxSymbol } from './interfaces';
 
-/** 提供计算 FIRST, EPS, FOLLOW 和 PREDICT 的方法 */
-export class PredictHelper {
+class PredictTable {
+  /** 输入：lhs 的 id, 输出：所有以 lhs 为左边符号的产生式 */
+  private rulesMap: Record<SyntaxSymbol['id'], ProductionRule[]> = {} as any;
+
+  /** 输入：符号 id, 输出：此符号的 Follow 集（集合里边的每个元素是符号 id） */
+  private followMap: Record<SyntaxSymbol['id'], Set<SyntaxSymbol['id']>> =
+    {} as any;
+
+  /** 输入：产生式的 name（产生式的 name 可作为产生式的唯一标识符），输出：该产生式的预测集 */
+  private predictRuleMap: Record<
+    ProductionRule['name'],
+    Set<SyntaxSymbol['id']>
+  > = {} as any;
+
+  constructor(private allRules: ProductionRule[]) {
+    this.init();
+  }
+
+  private init(): void {
+    for (const rule of this.allRules) {
+      const key = rule.lhs.id;
+      if (this.rulesMap[key] === undefined) {
+        this.rulesMap[key] = [];
+      }
+      this.rulesMap[key].push(rule);
+    }
+
+    this.calculateFollowTable();
+    this.calculatePredictTable();
+  }
+
+  private calculateFollowTable(): void {
+    this.followMap = {} as any;
+    this.addFollowRuleById(sbl.s.id, sbl.eof.id);
+
+    while (true) {
+      let added = 0;
+
+      for (const rule of this.allRules) {
+        for (let i = 0; i < rule.rhs.length; i++) {
+          const alpha = rule.lhs;
+          const B = rule.rhs[i];
+          const beta = rule.rhs.slice(i + 1, rule.rhs.length);
+
+          const firstSetOfBeta = this.first(beta);
+          for (const sblId of firstSetOfBeta) {
+            added = added + this.addFollowRuleById(B.id, sblId);
+          }
+
+          if (beta.length === 0 || this.epsilon(beta)) {
+            const followSetOfAlpha = this.getFollowSetById(alpha.id);
+            for (const sblId of followSetOfAlpha) {
+              added = added + this.addFollowRuleById(B.id, sblId);
+            }
+          }
+        }
+      }
+
+      if (added === 0) {
+        return;
+      }
+    }
+  }
+
+  private getFollowSetById(
+    symbolId: SyntaxSymbol['id'],
+  ): Set<SyntaxSymbol['id']> {
+    if (this.followMap[symbolId] === undefined) {
+      this.followMap[symbolId] = new Set<SyntaxSymbol['id']>();
+    }
+    return this.followMap[symbolId];
+  }
+
+  private addFollowRuleById(
+    symbolXId: SyntaxSymbol['id'],
+    symbolYId: SyntaxSymbol['id'],
+  ): number {
+    let added = 0;
+    const followSet = this.getFollowSetById(symbolXId);
+    if (!followSet.has(symbolYId)) {
+      added = 1;
+    }
+    followSet.add(symbolYId);
+    return added;
+  }
+
+  private getRulesByLhsId(lhsId: SyntaxSymbol['id']): ProductionRule[] {
+    return this.rulesMap[lhsId] ?? [];
+  }
+
   /**
-   * 此函数用于判断一个符号串 alpha 能否经过 0 步或更多步推导为空串
-   *
-   * @param alpha 符号串
-   * @param rules 语法规则集
-   * @returns 如果 alpha *=> epsilon, 返回 true, 否则返回 false
+   * return true if and only if symbols *=> eps
    */
-  public static epsilon(
-    alpha: SyntaxSymbol[],
-    allRules: ProductionRule[],
-  ): boolean {
-    if (alpha.length === 0) {
+  private epsilon(symbols: SyntaxSymbol[]): boolean {
+    if (symbols.length === 0) {
       return true;
     }
 
-    const head = alpha[0];
+    const head = symbols[0];
     if (head.type === 'terminal') {
       return false;
     }
 
-    const rules = allRules.filter((rule) => rule.lhs.id === head.id);
+    const rules = this.allRules.filter((rule) => rule.lhs.id === head.id);
     for (const rule of rules) {
-      if (PredictHelper.epsilon(rule.rhs, allRules)) {
-        return PredictHelper.epsilon(alpha.slice(1, alpha.length), allRules);
+      if (this.epsilon(rule.rhs)) {
+        return this.epsilon(symbols.slice(1, symbols.length));
       }
     }
 
     return false;
   }
 
-  public static first(
-    sbls: SyntaxSymbol[],
-    productionRules: ProductionRule[],
-  ): {
-    symbolIdSet: Set<SyntaxSymbol['id']>;
-  } {
-    if (sbls.length === 0) {
-      return { symbolIdSet: new Set<SyntaxSymbol['id']>([]) };
+  private first(symbols: SyntaxSymbol[]): Set<SyntaxSymbol['id']> {
+    const firstSblIdSet = new Set<SyntaxSymbol['id']>();
+
+    if (symbols.length === 0) {
+      return firstSblIdSet;
     }
 
-    const head = sbls[0];
+    const head = symbols[0];
     if (head.type === 'terminal') {
-      return { symbolIdSet: new Set<SyntaxSymbol['id']>([head.id]) };
+      firstSblIdSet.add(head.id);
+      return firstSblIdSet;
     }
 
-    // 当前 sbls 中的第一个是一个 nonTerminal
-    // 记它为 A, 我们要找的所有 A -> x 这样的产生式（x 可以是 epsilon）
-    // 检查每一个这样的 x 的 First 集，如果有空的（也就是说 A *=> eps），那么，我们还要再计算 sbls[1..] 的 First
-
-    const rules = productionRules.filter((rule) => rule.lhs.id === head.id);
-    const firstResults = rules.map((rule) =>
-      PredictHelper.first(rule.rhs, productionRules),
-    );
-
-    const firstUnion: Set<SymbolType> = firstResults
-      .map((x) => x.symbolIdSet)
-      .reduce((a, b) => SetHelper.union(a, b), new Set<SymbolType>([]));
-
-    for (const res of firstResults) {
-      if (res.symbolIdSet.size === 0) {
-        // rules 中存在 A -> eps 这样的
-
-        const rest = PredictHelper.first(
-          sbls.slice(1, sbls.length),
-          productionRules,
-        );
-
-        return { symbolIdSet: SetHelper.union(firstUnion, rest.symbolIdSet) };
+    let shouldContinue = false;
+    const rules = this.getRulesByLhsId(head.id);
+    for (const rule of rules) {
+      const firstSetForRhs = this.first(rule.rhs);
+      if (this.epsilon(rule.rhs)) {
+        shouldContinue = true;
+      }
+      for (const id of firstSetForRhs) {
+        firstSblIdSet.add(id);
       }
     }
 
-    // 到了这，说明 A 推不出 eps
+    if (shouldContinue) {
+      const restSbls = symbols.slice(1, symbols.length);
+      const restFstSet = this.first(restSbls);
+      for (const item of restFstSet) {
+        firstSblIdSet.add(item);
+      }
+    }
 
-    return { symbolIdSet: firstUnion };
+    return firstSblIdSet;
   }
 
-  public static calculateFollowSet(
-    productionRules: ProductionRule[],
-  ): Record<SyntaxSymbol['id'], Set<SyntaxSymbol['id']>> {
-    const makeEmptySet: () => Set<SyntaxSymbol['id']> = () =>
-      new Set<SyntaxSymbol['id']>();
-    const result: Record<
-      SyntaxSymbol['id'],
-      Set<SyntaxSymbol['id']>
-    > = {} as any;
-    result[sbl.s.id] = new Set<SyntaxSymbol['id']>([sbl.eof.id]); // Follow(S) = { $$ };
+  private getPredictSet(
+    ruleName: ProductionRule['name'],
+  ): Set<SyntaxSymbol['id']> {
+    if (this.predictRuleMap[ruleName] === undefined) {
+      this.predictRuleMap[ruleName] = new Set<SyntaxSymbol['id']>();
+    }
+    return this.predictRuleMap[ruleName];
+  }
 
-    const getTotalCount: () => number = () => {
-      let totalCount = 0;
-      for (const key in result) {
-        totalCount = totalCount + (result[key] as Set<unknown>).size;
+  private addItemToPredictSet(
+    ruleName: ProductionRule['name'],
+    symbolId: SyntaxSymbol['id'],
+  ): void {
+    this.getPredictSet(ruleName).add(symbolId);
+  }
+
+  private calculatePredictTable(): void {
+    this.predictRuleMap = {} as any;
+    for (const rule of this.allRules) {
+      const firstSet = this.first(rule.rhs);
+      for (const sblId of firstSet) {
+        this.addItemToPredictSet(rule.name, sblId);
       }
-      return totalCount;
-    };
 
-    let totalCount = getTotalCount();
-
-    while (true) {
-      for (const rule of productionRules) {
-        const lhs = rule.lhs;
-        const rhs = rule.rhs;
-        for (let i = 0; i < rhs.length; i++) {
-          const x = rhs[i];
-          let beta: SyntaxSymbol[] = [];
-          if (i <= rhs.length - 1) {
-            beta = rhs.slice(i + 1, rhs.length);
-          }
-
-          if (
-            beta.length === 0 ||
-            PredictHelper.epsilon(beta, productionRules)
-          ) {
-            // A -> alpha B beta, beta *=> epsilon, or A -> alpha B
-            const followA = result[lhs.id] ?? makeEmptySet();
-            if (result[x.id] === undefined) {
-              result[x.id] = makeEmptySet();
-            }
-            for (const followToken of followA) {
-              result[x.id].add(followToken);
-            }
-          } else {
-            // A -> alpha B beta, beta *=>/ epsilon
-            const firstBeta = PredictHelper.first(
-              beta,
-              productionRules,
-            ).symbolIdSet;
-            if (result[x.id] === undefined) {
-              result[x.id] = makeEmptySet();
-            }
-
-            for (const sblId of firstBeta) {
-              result[x.id].add(sblId);
-            }
-          }
+      if (this.epsilon(rule.rhs)) {
+        const followOfLhs = this.getFollowSetById(rule.lhs.id);
+        for (const sblId of followOfLhs) {
+          this.addItemToPredictSet(rule.name, sblId);
         }
       }
-
-      const newTotalCount = getTotalCount();
-      if (newTotalCount === totalCount) {
-        return result;
-      } else {
-        totalCount = newTotalCount;
-      }
     }
-  }
-
-  public static predictSet(
-    productionRule: ProductionRule,
-    productionRules: ProductionRule[],
-  ): Set<SyntaxSymbol['id']> {
-    const firstSet = PredictHelper.first(
-      productionRule.rhs,
-      productionRules,
-    ).symbolIdSet;
-    const eps = PredictHelper.epsilon(productionRule.rhs, productionRules);
-    if (eps) {
-      const followSetMap = PredictHelper.calculateFollowSet(productionRules);
-      const followSet = followSetMap[productionRule.lhs.id];
-      return SetHelper.union(firstSet, followSet);
-    }
-
-    return firstSet;
   }
 }
