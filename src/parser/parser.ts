@@ -2,7 +2,7 @@ import { Token } from 'src/new-lexer/interfaces';
 import { Transform, TransformCallback } from 'stream';
 import { allRules, sbl } from './config';
 import { PredictHelper } from './first';
-import { Node } from './interfaces';
+import { Node, NonTerminalNode } from './interfaces';
 
 export class LL1PredictiveParser extends Transform {
   private parseStack!: Node[];
@@ -41,63 +41,60 @@ export class LL1PredictiveParser extends Transform {
       // 如果能展开则先尝试展开，展开后再匹配，展开不了就报错
       // stacktop 的非终结符号节点展开之后可能仍是非终结符号节点，所以要用 while 循环重复几遍
       while (this.stackTop.type === 'nonTerminal') {
-        const lhs = this.stackTop.symbol;
-        const rules = allRules.filter((rule) => rule.lhs.id === lhs.id);
-        const expandSbl = this.stackTop;
-        this.parseStack.pop();
+        const expandSbl = this.parseStack.pop() as NonTerminalNode;
 
-        // 寻找规则展开 expandSbl, 并且把规则右边的符号转换成语法树节点倒序入栈
-        let expanded = false;
-        for (const rule of rules) {
-          // 对每个 rule: expandSbl -> x, 计算 rule 的 predictSet
-          const predictSet = PredictHelper.predictSet(rule, allRules);
+        const rules = allRules.filter(
+          (rule) => rule.lhs.id === expandSbl.symbol.id,
+        );
 
-          // 若当前输入 token 处在 predictSet 中，则选择这个 rule 展开 expandSbl
-          if (predictSet.has(inputBufferHead.tokenClassName)) {
-            expanded = true;
-            // 记下这条 rule 的名字
-            expandSbl.ruleName = rule.name;
-            const rhs = rule.rhs;
+        const expandRule = rules.find((rule) =>
+          PredictHelper.predictSet(rule, allRules).has(
+            inputBufferHead.tokenClassName,
+          ),
+        );
 
-            // 对这条 rule 的 RHS 中的每个符号 rhsSbl（倒序）
-            for (let i = 0; i < rhs.length; i++) {
-              const rhsSbl = rhs[rhs.length - 1 - i];
+        console.log('');
+        console.log('expandSbl: ' + expandSbl.symbol.id);
+        console.log('inputBufferHead: ' + inputBufferHead.tokenClassName);
+        console.log('expandRule: ' + expandRule.name);
+        console.log('');
 
-              if (rhsSbl.type === 'terminal') {
-                // 若 rhsSbl 是一个 terminal 类型的语法符号
-                const node: Node = {
-                  type: 'terminal',
-                  symbol: rhsSbl,
-                };
-
-                // 则在被展开的这个节点的 children 中入栈一个 terminal 类型的 Node
-                expandSbl.children.push(node);
-
-                // 并且在当前 parse Stack 入栈一个 terminal 类型的 Node, 这两个是同一个
-                this.parseStack.push(node);
-              } else {
-                // 以此类推
-                // 只不过，对于 RHS 中的 nonTerminal 符号，要把它转为 NonTerminal 树节点
-                const node: Node = {
-                  type: 'nonTerminal',
-                  children: [],
-                  symbol: rhsSbl,
-                  ruleName: '',
-                };
-                expandSbl.children.push(node);
-                this.parseStack.push(node);
-              }
-            }
-
-            // 展开完成之后 break 这个寻找 rule 的过程
-            break;
-          }
-        }
-
-        // 如果展开不了当前语法符号则需要报语法错误，让开发者去调试
-        if (expanded === false) {
+        if (!expandRule) {
           console.error('在语法解析时遇到错误：找不到规则来展开当前符号');
           process.exit(1);
+        }
+
+        // 记下这条 rule 的名字
+        expandSbl.ruleName = expandRule.name;
+
+        // 对这条 rule 的 RHS 中的每个符号 rhsSbl（倒序）
+        for (let i = 0; i < expandRule.rhs.length; i++) {
+          const rhsSbl = expandRule.rhs[expandRule.rhs.length - 1 - i];
+
+          if (rhsSbl.type === 'terminal') {
+            // 若 rhsSbl 是一个 terminal 类型的语法符号
+            const node: Node = {
+              type: 'terminal',
+              symbol: rhsSbl,
+            };
+
+            // 则在被展开的这个节点的 children 中入栈一个 terminal 类型的 Node
+            expandSbl.children.push(node);
+
+            // 并且在当前 parse Stack 入栈一个 terminal 类型的 Node, 这两个是同一个
+            this.parseStack.push(node);
+          } else {
+            // 以此类推
+            // 只不过，对于 RHS 中的 nonTerminal 符号，要把它转为 NonTerminal 树节点
+            const node: Node = {
+              type: 'nonTerminal',
+              children: [],
+              symbol: rhsSbl,
+              ruleName: '',
+            };
+            expandSbl.children.push(node);
+            this.parseStack.push(node);
+          }
         }
       }
 

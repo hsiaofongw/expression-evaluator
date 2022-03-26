@@ -13,7 +13,7 @@ export class PredictHelper {
    */
   public static epsilon(
     alpha: SyntaxSymbol[],
-    rules: ProductionRule[],
+    allRules: ProductionRule[],
   ): boolean {
     if (alpha.length === 0) {
       return true;
@@ -24,12 +24,10 @@ export class PredictHelper {
       return false;
     }
 
+    const rules = allRules.filter((rule) => rule.lhs.id === head.id);
     for (const rule of rules) {
-      if (rule.lhs.id === head.id) {
-        const rhs = rule.rhs;
-        if (PredictHelper.epsilon(rhs, rules)) {
-          return PredictHelper.epsilon(alpha.slice(1, alpha.length), rules);
-        }
+      if (PredictHelper.epsilon(rule.rhs, allRules)) {
+        return PredictHelper.epsilon(alpha.slice(1, alpha.length), allRules);
       }
     }
 
@@ -62,7 +60,7 @@ export class PredictHelper {
 
     const firstUnion: Set<SymbolType> = firstResults
       .map((x) => x.symbolIdSet)
-      .reduce((a, b) => SetHelper.union(a, b));
+      .reduce((a, b) => SetHelper.union(a, b), new Set<SymbolType>([]));
 
     for (const res of firstResults) {
       if (res.symbolIdSet.size === 0) {
@@ -92,9 +90,18 @@ export class PredictHelper {
       Set<SyntaxSymbol['id']>
     > = {} as any;
     result[sbl.s.id] = new Set<SyntaxSymbol['id']>([sbl.eof.id]); // Follow(S) = { $$ };
-    let updated = true;
-    while (updated) {
-      updated = false;
+
+    const getTotalCount: () => number = () => {
+      let totalCount = 0;
+      for (const key in result) {
+        totalCount = totalCount + (result[key] as Set<unknown>).size;
+      }
+      return totalCount;
+    };
+
+    let totalCount = getTotalCount();
+
+    while (true) {
       for (const rule of productionRules) {
         const lhs = rule.lhs;
         const rhs = rule.rhs;
@@ -116,7 +123,6 @@ export class PredictHelper {
             }
             for (const followToken of followA) {
               result[x.id].add(followToken);
-              updated = true;
             }
           } else {
             // A -> alpha B beta, beta *=>/ epsilon
@@ -129,15 +135,19 @@ export class PredictHelper {
             }
 
             for (const sblId of firstBeta) {
-              updated = true;
               result[x.id].add(sblId);
             }
           }
         }
       }
-    }
 
-    return result;
+      const newTotalCount = getTotalCount();
+      if (newTotalCount === totalCount) {
+        return result;
+      } else {
+        totalCount = newTotalCount;
+      }
+    }
   }
 
   public static predictSet(

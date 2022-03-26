@@ -278,7 +278,7 @@ export const allRules: ProductionRule[] = [
   {
     name: 'bool -> == e bool',
     lhs: sbl.bool,
-    rhs: [sbl.bool, sbl.doubleEqual, sbl.e, sbl.bool],
+    rhs: [sbl.doubleEqual, sbl.e, sbl.bool],
   },
 
   {
@@ -398,7 +398,7 @@ export const allRules: ProductionRule[] = [
   {
     name: 'pow -> ^ f0 pow',
     lhs: sbl.pow,
-    rhs: [sbl.pow, sbl.f0, sbl.pow],
+    rhs: [sbl.power, sbl.f0, sbl.pow],
   },
 
   {

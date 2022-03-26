@@ -39,22 +39,25 @@ async function startTestREPL(app: INestApplication) {
 
   const stringSplit = StringHelper.makeCharSplitTransform(); // 一个把输入 Buffer 流转换成字符流的 Transform，其中每个字符仍然是用 string 表示
   const lexer = lexerFactory.makeLexer(); // 一次读入一个字符，每次输出时输出一个 token
+  const mapToEol = lexerFactory.makeEOLMapTransform(); // 将分号映射为 EOL 字符
   const stringEscapeTransform = StringHelper.makeStringEscapeTransform(); // 处理字符串转义
   const dropBlank = StringHelper.makeStripTransform('blank');
   const dropComment = StringHelper.makeStripTransform('comment');
   const parser = parserFactory.makeParser(); // 基于 token 流构建语法分析树
 
   stdin
-    .pipe(stringSplit)
-    .pipe(lexer)
-    .pipe(stringEscapeTransform)
-    .pipe(dropBlank)
-    .pipe(dropComment)
-    .pipe(
+    .pipe(stringSplit)  // 输入 Buffer 拆成一个个字符
+    .pipe(lexer)  // 字符组合成 token
+    .pipe(mapToEol) // 分号 token 映射为 eol token
+    .pipe(stringEscapeTransform) // 字符串转义
+    .pipe(dropBlank) // 去掉空白区域（对应 blank token）
+    .pipe(dropComment) // 去掉注释（对应 comment token）
+    .pipe(parser) // 读取 token 流中的 token, 构建语法分析树
+    .pipe( // 结果打印到控制台上
       new Writable({
         objectMode: true,
         write(chunk, encoding, callback) {
-          console.log({ chunk });
+          console.log(chunk);
           callback();
         },
       }),

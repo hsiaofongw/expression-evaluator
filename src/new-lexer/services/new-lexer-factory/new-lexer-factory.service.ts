@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { initialState } from 'src/new-lexer/config';
-import { MatchFunction } from 'src/new-lexer/interfaces';
+import { MatchFunction, Token } from 'src/new-lexer/interfaces';
 import { Transform, TransformCallback } from 'stream';
 
 class NewLexer extends Transform {
@@ -31,7 +31,22 @@ class NewLexer extends Transform {
 
 @Injectable()
 export class NewLexerFactoryService {
-  makeLexer(): NewLexer {
+  public makeLexer(): NewLexer {
     return new NewLexer();
+  }
+
+  public makeEOLMapTransform(): Transform {
+    return new Transform({
+      objectMode: true,
+      transform(chunk: Token, encoding, callback) {
+        if (chunk.tokenClassName === 'semicolumn') {
+          const eofToken: Token = { tokenClassName: 'eof', content: '' };
+          this.push(eofToken);
+        } else {
+          this.push(chunk);
+        }
+        callback();
+      },
+    });
   }
 }
