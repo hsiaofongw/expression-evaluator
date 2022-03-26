@@ -529,7 +529,7 @@ class UnaryOperationPatternFactory {
       pattern: {
         nodeType: 'nonTerminal',
         head: headExpr,
-        children: [BlankExpr()],
+        children: [BlankExpr([])],
       },
       action: (node, evaluator, context) => {
         if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
@@ -568,7 +568,7 @@ class BinaryExprPatternFactory {
       pattern: {
         nodeType: 'nonTerminal',
         head: headExpr,
-        children: [BlankExpr(), BlankExpr()],
+        children: [BlankExpr([]), BlankExpr([])],
       },
       action: (node, evaluator, context) => {
         if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -624,11 +624,11 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: BlankExpr(),
+      head: BlankExpr([]),
       children: [
-        BlankNullSequenceExpr(),
-        TypedBlankExpr(allSymbolsMap.SequenceSymbol),
-        BlankNullSequenceExpr(),
+        BlankNullSequenceExpr([]),
+        BlankExpr([allSymbolsMap.SequenceSymbol]),
+        BlankNullSequenceExpr([]),
       ],
     },
     action: (node, _, __) => {
@@ -662,7 +662,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.ListSymbol,
-      children: [BlankNullSequenceExpr()],
+      children: [BlankNullSequenceExpr([])],
     },
     action: (expr, evaluator, context) => {
       if (expr.nodeType === 'nonTerminal') {
@@ -688,7 +688,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.LengthSymbol,
-      children: [BlankExpr()],
+      children: [BlankExpr([])],
     },
     action: (expr, evaluator, context) => {
       if (expr.nodeType === 'nonTerminal') {
@@ -708,7 +708,7 @@ export const builtInDefinitions: Definition[] = [
   // First
   {
     pattern: MakeNonTerminalExpr(allSymbolsMap.FirstSymbol, [
-      MakeNonTerminalExpr(BlankExpr(), [BlankSequenceExpr()]),
+      MakeNonTerminalExpr(BlankExpr([]), [BlankSequenceExpr([])]),
     ]),
     action: (expr, evaluator, context) => {
       const firstExpr = expr as NonTerminalExpr;
@@ -723,7 +723,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.RestPartSymbol,
-      children: [BlankExpr()],
+      children: [BlankExpr([])],
     },
     action: (expr, evaluator, context) => {
       if (expr.nodeType === 'nonTerminal') {
@@ -752,7 +752,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.MatchQSymbol,
-      children: [BlankExpr(), BlankExpr()],
+      children: [BlankExpr([]), BlankExpr([])],
     },
     action: (expr, evaluator, context) => {
       if (expr.nodeType === 'nonTerminal' && expr.children.length === 2) {
@@ -767,42 +767,12 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'MatchQ[_, _] -> ?',
   },
 
-  // Table[expr, { { variables }, initial, step, max }]
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.TableSymbol,
-      children: [
-        BlankExpr(),
-        {
-          nodeType: 'nonTerminal',
-          head: allSymbolsMap.ListSymbol,
-          children: [
-            {
-              nodeType: 'nonTerminal',
-              head: allSymbolsMap.ListSymbol,
-              children: [TypedBlankSequenceExpr(allSymbolsMap.SymbolSymbol)],
-            },
-            BlankExpr(),
-            BlankExpr(),
-            BlankExpr(),
-          ],
-        },
-      ],
-    },
-    action: (expr, evaluator, context) => {
-      return of(NodeFactory.makeSymbol('abc'));
-      return of(expr);
-    },
-    displayName: 'Table[_, {_, _, _}] -> {?}',
-  },
-
   // Sequence[_]
   {
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.SequenceSymbol,
-      children: [BlankExpr()],
+      children: [BlankExpr([])],
     },
     action: (node, _, __) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
@@ -832,7 +802,7 @@ export const builtInDefinitions: Definition[] = [
 
   // Or[cond1, cond2]
   {
-    pattern: OrExpr([BlankExpr(), BlankExpr()]),
+    pattern: OrExpr([BlankExpr([]), BlankExpr([])]),
     action: (expr, _, __) => {
       const orExpr = expr as NonTerminalExpr;
       return of(
@@ -848,7 +818,7 @@ export const builtInDefinitions: Definition[] = [
 
   // And[cond1, cond2]
   {
-    pattern: AndExpr([BlankExpr(), BlankExpr()]),
+    pattern: AndExpr([BlankExpr([]), BlankExpr([])]),
     action: (expr, _, __) => {
       const andExpr = expr as NonTerminalExpr;
       return of(
@@ -867,7 +837,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.IfSymbol,
-      children: [BlankExpr(), BlankExpr(), BlankExpr()],
+      children: [BlankExpr([]), BlankExpr([]), BlankExpr([])],
     },
     action: (expr, evaluator, context) => {
       return of(expr).pipe(
@@ -907,7 +877,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.HeadSymbol,
-      children: [BlankExpr()],
+      children: [BlankExpr([])],
     },
     action: (node, _, __) => {
       if (
@@ -929,7 +899,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.EqualQSymbol,
-      children: [BlankExpr(), BlankExpr()],
+      children: [BlankExpr([]), BlankExpr([])],
     },
     action: (node, evaluator, context) => {
       if (
@@ -962,7 +932,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.AssignSymbol,
-      children: [BlankExpr(), BlankExpr()],
+      children: [BlankExpr([]), BlankExpr([])],
     },
     action: (node, evaluator, context) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -987,7 +957,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.AssignDelayedSymbol,
-      children: [BlankExpr(), BlankExpr()],
+      children: [BlankExpr([]), BlankExpr([])],
     },
     action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
@@ -1006,7 +976,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.ClearAssignSymbol,
-      children: [BlankExpr()],
+      children: [BlankExpr([])],
     },
     action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
@@ -1023,7 +993,7 @@ export const builtInDefinitions: Definition[] = [
     pattern: {
       nodeType: 'nonTerminal',
       head: allSymbolsMap.ClearDelayedAssignSymbol,
-      children: [BlankExpr()],
+      children: [BlankExpr([])],
     },
     action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
@@ -1114,8 +1084,8 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: {
       nodeType: 'nonTerminal',
-      head: FunctionExpr([BlankSequenceExpr()]),
-      children: [BlankNullSequenceExpr()],
+      head: FunctionExpr([BlankSequenceExpr([])]),
+      children: [BlankNullSequenceExpr([])],
     },
     action: (expr, evaluator, context) => {
       const lambaCallExpr = expr as NonTerminalExpr;
@@ -1182,7 +1152,7 @@ export const builtInDefinitions: Definition[] = [
 
   // Map
   {
-    pattern: MapExpr([BlankExpr(), BlankExpr()]),
+    pattern: MapExpr([BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const mapExpr = expr as NonTerminalExpr;
       const listLikeExpr = mapExpr.children[0];
@@ -1217,7 +1187,7 @@ export const builtInDefinitions: Definition[] = [
 
   // Reduce
   {
-    pattern: ReduceExpr([BlankExpr(), BlankExpr(), BlankExpr()]),
+    pattern: ReduceExpr([BlankExpr([]), BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const reduceExpr = expr as NonTerminalExpr;
       const listLike = reduceExpr.children[0];
@@ -1253,7 +1223,7 @@ export const builtInDefinitions: Definition[] = [
 
   // Seq[_]
   {
-    pattern: SeqExpr([BlankExpr()]),
+    pattern: SeqExpr([BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const seqExpr = expr as NonTerminalExpr;
       return evaluator.evaluate(seqExpr.children[0], context).pipe(
@@ -1278,7 +1248,7 @@ export const builtInDefinitions: Definition[] = [
 
   // Seq[_, _]
   {
-    pattern: SeqExpr([BlankExpr(), BlankExpr()]),
+    pattern: SeqExpr([BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const seqExpr = expr as NonTerminalExpr;
       return zip(
@@ -1310,7 +1280,7 @@ export const builtInDefinitions: Definition[] = [
 
   // Seq[_, _, _]
   {
-    pattern: SeqExpr([BlankExpr(), BlankExpr(), BlankExpr()]),
+    pattern: SeqExpr([BlankExpr([]), BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const seqExpr = expr as NonTerminalExpr;
       return zip(
@@ -1349,7 +1319,7 @@ export const builtInDefinitions: Definition[] = [
 
   // ListJoin[_, _]
   {
-    pattern: ListJoinExpr([BlankExpr(), BlankExpr()]),
+    pattern: ListJoinExpr([BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const listJoinExpr = expr as NonTerminalExpr;
       return zip(
@@ -1386,7 +1356,7 @@ export const builtInDefinitions: Definition[] = [
 
   // Let[_, _]
   {
-    pattern: LetExpr([BlankExpr(), BlankExpr()]),
+    pattern: LetExpr([BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const letExpr = expr as NonTerminalExpr;
       const v1 = letExpr.children[0];
@@ -1438,7 +1408,7 @@ export const builtInDefinitions: Definition[] = [
 
   // Filter[_, _]
   {
-    pattern: FilterExpr([BlankExpr(), BlankExpr()]),
+    pattern: FilterExpr([BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const filterExpr = expr as NonTerminalExpr;
       const listLike = filterExpr.children[0];
