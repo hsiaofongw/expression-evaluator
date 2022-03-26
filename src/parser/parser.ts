@@ -21,7 +21,7 @@ export class LL1PredictiveParser extends Transform {
   private init(): void {
     this.rootNode = {
       type: 'nonTerminal',
-      symbol: sbl.start,
+      symbol: sbl.s,
       children: [],
       ruleName: '', // 在解析的过程中，展开它的时候再写上
     };

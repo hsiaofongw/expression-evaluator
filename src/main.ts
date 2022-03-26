@@ -11,8 +11,10 @@ import { EvaluateResultObject } from './translate/interfaces';
 import { ConfigService } from '@nestjs/config';
 import { INestApplication, Logger } from '@nestjs/common';
 import { NewLexerFactoryService } from './new-lexer/services/new-lexer-factory/new-lexer-factory.service';
-import { MatchResult } from './new-lexer/interfaces';
 import { StringHelper } from './helpers/string-helper';
+import { ParserFactoryService } from './parser/parser-factory/parser-factory.service';
+import { Node } from './parser/interfaces';
+import { Writable } from 'stream';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -33,20 +35,40 @@ bootstrap();
 
 async function startTestREPL(app: INestApplication) {
   const lexerFactory = app.get(NewLexerFactoryService);
-  const toToken = lexerFactory.makeLexer();
-  const stringEscapeTransform = StringHelper.makeStringEscapeTransform();
-  toToken.pipe(stringEscapeTransform);
+  const parserFactory = app.get(ParserFactoryService);
 
-  // 开始 REPL
-  stringEscapeTransform.on('data', (resultString: MatchResult) => {
-    console.log(resultString);
-  });
-  stdin.on('data', (d) => {
-    const inputContent = d.toString('utf-8').replace(/\s/g, ' ');
-    for (const char of inputContent) {
-      toToken.write(char);
-    }
-  });
+  const stringSplit = StringHelper.makeCharSplitTransform(); // 一个把输入 Buffer 流转换成字符流的 Transform，其中每个字符仍然是用 string 表示
+  const lexer = lexerFactory.makeLexer(); // 一次读入一个字符，每次输出时输出一个 token
+  const stringEscapeTransform = StringHelper.makeStringEscapeTransform(); // 处理字符串转义
+  const dropBlank = StringHelper.makeStripTransform('blank');
+  const dropComment = StringHelper.makeStripTransform('comment');
+  const parser = parserFactory.makeParser(); // 基于 token 流构建语法分析树
+
+  stdin
+    .pipe(stringSplit)
+    .pipe(lexer)
+    .pipe(stringEscapeTransform)
+    .pipe(dropBlank)
+    .pipe(dropComment)
+    .pipe(
+      new Writable({
+        objectMode: true,
+        write(chunk, encoding, callback) {
+          console.log({ chunk });
+          callback();
+        },
+      }),
+    );
+  // lexer.pipe(stringEscapeTransform).pipe(parser);
+
+  // // 开始 REPL
+  // parser.on('data', (resultString: Node) => {
+  //   console.log(resultString);
+  // });
+  // stdin.on('data', (d) => {
+  //   const inputContent = d.toString('utf-8').replace(/\s/g, ' ');
+  //   inputContent.split('').forEach(char => lexer.write(char));
+  // });
 }
 
 async function startCommandLineREPL(app: INestApplication) {
@@ -60,21 +82,17 @@ async function startCommandLineREPL(app: INestApplication) {
 
   const lexerFactory = app.get(NewLexerFactoryService);
 
-  const toToken     = lexerFactory.makeLexer();          // Tokenizing
-  const parse       = new LL1PredictiveParser();         // Parsing, i.e. build tree
-  const translate   = new ExpressionTranslate();         // Tree to Expr transformation
-  const preEvaluate = new PreEvaluator();                // Pre-Evaluate
-  const evaluate    = new Evaluator(currentSeqNum);      // Evaluate Expr
-  const serialize   = new ExpressionNodeSerialize();     // Expr to string transformation
+  const toToken = lexerFactory.makeLexer(); // Tokenizing
+  const parse = new LL1PredictiveParser(); // Parsing, i.e. build tree
+  const translate = new ExpressionTranslate(); // Tree to Expr transformation
+  const preEvaluate = new PreEvaluator(); // Pre-Evaluate
+  const evaluate = new Evaluator(currentSeqNum); // Evaluate Expr
+  const serialize = new ExpressionNodeSerialize(); // Expr to string transformation
 
-  let inputBuffer  = '';
+  let inputBuffer = '';
 
   /** 组建解释器 */
-    toToken
-    .pipe(parse)
-    .pipe(translate)
-    .pipe(preEvaluate)
-    .pipe(evaluate);
+  toToken.pipe(parse).pipe(translate).pipe(preEvaluate).pipe(evaluate);
 
   // 连接到 AssembledEvaluator, 并将 AssembledEvaluator 连接到 Serializer
   evaluate.on('data', (evaluateResultObject: EvaluateResultObject) => {

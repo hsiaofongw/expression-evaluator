@@ -1,4 +1,4 @@
-import { MatchResult, Token } from 'src/new-lexer/interfaces';
+import { Token } from 'src/new-lexer/interfaces';
 import { Transform } from 'stream';
 
 const hexToString = (s: string) => Buffer.from(s, 'hex').toString('utf8');
@@ -18,6 +18,36 @@ const escapeTable: Record<string, string> = {
 };
 
 export class StringHelper {
+  public static makeCharSplitTransform(): Transform {
+    return new Transform({
+      objectMode: true,
+      transform(chunk: Buffer, encoding, callback) {
+        chunk
+          .toString(encoding)
+          .split('')
+          .forEach((char) => this.push(char as string));
+
+        callback();
+      },
+    });
+  }
+
+  public static makeStripTransform(
+    dropTokenId: Token['tokenClassName'],
+  ): Transform {
+    return new Transform({
+      objectMode: true,
+      transform(chunk: Token, encoding, callback) {
+        if (chunk.tokenClassName === dropTokenId) {
+          callback();
+        } else {
+          this.push(chunk);
+          callback();
+        }
+      },
+    });
+  }
+
   public static makeStringEscapeTransform(): Transform {
     return new Transform({
       objectMode: true,

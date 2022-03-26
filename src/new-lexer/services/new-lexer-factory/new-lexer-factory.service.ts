@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
-import { CharObject } from 'src/lexer/interfaces';
 import { initialState } from 'src/new-lexer/config';
 import { MatchFunction } from 'src/new-lexer/interfaces';
 import { Transform, TransformCallback } from 'stream';

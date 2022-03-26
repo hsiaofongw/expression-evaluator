@@ -91,7 +91,7 @@ export class PredictHelper {
       SyntaxSymbol['id'],
       Set<SyntaxSymbol['id']>
     > = {} as any;
-    result[sbl.start.id] = new Set<SyntaxSymbol['id']>([sbl.eof.id]); // Follow(S) = { $$ };
+    result[sbl.s.id] = new Set<SyntaxSymbol['id']>([sbl.eof.id]); // Follow(S) = { $$ };
     let updated = true;
     while (updated) {
       updated = false;
