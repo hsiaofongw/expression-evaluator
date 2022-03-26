@@ -91,3 +91,10 @@ export type TerminalNode = {
   token?: Token;
   symbol: SyntaxSymbol;
 };
+
+export interface ILanguageSpecification {
+  productionRules: ProductionRule[];
+  symbols: SyntaxSymbol[];
+  startSymbol: SyntaxSymbol;
+  endOfFileSymbol: SyntaxSymbol;
+}

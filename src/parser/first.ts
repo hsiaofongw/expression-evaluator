@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Token } from 'src/new-lexer/interfaces';
-import { sbl } from './config';
-import { ProductionRule, SyntaxSymbol } from './interfaces';
+import {
+  ILanguageSpecification,
+  ProductionRule,
+  SyntaxSymbol,
+} from './interfaces';
 
 export class PredictTableHelper {
   /** 输入：lhs 的 id, 输出：所有以 lhs 为左边符号的产生式 */
@@ -17,12 +20,12 @@ export class PredictTableHelper {
     Set<SyntaxSymbol['id']>
   > = {} as any;
 
-  constructor(private allRules: ProductionRule[]) {
+  constructor(private speficiation: ILanguageSpecification) {
     this.init();
   }
 
   private init(): void {
-    for (const rule of this.allRules) {
+    for (const rule of this.speficiation.productionRules) {
       const key = rule.lhs.id;
       if (this.rulesMap[key] === undefined) {
         this.rulesMap[key] = [];
@@ -36,12 +39,15 @@ export class PredictTableHelper {
 
   private calculateFollowTable(): void {
     this.followMap = {} as any;
-    this.addFollowRuleById(sbl.s.id, sbl.eof.id);
+    this.addFollowRuleById(
+      this.speficiation.startSymbol.id,
+      this.speficiation.endOfFileSymbol.id,
+    );
 
     while (true) {
       let added = 0;
 
-      for (const rule of this.allRules) {
+      for (const rule of this.speficiation.productionRules) {
         for (let i = 0; i < rule.rhs.length; i++) {
           const alpha = rule.lhs;
           const B = rule.rhs[i];
@@ -106,7 +112,9 @@ export class PredictTableHelper {
       return false;
     }
 
-    const rules = this.allRules.filter((rule) => rule.lhs.id === head.id);
+    const rules = this.speficiation.productionRules.filter(
+      (rule) => rule.lhs.id === head.id,
+    );
     for (const rule of rules) {
       if (this.epsilon(rule.rhs)) {
         return this.epsilon(symbols.slice(1, symbols.length));
@@ -170,7 +178,7 @@ export class PredictTableHelper {
 
   private calculatePredictTable(): void {
     this.predictRuleMap = {} as any;
-    for (const rule of this.allRules) {
+    for (const rule of this.speficiation.productionRules) {
       const firstSet = this.first(rule.rhs);
       for (const sblId of firstSet) {
         this.addItemToPredictSet(rule.name, sblId);
@@ -207,7 +215,9 @@ export class PredictTableHelper {
 
 @Injectable()
 export class PredictTableHelperFactory {
-  public makePredictTableHelper(rules: ProductionRule[]): PredictTableHelper {
-    return new PredictTableHelper(rules);
+  public makePredictTableHelper(
+    speficiation: ILanguageSpecification,
+  ): PredictTableHelper {
+    return new PredictTableHelper(speficiation);
   }
 }

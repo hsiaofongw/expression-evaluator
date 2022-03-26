@@ -1,8 +1,7 @@
 import { Token } from 'src/new-lexer/interfaces';
 import { Transform, TransformCallback } from 'stream';
-import { allRules, sbl } from './config';
 import { PredictTableHelper } from './first';
-import { Node, NonTerminalNode } from './interfaces';
+import { ILanguageSpecification, Node, NonTerminalNode } from './interfaces';
 
 export class LL1PredictiveParser extends Transform {
   private parseStack!: Node[];
@@ -12,7 +11,10 @@ export class LL1PredictiveParser extends Transform {
     return this.parseStack[this.parseStack.length - 1];
   }
 
-  constructor(private predictTableHelper: PredictTableHelper) {
+  constructor(
+    private specification: ILanguageSpecification,
+    private predictTableHelper: PredictTableHelper,
+  ) {
     super({ objectMode: true });
     this.init();
   }
@@ -21,7 +23,7 @@ export class LL1PredictiveParser extends Transform {
   private init(): void {
     this.rootNode = {
       type: 'nonTerminal',
-      symbol: sbl.s,
+      symbol: this.specification.startSymbol,
       children: [],
       ruleName: '', // 在解析的过程中，展开它的时候再写上
     };
@@ -43,7 +45,7 @@ export class LL1PredictiveParser extends Transform {
       while (this.stackTop.type === 'nonTerminal') {
         const expandSbl = this.parseStack.pop() as NonTerminalNode;
 
-        const rules = allRules.filter(
+        const rules = this.specification.productionRules.filter(
           (rule) => rule.lhs.id === expandSbl.symbol.id,
         );
 

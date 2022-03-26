@@ -1,9 +1,11 @@
+import { ArrayHelper } from 'src/helpers/array-helper';
 import {
   SyntaxSymbol,
   ProductionRule,
   SymbolType,
   NonterminalSymbolType,
   TerminalSymbolType,
+  ILanguageSpecification,
 } from './interfaces';
 
 const NonTerminal: (name: NonterminalSymbolType) => SyntaxSymbol = (name) => ({
@@ -17,7 +19,7 @@ const Terminal: (name: TerminalSymbolType) => SyntaxSymbol = (name) => ({
   definition: { tokenClassName: name },
 });
 
-export const sbl: Record<SymbolType, SyntaxSymbol> = {
+const sbl: Record<SymbolType, SyntaxSymbol> = {
   s: NonTerminal('s'),
   l: NonTerminal('l'),
   list_ext: NonTerminal('list_ext'),
@@ -101,7 +103,7 @@ export const sbl: Record<SymbolType, SyntaxSymbol> = {
 };
 
 /** 全体产生式规则 */
-export const allRules: ProductionRule[] = [
+const allRules: ProductionRule[] = [
   {
     name: 's -> b5',
     lhs: sbl.s,
@@ -576,3 +578,10 @@ export const allRules: ProductionRule[] = [
     rhs: [sbl.exclamation],
   },
 ];
+
+export const languageSpecification: ILanguageSpecification = {
+  productionRules: allRules,
+  startSymbol: sbl.s,
+  endOfFileSymbol: sbl.eof,
+  symbols: ArrayHelper.toArray(sbl),
+};
