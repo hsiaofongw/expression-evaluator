@@ -147,9 +147,9 @@ const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'assign -> == b4 assign',
+    name: 'assign -> = b4 assign',
     lhs: sbl.assign,
-    rhs: [sbl.doubleEqual, sbl.b4, sbl.assign],
+    rhs: [sbl.equal, sbl.b4, sbl.assign],
   },
 
   {

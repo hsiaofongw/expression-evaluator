@@ -13,7 +13,7 @@ LIST_EXT  ->  ,  S  LIST_EXT
 B5     ->  B4  ASSIGNMENT  
 
 ASSIGNMENT  ->  :=  B4  ASSIGNMENT  # 立即赋值
-             |  ==  B4  ASSIGNMENT  # 延迟赋值
+             |  =  B4  ASSIGNMENT  # 延迟赋值
              |  ε
 
 B4     ->  B3  SUBSTITUTE

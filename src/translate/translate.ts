@@ -74,7 +74,7 @@ export class ExpressionTranslate extends Transform {
     'assign -> := b4 assign': (n) =>
       this.rightReduce(n, [1, 2], AssignDelayedExpr),
 
-    'assign -> == b4 assign': (n) => this.rightReduce(n, [1, 2], AssignExpr),
+    'assign -> = b4 assign': (n) => this.rightReduce(n, [1, 2], AssignExpr),
 
     'assign -> eps': doNothing,
 
