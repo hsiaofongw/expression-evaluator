@@ -1,7 +1,7 @@
 import { Token } from 'src/new-lexer/interfaces';
 import { Transform, TransformCallback } from 'stream';
 import { allRules, sbl } from './config';
-import { PredictHelper } from './first';
+import { PredictTableHelper } from './first';
 import { Node, NonTerminalNode } from './interfaces';
 
 export class LL1PredictiveParser extends Transform {
@@ -12,7 +12,7 @@ export class LL1PredictiveParser extends Transform {
     return this.parseStack[this.parseStack.length - 1];
   }
 
-  constructor() {
+  constructor(private predictTableHelper: PredictTableHelper) {
     super({ objectMode: true });
     this.init();
   }
@@ -47,10 +47,9 @@ export class LL1PredictiveParser extends Transform {
           (rule) => rule.lhs.id === expandSbl.symbol.id,
         );
 
-        const expandRule = rules.find((rule) =>
-          PredictHelper.predictSet(rule, allRules).has(
-            inputBufferHead.tokenClassName,
-          ),
+        const expandRule = this.predictTableHelper.getExpandingRule(
+          expandSbl.symbol,
+          inputBufferHead,
         );
 
         console.log('');

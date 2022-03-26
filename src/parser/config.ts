@@ -1,4 +1,3 @@
-import { ArrayHelper } from 'src/helpers/array-helper';
 import {
   SyntaxSymbol,
   ProductionRule,
@@ -100,16 +99,6 @@ export const sbl: Record<SymbolType, SyntaxSymbol> = {
   notEqual: Terminal('notEqual'),
   notStrictEqual: Terminal('notStrictEqual'),
 };
-
-/** 文法中的全体非终结符号 */
-export const nonTerminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(
-  sbl,
-).filter((sbl) => sbl.type === 'nonTerminal');
-
-/** 文法中的全体终结符号 */
-export const terminalSymbols: SyntaxSymbol[] = ArrayHelper.toArray(sbl).filter(
-  (sbl) => sbl.type === 'terminal',
-);
 
 /** 全体产生式规则 */
 export const allRules: ProductionRule[] = [

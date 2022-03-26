@@ -1,8 +1,9 @@
-import { SetHelper } from 'src/helpers/set-helper';
+import { Injectable, Logger } from '@nestjs/common';
+import { Token } from 'src/new-lexer/interfaces';
 import { sbl } from './config';
-import { ProductionRule, SymbolType, SyntaxSymbol } from './interfaces';
+import { ProductionRule, SyntaxSymbol } from './interfaces';
 
-class PredictTable {
+export class PredictTableHelper {
   /** 输入：lhs 的 id, 输出：所有以 lhs 为左边符号的产生式 */
   private rulesMap: Record<SyntaxSymbol['id'], ProductionRule[]> = {} as any;
 
@@ -182,5 +183,31 @@ class PredictTable {
         }
       }
     }
+  }
+
+  public getExpandingRule(
+    expandingSymbol: SyntaxSymbol,
+    inputToken: Token,
+  ): ProductionRule {
+    const rules = this.getRulesByLhsId(expandingSymbol.id);
+    for (const rule of rules) {
+      const predictSet = this.predictRuleMap[rule.name];
+      if (predictSet.has(inputToken.tokenClassName)) {
+        return rule;
+      }
+    }
+
+    const logger = new Logger(PredictTableHelper.name);
+    logger.error(
+      `No rule found:\nexpandingSymbol: ${expandingSymbol.id}\ninputToken: ${inputToken.tokenClassName}`,
+    );
+    process.exit(1);
+  }
+}
+
+@Injectable()
+export class PredictTableHelperFactory {
+  public makePredictTableHelper(rules: ProductionRule[]): PredictTableHelper {
+    return new PredictTableHelper(rules);
   }
 }
