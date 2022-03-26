@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { syntaxAnalysisConfiguration } from './parser/helpers';
-import { ToCharacters, ToToken } from './lexer/lexer';
-import { LL1PredictiveParser, ToTerminalNode } from './parser/parser';
+import { LL1PredictiveParser } from './parser/parser';
 import { ExpressionTranslate } from './translate/translate';
 import { ExpressionNodeSerialize } from './translate/serialize';
 import { Evaluator, PreEvaluator } from './translate/evaluate';
@@ -13,6 +11,7 @@ import {
   IPublicOutputObject,
   IREPLEnvironmentDescriptor,
 } from './interfaces';
+import { NewLexerFactoryService } from './new-lexer/services/new-lexer-factory/new-lexer-factory.service';
 
 const stat = {
   replCreated: 0,
@@ -24,31 +23,26 @@ const outputSubject$ = new Subject<IPublicOutputObject>();
 
 @Injectable()
 export class AppService {
+  constructor(private lexerFactorial: NewLexerFactoryService) {}
+
   public static logger = new Logger(AppService.name);
 
-  public static async newREPLEnvironment(): Promise<IREPLEnvironmentDescriptor> {
+  public async newREPLEnvironment(): Promise<IREPLEnvironmentDescriptor> {
     // 初始化
     const topicId = uuidv4();
     const initialSeqNum = 0;
     let currentSeqNum = initialSeqNum;
     const resultObjsBuffer: EvaluateResultObject[] = [];
-    const toChars = new ToCharacters();
-    const toToken = new ToToken();
-    const toTerminalNode = new ToTerminalNode(syntaxAnalysisConfiguration);
-    const parse = new LL1PredictiveParser(syntaxAnalysisConfiguration);
+
+    const toToken = this.lexerFactorial.makeLexer();
+    const parse = new LL1PredictiveParser();
     const translate = new ExpressionTranslate();
     const preEvaluate = new PreEvaluator();
     const evaluate = new Evaluator(currentSeqNum);
     const serialize = new ExpressionNodeSerialize();
 
     /** 组建解释器 */
-    toChars
-      .pipe(toToken)
-      .pipe(toTerminalNode)
-      .pipe(parse)
-      .pipe(translate)
-      .pipe(preEvaluate)
-      .pipe(evaluate);
+    toToken.pipe(parse).pipe(translate).pipe(preEvaluate).pipe(evaluate);
 
     // 连接到 AssembledEvaluator, 并将 AssembledEvaluator 连接到 Serializer
     evaluate.on('data', (evaluateResultObject: EvaluateResultObject) => {
@@ -77,7 +71,7 @@ export class AppService {
     });
     inputSubject$.pipe(filter((d) => d.topicId === topicId)).subscribe((d) => {
       const inputContent = d.exprInputString.replace(/\s/g, ' ');
-      toChars.write(inputContent.trim());
+      toToken.write(inputContent.trim());
     });
 
     const replEnv: IREPLEnvironmentDescriptor = { topicId, initialSeqNum };
@@ -92,7 +86,7 @@ export class AppService {
   }
 
   createSession() {
-    return AppService.newREPLEnvironment();
+    return this.newREPLEnvironment();
   }
 
   evaluate(exprIn: IPublicInputObject): Observable<IPublicOutputObject> {
