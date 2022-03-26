@@ -1,6 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { LL1PredictiveParser } from './parser/parser';
 import { ExpressionTranslate } from './translate/translate';
 import { ExpressionNodeSerialize } from './translate/serialize';
 import { Evaluator, PreEvaluator } from './translate/evaluate';
@@ -12,6 +11,8 @@ import {
   IREPLEnvironmentDescriptor,
 } from './interfaces';
 import { NewLexerFactoryService } from './new-lexer/services/new-lexer-factory/new-lexer-factory.service';
+import { ILanguageSpecification } from './parser/interfaces';
+import { ParserFactoryService } from './parser/parser-factory/parser-factory.service';
 
 const stat = {
   replCreated: 0,
@@ -23,7 +24,11 @@ const outputSubject$ = new Subject<IPublicOutputObject>();
 
 @Injectable()
 export class AppService {
-  constructor(private lexerFactorial: NewLexerFactoryService) {}
+  constructor(
+    @Inject('LanguageSpecification') private langSpec: ILanguageSpecification,
+    private lexerFactorial: NewLexerFactoryService,
+    private parserFactory: ParserFactoryService,
+  ) {}
 
   public static logger = new Logger(AppService.name);
 
@@ -35,7 +40,7 @@ export class AppService {
     const resultObjsBuffer: EvaluateResultObject[] = [];
 
     const toToken = this.lexerFactorial.makeLexer();
-    const parse = new LL1PredictiveParser();
+    const parse = this.parserFactory.makeParser(this.langSpec);
     const translate = new ExpressionTranslate();
     const preEvaluate = new PreEvaluator();
     const evaluate = new Evaluator(currentSeqNum);

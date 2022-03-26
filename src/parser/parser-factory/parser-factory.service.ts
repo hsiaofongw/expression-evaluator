@@ -44,12 +44,8 @@ export class LL1PredictiveParser extends Transform {
     } else {
       // 如果能展开则先尝试展开，展开后再匹配，展开不了就报错
       // stacktop 的非终结符号节点展开之后可能仍是非终结符号节点，所以要用 while 循环重复几遍
-      while (this.stackTop.type === 'nonTerminal') {
+      while (this.parseStack.length && this.stackTop.type === 'nonTerminal') {
         const expandSbl = this.parseStack.pop() as NonTerminalNode;
-
-        const rules = this.specification.productionRules.filter(
-          (rule) => rule.lhs.id === expandSbl.symbol.id,
-        );
 
         const expandRule = this.predictTableHelper.getExpandingRule(
           expandSbl.symbol,

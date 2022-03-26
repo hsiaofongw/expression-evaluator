@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { LL1PredictiveParser } from './parser/parser';
 import { stdin, stdout } from 'process';
 import { ExpressionTranslate } from './translate/translate';
 import { ExpressionNodeSerialize } from './translate/serialize';
@@ -36,6 +35,7 @@ bootstrap();
 async function startTestREPL(app: INestApplication) {
   const lexerFactory = app.get(NewLexerFactoryService);
   const parserFactory = app.get(ParserFactoryService);
+  const langSpecs = app.get('LanguageSpecification');
 
   const stringSplit = StringHelper.makeCharSplitTransform(); // 一个把输入 Buffer 流转换成字符流的 Transform，其中每个字符仍然是用 string 表示
   const lexer = lexerFactory.makeLexer(); // 一次读入一个字符，每次输出时输出一个 token
@@ -43,7 +43,7 @@ async function startTestREPL(app: INestApplication) {
   const stringEscapeTransform = StringHelper.makeStringEscapeTransform(); // 处理字符串转义
   const dropBlank = StringHelper.makeStripTransform('blank');
   const dropComment = StringHelper.makeStripTransform('comment');
-  const parser = parserFactory.makeParser(); // 基于 token 流构建语法分析树
+  const parser = parserFactory.makeParser(langSpecs); // 基于 token 流构建语法分析树
 
   stdin
     .pipe(stringSplit)  // 输入 Buffer 拆成一个个字符
@@ -82,11 +82,13 @@ async function startCommandLineREPL(app: INestApplication) {
   const promptContentFn = (seqNum: number) => `In[${seqNum}]:= `;
   const outputPrefixFn = (seqNum: number) => `\nOut[${seqNum}]= `;
   const outputPostfix = '\n\n';
+  const parserFactory = app.get(ParserFactoryService);
+  const langSpecs = app.get('LanguageSpecification');
 
   const lexerFactory = app.get(NewLexerFactoryService);
 
   const toToken = lexerFactory.makeLexer(); // Tokenizing
-  const parse = new LL1PredictiveParser(); // Parsing, i.e. build tree
+  const parse = parserFactory.makeParser(langSpecs) // Parsing, i.e. build tree
   const translate = new ExpressionTranslate(); // Tree to Expr transformation
   const preEvaluate = new PreEvaluator(); // Pre-Evaluate
   const evaluate = new Evaluator(currentSeqNum); // Evaluate Expr
