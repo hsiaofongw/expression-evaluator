@@ -2,7 +2,13 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { concatAll, first, map, Observable, of, zip } from 'rxjs';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
-import { Definition, Expr, IContext, NonTerminalExpr } from './interfaces';
+import {
+  Definition,
+  Expr,
+  IContext,
+  NonTerminalExpr,
+  TerminalExpr,
+} from './interfaces';
 
 // 打印错误信息并退出
 function logErrorAndExit(atWhere: string): void {
@@ -251,6 +257,21 @@ export const allSymbolsMap = {
 
   // ReplaceAll 符号
   ReplaceAllSymbol: NodeFactory.makeSymbol('ReplaceAll', true),
+
+  // AssociationList 符号
+  AssociationListSymbol: NodeFactory.makeSymbol('AssociationList', true),
+
+  // Factorial 符号
+  FactorialSymbol: NodeFactory.makeSymbol('Factorial', true),
+
+  // DoubleFactorial 符号
+  DoubleFactorialSymbol: NodeFactory.makeSymbol('DoubleFactorial', true),
+
+  // Float 符号
+  FloatSymbol: NodeFactory.makeSymbol('Float', true),
+
+  // ScientificNotation 符号
+  ScientificNotationSymbol: NodeFactory.makeSymbol('ScientificNotation', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -472,6 +493,30 @@ export function BlankSequenceExpr(children: Expr[]): Expr {
 
 export function BlankNullSequenceExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.BlankNullSequenceSymbol, children);
+}
+
+export function TakeExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.TakeSymbol, children);
+}
+
+export function AssociationListExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.AssociationListSymbol, children);
+}
+
+export function FactorialExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.FactorialSymbol, children);
+}
+
+export function DoubleFactorialExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.DoubleFactorialSymbol, children);
+}
+
+export function FloatExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.FloatSymbol, children);
+}
+
+export function ScientificNotationExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.ScientificNotationSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern

@@ -4,10 +4,11 @@ PRODUCTION RULES:
 
 S  ->  B5  # 开始符号是 B5
 
-B6      ->  B5  L
-
 L       ->  ε
-         |  ,  B5  L
+         |  S  LIST_EXT
+
+LIST_EXT  ->  ,  S  LIST_EXT
+           |  ε
 
 B5     ->  B4  ASSIGNMENT  
 

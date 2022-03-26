@@ -1,21 +1,27 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { Node, NonTerminalNode } from 'src/parser/interfaces';
+import { Node, NonTerminalNode, TerminalNode } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
 import {
   allSymbolsMap,
   AndExpr,
   AssignDelayedExpr,
   AssignExpr,
+  AssociationListExpr,
   BlankExpr,
   BlankNullSequenceExpr,
   BlankSequenceExpr,
   DivideExpr,
+  DoubleFactorialExpr,
   EqualQExpr,
+  FactorialExpr,
+  FloatExpr,
   GreaterThanExpr,
   GreaterThanOrEqualExpr,
   LessThanExpr,
   LessThanOrEqualExpr,
+  ListExpr,
+  MakeNonTerminalExpr,
   MinusExpr,
   NegativeExpr,
   NodeFactory,
@@ -28,9 +34,18 @@ import {
   ReplaceAllExpr,
   RuleDelayedExpr,
   RuleExpr,
+  ScientificNotationExpr,
+  StringExpr,
+  TakeExpr,
   TimesExpr,
+  True,
 } from './config';
-import { Expr, NonTerminalExpr } from './interfaces';
+import {
+  Expr,
+  NonTerminalExpr,
+  TerminalExpr,
+  TerminalNumberExpr,
+} from './interfaces';
 
 type Evaluator = (node: NonTerminalNode) => void;
 type EvaluatorMap = Record<string, Evaluator>;
@@ -43,11 +58,13 @@ export class ExpressionTranslate extends Transform {
   private evaluatorMap: EvaluatorMap = {
     's -> b5': (n) => this.evaluateEveryChild(n),
 
-    'b6 -> b5 l': (n) => this.reduceByAppend(n, 0, 1),
-
     'l -> eps': doNothing,
 
-    'l -> , b5 l': (n) => this.reduceByAppend(n, 1, 2),
+    'l -> s list_ext': (n) => this.evaluateEveryChild(n),
+
+    'list_ext -> , s list_ext': (n) => this.reduceByAppend(n, 1, 2),
+
+    'list_ext -> eps': doNothing,
 
     'b5 -> b4 assign': (n) => this.evaluateEveryChild(n),
 
@@ -194,6 +211,113 @@ export class ExpressionTranslate extends Transform {
     },
     'pattern_op -> ___': (n) => {
       this.pushNode(BlankNullSequenceExpr([]));
+    },
+    'compound -> base compound_ext': (n) => this.evaluateEveryChild(n),
+    'compound_ext -> eps': (n) => doNothing,
+    'compound_ext -> [ compound_ext_2': (n) => this.evaluate(n.children[1]),
+    'compound_ext_2 -> l ] compound_ext': (n) => {
+      const headExpr = this.popNode();
+      this.pushNode(MakeNonTerminalExpr(headExpr, []));
+      this.evaluate(n.children[0]);
+      this.evaluate(n.children[2]);
+    },
+    'compound_ext_2 -> [ s ] ] compound_ext': (n) => {
+      const headExpr = this.popNode();
+      this.evaluate(n.children[1]);
+      const accessorExpr = this.popNode();
+      this.pushNode(TakeExpr([headExpr, accessorExpr]));
+      this.evaluate(n.children[4]);
+    },
+    'base -> ( e )': (n) => this.evaluate(n.children[1]),
+    'base -> Number': (n) => this.evaluate(n.children[0]),
+    'base -> { L }': (n) => {
+      this.pushNode(ListExpr([]));
+      this.evaluate(n.children[1]);
+    },
+    'base -> <| L |>': (n) => {
+      this.pushNode(AssociationListExpr([]));
+      this.evaluate(n.children[1]);
+    },
+    'base -> str': (n) => {
+      this.pushNode(
+        StringExpr((n.children[0] as TerminalNode).token?.content ?? ''),
+      );
+    },
+    'base -> id': (n) => {
+      if (n.children[0].type === 'terminal') {
+        const identifierContent = n.children[0].token?.content ?? '';
+        this.pushNode(NodeFactory.makeSymbol(identifierContent));
+      } else {
+        console.error("n.children[0].type is not 'terminal'");
+        process.exit(1);
+      }
+    },
+    'Number -> num num_ext': (n) => {
+      this.pushNode({
+        nodeType: 'terminal',
+        expressionType: 'number',
+        head: allSymbolsMap.NumberSymbol,
+        value: parseFloat(
+          (n.children[0] as TerminalNode).token?.content ?? '0',
+        ),
+      });
+    },
+    'num_ext -> eps': doNothing,
+    'num_ext -> ! double_factorial': (n) => {
+      const numberExpr = this.popNode();
+      this.pushNode(FactorialExpr([numberExpr]));
+      this.evaluate(n.children[1]);
+    },
+    'num_ext -> . num dot_ext': (n) => {
+      const integerPart = this.popNode();
+      const numNode = n.children[1] as TerminalNode;
+      const numString = numNode.token.content ?? '0';
+      const mantissaExpr: TerminalExpr = {
+        nodeType: 'terminal',
+        expressionType: 'number',
+        head: allSymbolsMap.NumberSymbol,
+        value: parseFloat(numString),
+      };
+      this.pushNode(FloatExpr([integerPart, mantissaExpr]));
+      this.evaluate(n.children[2]);
+    },
+    'dot_ext -> eps': doNothing,
+    'dot_ext -> id scientific_ext': (n) => this.evaluate(n.children[1]),
+    'scientific_ext -> + num': (n) => {
+      const floatExpr = this.popNode();
+      const numNode = n.children[1] as TerminalNode;
+      const numString = numNode.token.content ?? '0';
+      const num = parseFloat(numString);
+      const numExpr: TerminalNumberExpr = {
+        nodeType: 'terminal',
+        expressionType: 'number',
+        head: allSymbolsMap.NumberSymbol,
+        value: num,
+      };
+      this.pushNode(
+        ScientificNotationExpr([floatExpr, allSymbolsMap.PlusSymbol, numExpr]),
+      );
+    },
+    'scientific_ext -> - num': (n) => {
+      const floatExpr = this.popNode();
+      const numNode = n.children[1] as TerminalNode;
+      const numString = numNode.token.content ?? '0';
+      const num = parseFloat(numString);
+      const numExpr: TerminalNumberExpr = {
+        nodeType: 'terminal',
+        expressionType: 'number',
+        head: allSymbolsMap.NumberSymbol,
+        value: num,
+      };
+      this.pushNode(
+        ScientificNotationExpr([floatExpr, allSymbolsMap.MinusSymbol, numExpr]),
+      );
+    },
+    'double_factorial -> eps': doNothing,
+    'double_factorial -> !': (n) => {
+      const factorialExor = this.popNode() as NonTerminalExpr;
+      const numberExpr = factorialExor.children[0] as TerminalExpr;
+      this.pushNode(DoubleFactorialExpr([numberExpr]));
     },
   };
 

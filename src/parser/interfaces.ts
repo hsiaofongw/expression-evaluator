@@ -2,8 +2,8 @@ import { Token, TokenType } from 'src/new-lexer/interfaces';
 
 export type NonterminalSymbolType =
   | 's'
-  | 'b6'
   | 'l'
+  | 'list_ext'
   | 'b5'
   | 'assign'
   | 'b4'

@@ -20,8 +20,8 @@ const Terminal: (name: TerminalSymbolType) => SyntaxSymbol = (name) => ({
 
 export const sbl: Record<SymbolType, SyntaxSymbol> = {
   s: NonTerminal('s'),
-  b6: NonTerminal('b6'),
   l: NonTerminal('l'),
+  list_ext: NonTerminal('list_ext'),
   b5: NonTerminal('b5'),
   assign: NonTerminal('assign'),
   b4: NonTerminal('b4'),
@@ -120,21 +120,27 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'b6 -> b5 l',
-    lhs: sbl.b6,
-    rhs: [sbl.b5, sbl.l],
-  },
-
-  {
     name: 'l -> eps',
     lhs: sbl.l,
     rhs: [],
   },
 
   {
-    name: 'l -> , b5 l',
+    name: 'l -> s list_ext',
     lhs: sbl.l,
-    rhs: [sbl.comma, sbl.b5, sbl.l],
+    rhs: [sbl.s, sbl.list_ext],
+  },
+
+  {
+    name: 'list_ext -> , s list_ext',
+    lhs: sbl.list_ext,
+    rhs: [sbl.comma, sbl.s, sbl.list_ext],
+  },
+
+  {
+    name: 'list_ext -> eps',
+    lhs: sbl.list_ext,
+    rhs: [],
   },
 
   {
@@ -474,7 +480,7 @@ export const allRules: ProductionRule[] = [
   },
 
   {
-    name: 'compound_ext_2 -> [ S ] ] compound_ext',
+    name: 'compound_ext_2 -> [ s ] ] compound_ext',
     lhs: sbl.compound_ext_2,
     rhs: [
       sbl.leftSquare,
