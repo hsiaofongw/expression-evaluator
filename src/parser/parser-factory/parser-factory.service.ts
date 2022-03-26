@@ -1,9 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { PredictTableHelperFactory } from '../predict-table-helper-factory/predict-table-helper-factory.service';
 import { Token } from 'src/new-lexer/interfaces';
 import { Transform, TransformCallback } from 'stream';
 import { PredictTableHelper } from '../predict-table-helper-factory/predict-table-helper-factory.service';
-import { ILanguageSpecification, Node, NonTerminalNode } from '../interfaces';
+import {
+  ILanguageSpecification,
+  Node,
+  NonTerminalNode,
+  ProductionRule,
+} from '../interfaces';
 
 export class LL1PredictiveParser extends Transform {
   private parseStack!: Node[];
@@ -34,80 +40,63 @@ export class LL1PredictiveParser extends Transform {
 
   _transform(
     inputBufferHead: Token,
-    encoding: BufferEncoding,
+    _encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    if (this.parseStack.length === 0) {
+    // 如果能展开则先尝试展开，展开后再匹配，展开不了就报错
+    // stacktop 的非终结符号节点展开之后可能仍是非终结符号节点，所以要用 while 循环重复几遍
+    while (this.parseStack.length && this.stackTop.type === 'nonTerminal') {
+      const expandSbl = this.parseStack.pop() as NonTerminalNode;
+
+      const expandRule = this.predictTableHelper.getExpandingRule(
+        expandSbl.symbol,
+        inputBufferHead,
+      ) as ProductionRule;
+
+      // 记下这条 rule 的名字
+      expandSbl.ruleName = expandRule.name;
+
+      // 对这条 rule 的 RHS 中的每个符号 rhsSbl（倒序）
+      for (let i = 0; i < expandRule.rhs.length; i++) {
+        const rhsSbl = expandRule.rhs[expandRule.rhs.length - 1 - i];
+
+        if (rhsSbl.type === 'terminal') {
+          // 若 rhsSbl 是一个 terminal 类型的语法符号
+          const node: Node = {
+            type: 'terminal',
+            symbol: rhsSbl,
+          };
+
+          // 则在被展开的这个节点的 children 中入栈一个 terminal 类型的 Node
+          expandSbl.children.push(node);
+
+          // 并且在当前 parse Stack 入栈一个 terminal 类型的 Node, 这两个是同一个
+          this.parseStack.push(node);
+        } else {
+          // 以此类推
+          // 只不过，对于 RHS 中的 nonTerminal 符号，要把它转为 NonTerminal 树节点
+          const node: Node = {
+            type: 'nonTerminal',
+            children: [],
+            symbol: rhsSbl,
+            ruleName: '',
+          };
+          expandSbl.children.push(node);
+          this.parseStack.push(node);
+        }
+      }
+    }
+
+    if (this.parseStack.length) {
+      if (this.stackTop.type === 'terminal') {
+        this.stackTop.token = inputBufferHead;
+        this.parseStack.pop();
+      }
+    } else {
       this.push(this.rootNode);
       this.init();
-      callback();
-    } else {
-      // 如果能展开则先尝试展开，展开后再匹配，展开不了就报错
-      // stacktop 的非终结符号节点展开之后可能仍是非终结符号节点，所以要用 while 循环重复几遍
-      while (this.parseStack.length && this.stackTop.type === 'nonTerminal') {
-        const expandSbl = this.parseStack.pop() as NonTerminalNode;
-
-        const expandRule = this.predictTableHelper.getExpandingRule(
-          expandSbl.symbol,
-          inputBufferHead,
-        );
-
-        console.log('');
-        console.log('expandSbl: ' + expandSbl.symbol.id);
-        console.log('inputBufferHead: ' + inputBufferHead.tokenClassName);
-        console.log('expandRule: ' + expandRule.name);
-        console.log('');
-
-        if (!expandRule) {
-          console.error('在语法解析时遇到错误：找不到规则来展开当前符号');
-          process.exit(1);
-        }
-
-        // 记下这条 rule 的名字
-        expandSbl.ruleName = expandRule.name;
-
-        // 对这条 rule 的 RHS 中的每个符号 rhsSbl（倒序）
-        for (let i = 0; i < expandRule.rhs.length; i++) {
-          const rhsSbl = expandRule.rhs[expandRule.rhs.length - 1 - i];
-
-          if (rhsSbl.type === 'terminal') {
-            // 若 rhsSbl 是一个 terminal 类型的语法符号
-            const node: Node = {
-              type: 'terminal',
-              symbol: rhsSbl,
-            };
-
-            // 则在被展开的这个节点的 children 中入栈一个 terminal 类型的 Node
-            expandSbl.children.push(node);
-
-            // 并且在当前 parse Stack 入栈一个 terminal 类型的 Node, 这两个是同一个
-            this.parseStack.push(node);
-          } else {
-            // 以此类推
-            // 只不过，对于 RHS 中的 nonTerminal 符号，要把它转为 NonTerminal 树节点
-            const node: Node = {
-              type: 'nonTerminal',
-              children: [],
-              symbol: rhsSbl,
-              ruleName: '',
-            };
-            expandSbl.children.push(node);
-            this.parseStack.push(node);
-          }
-        }
-      }
-
-      if (this.parseStack.length) {
-        if (this.stackTop.type === 'terminal') {
-          this.stackTop.token = inputBufferHead;
-          this.parseStack.pop();
-        }
-      } else {
-        this.push(this.rootNode);
-      }
-
-      callback();
     }
+    callback();
   }
 }
 
