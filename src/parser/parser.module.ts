@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { languageSpecification } from './config';
-import { PredictTableHelperFactory } from './first';
+import { PredictTableHelperFactory } from './predict-table-helper-factory/predict-table-helper-factory.service';
 import { ParserFactoryService } from './parser-factory/parser-factory.service';
 
 @Module({

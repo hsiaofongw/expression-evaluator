@@ -4,7 +4,7 @@ import {
   ILanguageSpecification,
   ProductionRule,
   SyntaxSymbol,
-} from './interfaces';
+} from '../interfaces';
 
 export class PredictTableHelper {
   /** 输入：lhs 的 id, 输出：所有以 lhs 为左边符号的产生式 */
