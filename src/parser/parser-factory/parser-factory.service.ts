@@ -56,34 +56,25 @@ export class LL1PredictiveParser extends Transform {
       // 记下这条 rule 的名字
       expandSbl.ruleName = expandRule.name;
 
-      // 对这条 rule 的 RHS 中的每个符号 rhsSbl（倒序）
-      for (let i = 0; i < expandRule.rhs.length; i++) {
-        const rhsSbl = expandRule.rhs[expandRule.rhs.length - 1 - i];
-
-        if (rhsSbl.type === 'terminal') {
-          // 若 rhsSbl 是一个 terminal 类型的语法符号
-          const node: Node = {
-            type: 'terminal',
-            symbol: rhsSbl,
-          };
-
-          // 则在被展开的这个节点的 children 中入栈一个 terminal 类型的 Node
-          expandSbl.children.push(node);
-
-          // 并且在当前 parse Stack 入栈一个 terminal 类型的 Node, 这两个是同一个
-          this.parseStack.push(node);
+      // 展开
+      expandSbl.children = expandRule.rhs.map((symbol) => {
+        if (symbol.type === 'terminal') {
+          return { type: 'terminal', symbol } as Node;
         } else {
-          // 以此类推
-          // 只不过，对于 RHS 中的 nonTerminal 符号，要把它转为 NonTerminal 树节点
-          const node: Node = {
+          return {
             type: 'nonTerminal',
             children: [],
-            symbol: rhsSbl,
+            symbol,
             ruleName: '',
-          };
-          expandSbl.children.push(node);
-          this.parseStack.push(node);
+          } as Node;
         }
+      });
+
+      // 倒序入栈
+      for (let i = 0; i < expandSbl.children.length; i++) {
+        this.parseStack.push(
+          expandSbl.children[expandSbl.children.length - 1 - i],
+        );
       }
     }
 

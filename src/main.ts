@@ -44,6 +44,8 @@ async function startTestREPL(app: INestApplication) {
   const dropBlank = StringHelper.makeStripTransform('blank');
   const dropComment = StringHelper.makeStripTransform('comment');
   const parser = parserFactory.makeParser(langSpecs); // 基于 token 流构建语法分析树
+  const translator = new ExpressionTranslate();
+  const serialize = new ExpressionNodeSerialize();
 
   stdin
     .pipe(stringSplit)  // 输入 Buffer 拆成一个个字符
@@ -53,6 +55,8 @@ async function startTestREPL(app: INestApplication) {
     .pipe(dropBlank) // 去掉空白区域（对应 blank token）
     .pipe(dropComment) // 去掉注释（对应 comment token）
     .pipe(parser) // 读取 token 流中的 token, 构建语法分析树
+    .pipe(translator)
+    .pipe(serialize)
     .pipe( // 结果打印到控制台上
       new Writable({
         objectMode: true,

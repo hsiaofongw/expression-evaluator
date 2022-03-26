@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
+import { Logger } from '@nestjs/common';
 import { Node, NonTerminalNode, TerminalNode } from 'src/parser/interfaces';
 import { Transform, TransformCallback } from 'stream';
 import {
@@ -53,6 +54,8 @@ type EvaluatorMap = Record<string, Evaluator>;
 const doNothing = (_: any) => {};
 
 export class ExpressionTranslate extends Transform {
+  private logger = new Logger(ExpressionTranslate.name);
+
   private exprStack: Expr[] = [];
 
   private evaluatorMap: EvaluatorMap = {
@@ -390,13 +393,13 @@ export class ExpressionTranslate extends Transform {
       if (typeof evaluator === 'function') {
         evaluator(node);
       } else {
-        console.error(`No evaluator`);
-        console.error({ node });
+        this.logger.error('No evaluator');
+        this.logger.log(JSON.stringify(node));
         process.exit(1);
       }
     } else {
-      console.error(`Try evaluate a terminal node`);
-      console.error({ node });
+      this.logger.error('Try evaluate a terminal node');
+      this.logger.log(JSON.stringify(node));
       process.exit(1);
     }
   }
