@@ -197,6 +197,7 @@ export class PredictTableHelper {
     expandingSymbol: SyntaxSymbol,
     inputToken: Token,
   ): ProductionRule {
+    const logger = new Logger(PredictTableHelper.name);
     const rules = this.getRulesByLhsId(expandingSymbol.id);
     for (const rule of rules) {
       const predictSet = this.predictRuleMap[rule.name];
@@ -205,7 +206,6 @@ export class PredictTableHelper {
       }
     }
 
-    const logger = new Logger(PredictTableHelper.name);
     logger.error(
       `No rule found:\nexpandingSymbol: ${expandingSymbol.id}\ninputToken: ${inputToken.tokenClassName}`,
     );

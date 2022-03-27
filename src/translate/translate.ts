@@ -195,24 +195,22 @@ export class ExpressionTranslate extends Transform {
 
     'pow -> ^ f0 pow': (n) => this.leftReduce(n, 1, 2, PowerExpr),
 
-    'f0 -> compound': (n) => this.evaluateEveryChild(n),
+    'f0 -> compound pattern_compound': (n) => this.evaluateEveryChild(n),
 
-    'f0 -> pattern_compound': (n) => this.evaluateEveryChild(n),
+    'f0 -> pattern_op pattern_ext': (n) => this.evaluateEveryChild(n),
 
-    'pattern_compound -> pattern_op pattern_ext': (n) =>
-      this.evaluateEveryChild(n),
-
-    'pattern_compound -> compound pattern_op pattern_ext': (n) => {
-      this.evaluate(n.children[0]);
+    'pattern_compound -> pattern_op pattern_ext': (n) => {
       const lhs = this.popNode();
-
+      this.evaluate(n.children[0]);
       this.evaluate(n.children[1]);
-      this.evaluate(n.children[2]);
       const blankLikeExpr = this.popNode();
       this.pushNode(PatternExpr([lhs, blankLikeExpr]));
     },
 
+    'pattern_compound -> eps': doNothing,
+
     'pattern_ext -> eps': doNothing,
+
     'pattern_ext -> compound': (n) => {
       const blankLikeExpr = this.popNode();
       this.evaluate(n.children[0]);
@@ -220,6 +218,7 @@ export class ExpressionTranslate extends Transform {
       (blankLikeExpr as NonTerminalExpr).children = [headExpr];
       this.pushNode(blankLikeExpr);
     },
+
     'pattern_op -> _': (n) => {
       this.pushNode(BlankExpr([]));
     },
