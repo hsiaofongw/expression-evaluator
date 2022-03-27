@@ -28,16 +28,26 @@ function makeLL1MatchDescriptor(
         emit,
         setNext,
       ) => {
-        if (buffer.length < maxPrefixLen) {
+        if (
+          buffer.length < maxPrefixLen &&
+          group
+            .filter((item) => item.prefix.length <= buffer.length)
+            .every((item) => buffer.indexOf(item.prefix) === 0)
+        ) {
           setNext((char, cb, emit, setNext) =>
             prefixMatchFunction(buffer + char, cb, emit, setNext),
           );
         } else {
-          for (const item of group) {
-            const prefix = item.prefix;
-            if (prefix === buffer.slice(0, prefix.length)) {
-              emit({ content: prefix, tokenClassName: item.tokenClassName });
-              const rest = buffer.slice(prefix.length, buffer.length);
+          const availableGroup = group.filter(
+            (item) => item.prefix.length <= buffer.length,
+          );
+          for (const item of availableGroup) {
+            if (buffer.indexOf(item.prefix) === 0) {
+              emit({
+                content: item.prefix,
+                tokenClassName: item.tokenClassName,
+              });
+              const rest = buffer.slice(item.prefix.length, buffer.length);
               setNext((char, cb, emit, setNext) =>
                 presetStates.default(rest + char, cb, emit, setNext),
               );
@@ -45,7 +55,6 @@ function makeLL1MatchDescriptor(
               return;
             }
           }
-
           const rest = buffer.slice(1, buffer.length);
           setNext((char, cb, emit, setNext) =>
             presetStates.default(rest + char, cb, emit, setNext),
