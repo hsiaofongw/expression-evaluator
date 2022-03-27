@@ -50,11 +50,11 @@ async function startTestREPL(app: INestApplication) {
   stdin
     .pipe(stringSplit)  // 输入 Buffer 拆成一个个字符
     .pipe(lexer)  // 字符组合成 token
-    // .pipe(mapToEol) // 分号 token 映射为 eol token
-    // .pipe(stringEscapeTransform) // 字符串转义
-    // .pipe(dropBlank) // 去掉空白区域（对应 blank token）
-    // .pipe(dropComment) // 去掉注释（对应 comment token）
-    // .pipe(parser) // 读取 token 流中的 token, 构建语法分析树
+    .pipe(mapToEol) // 分号 token 映射为 eol token
+    .pipe(stringEscapeTransform) // 字符串转义
+    .pipe(dropBlank) // 去掉空白区域（对应 blank token）
+    .pipe(dropComment) // 去掉注释（对应 comment token）
+    .pipe(parser) // 读取 token 流中的 token, 构建语法分析树
     // .pipe(translator)
     // .pipe(serialize)
     .pipe( // 结果打印到控制台上
