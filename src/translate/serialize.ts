@@ -1,6 +1,6 @@
 import { ExprHelper } from 'src/helpers/expr-helpers';
 import { Transform, TransformCallback } from 'stream';
-import { Expr } from './interfaces';
+import { EvaluateResultObject, Expr } from './interfaces';
 
 export class ExpressionNodeSerialize extends Transform {
   constructor() {
@@ -8,11 +8,14 @@ export class ExpressionNodeSerialize extends Transform {
   }
 
   _transform(
-    node: Expr,
+    evaluateResult: EvaluateResultObject,
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {
-    this.push(ExprHelper.nodeToString(node));
+    const exprString = ExprHelper.nodeToString(evaluateResult.result);
+    const nextSeq = evaluateResult.seqNum + 1;
+    const outputString = `\nOut[${evaluateResult.seqNum}]= ${exprString}\n\nIn[${nextSeq}]:= `;
+    this.push(outputString);
     callback();
   }
 }
