@@ -163,7 +163,7 @@ export class ExpressionTranslate extends Transform {
 
     'ep -> + t ep': (n) => this.leftReduce(n, 1, 2, PlusExpr),
 
-    'ep -> - t ep': (n) => this.leftReduce(n, 1, 2, PlusExpr),
+    'ep -> - t ep': (n) => this.leftReduce(n, 1, 2, MinusExpr),
 
     'ep -> eps': doNothing,
 
