@@ -291,6 +291,9 @@ export const allSymbolsMap = {
 
   // 绝对值符号
   AbsSymbol: NodeFactory.makeSymbol('Abs', true),
+
+  // 随机符号
+  RandomSymbol: NodeFactory.makeSymbol('Random', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -536,6 +539,10 @@ export function FloatExpr(children: Expr[]): Expr {
 
 export function ScientificNotationExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.ScientificNotationSymbol, children);
+}
+
+export function RandomExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.RandomSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -1521,5 +1528,12 @@ export const builtInDefinitions: Definition[] = [
     pattern: allSymbolsMap.ESymbol,
     action: (_, __, ___) => of(NumberExpr(Math.E)),
     displayName: 'E -> ?',
+  },
+
+  // Random[]
+  {
+    pattern: RandomExpr([]),
+    action: (_, __, ___) => of(NumberExpr(Math.random())),
+    displayName: 'Random[] -> ?',
   },
 ];
