@@ -63,9 +63,23 @@ export class ExpressionTranslate extends Transform {
 
     'l -> eps': doNothing,
 
-    'l -> s list_ext': (n) => this.evaluateEveryChild(n),
+    'l -> s list_ext': (n) => {
+      const lastExpr = this.popNode() as NonTerminalExpr;
+      this.evaluate(n.children[0]);
+      const currentExpr = this.popNode();
+      lastExpr.children.push(currentExpr);
+      this.pushNode(lastExpr);
+      this.evaluate(n.children[1]);
+    },
 
-    'list_ext -> , s list_ext': (n) => this.reduceByAppend(n, 1, 2),
+    'list_ext -> , s list_ext': (n) => {
+      this.evaluate(n.children[1]);
+      const currentExpr = this.popNode();
+      const listExpr = this.popNode();
+      (listExpr as NonTerminalExpr).children.push(currentExpr);
+      this.pushNode(listExpr);
+      this.evaluate(n.children[2]);
+    },
 
     'list_ext -> eps': doNothing,
 
@@ -352,25 +366,6 @@ export class ExpressionTranslate extends Transform {
     }
     const rhs = this.popNode();
     this.pushNode(exprMaker([lhs, rhs]));
-  }
-
-  private reduceByAppend(
-    node: NonTerminalNode,
-    currIdx: number,
-    nextIdx: number,
-  ): void {
-    const prev = this.popNode();
-    if (prev.nodeType === 'nonTerminal') {
-      this.evaluate(node.children[currIdx]);
-      const current = this.popNode();
-      const appended: Expr = {
-        nodeType: 'nonTerminal',
-        head: prev.head,
-        children: [...prev.children, current],
-      };
-      this.pushNode(appended);
-      this.evaluate(node.children[nextIdx]);
-    }
   }
 
   private evaluateEveryChild(node: Node): void {
