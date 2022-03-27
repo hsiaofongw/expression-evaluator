@@ -277,6 +277,7 @@ export class ExpressionTranslate extends Transform {
           (n.children[0] as TerminalNode).token?.content ?? '0',
         ),
       });
+      this.evaluate(n.children[1]);
     },
     'num_ext -> eps': doNothing,
     'num_ext -> ! double_factorial': (n) => {
