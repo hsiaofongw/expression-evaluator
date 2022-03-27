@@ -8,6 +8,7 @@ import {
   IContext,
   NonTerminalExpr,
   TerminalExpr,
+  TerminalNumberExpr,
 } from './interfaces';
 
 // 打印错误信息并退出
@@ -272,6 +273,24 @@ export const allSymbolsMap = {
 
   // ScientificNotation 符号
   ScientificNotationSymbol: NodeFactory.makeSymbol('ScientificNotation', true),
+
+  // Pi 符号
+  PiSymbol: NodeFactory.makeSymbol('Pi', true),
+
+  // Exp 符号
+  ExpSymbol: NodeFactory.makeSymbol('Exp', true),
+
+  // Sine 符号
+  SineSymbol: NodeFactory.makeSymbol('Sine', true),
+
+  // CoSine 符号
+  CoSineSymbol: NodeFactory.makeSymbol('CoSine', true),
+
+  // Tangent 符号
+  TangentSymbol: NodeFactory.makeSymbol('Tangent', true),
+
+  // 绝对值符号
+  AbsSymbol: NodeFactory.makeSymbol('Abs', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -1046,14 +1065,34 @@ export const builtInDefinitions: Definition[] = [
     (a) => 0 - a,
   ),
 
-  // 一元自然指数运算
-  UnaryOperationPatternFactory.makePattern(allSymbolsMap.ESymbol, (a) =>
-    Math.exp(a),
-  ),
-
   // 一元自然对数运算
   UnaryOperationPatternFactory.makePattern(allSymbolsMap.LnSymbol, (a) =>
     Math.log(a),
+  ),
+
+  // 正弦函数
+  UnaryOperationPatternFactory.makePattern(allSymbolsMap.SineSymbol, (a) =>
+    Math.sin(a),
+  ),
+
+  // 余弦函数
+  UnaryOperationPatternFactory.makePattern(allSymbolsMap.CoSineSymbol, (a) =>
+    Math.cos(a),
+  ),
+
+  // 正切函数
+  UnaryOperationPatternFactory.makePattern(allSymbolsMap.TangentSymbol, (a) =>
+    Math.tan(a),
+  ),
+
+  // 绝对值函数
+  UnaryOperationPatternFactory.makePattern(allSymbolsMap.AbsSymbol, (a) =>
+    Math.abs(a),
+  ),
+
+  // 自然指数
+  UnaryOperationPatternFactory.makePattern(allSymbolsMap.ExpSymbol, (a) =>
+    Math.exp(a),
   ),
 
   // 平方运算
@@ -1449,5 +1488,38 @@ export const builtInDefinitions: Definition[] = [
       );
     },
     displayName: 'Filter[_, _] -> ?',
+  },
+
+  // Float[_Number, _Number]
+  {
+    pattern: FloatExpr([
+      BlankExpr([allSymbolsMap.NumberSymbol]),
+      BlankExpr([allSymbolsMap.NumberSymbol]),
+    ]),
+    action: (expr, evaluator, ctx) => {
+      const floatExpr = expr as NonTerminalExpr;
+      const intgerPartExpr = floatExpr.children[0] as TerminalNumberExpr;
+      const mantissaPartExpr = floatExpr.children[1] as TerminalNumberExpr;
+      return of(
+        NumberExpr(
+          parseFloat(`${intgerPartExpr.value}.${mantissaPartExpr.value}`),
+        ),
+      );
+    },
+    displayName: 'Float[_Number, _Number] -> ?',
+  },
+
+  // Pi
+  {
+    pattern: allSymbolsMap.PiSymbol,
+    action: (_, __, ___) => of(NumberExpr(Math.PI)),
+    displayName: 'Pi -> ?',
+  },
+
+  // E
+  {
+    pattern: allSymbolsMap.ESymbol,
+    action: (_, __, ___) => of(NumberExpr(Math.E)),
+    displayName: 'E -> ?',
   },
 ];
