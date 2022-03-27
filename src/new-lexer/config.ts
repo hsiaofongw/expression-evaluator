@@ -11,58 +11,108 @@ import {
 
 const presetStates: { default: MatchFunction } = { default: null as any };
 
+type TokenPrefix = { prefix: string; tokenClassName: TokenType };
+
 function makeLL1MatchDescriptor(
   lookAhead: string,
   group: { prefix: string; tokenClassName: TokenType }[],
 ): LL1MatchFunctionDescriptor {
   group.sort((a, b) => b.prefix.length - a.prefix.length);
-  const maxPrefixLen = group[0].prefix.length;
+  const maxPrefix = group[0].prefix;
 
   return {
     lookAhead,
     type: 'll1',
     matchFunction: (buffer, cb, emit, setNext) => {
-      const prefixMatchFunction: MatchFunction = (
-        buffer,
-        cb,
-        emit,
-        setNext,
-      ) => {
-        if (
-          buffer.length < maxPrefixLen &&
-          group
-            .filter((item) => item.prefix.length <= buffer.length)
-            .every((item) => buffer.indexOf(item.prefix) === 0)
-        ) {
-          setNext((char, cb, emit, setNext) =>
-            prefixMatchFunction(buffer + char, cb, emit, setNext),
-          );
-        } else {
-          const availableGroup = group.filter(
-            (item) => item.prefix.length <= buffer.length,
-          );
-          for (const item of availableGroup) {
-            if (buffer.indexOf(item.prefix) === 0) {
-              emit({
-                content: item.prefix,
-                tokenClassName: item.tokenClassName,
-              });
-              const rest = buffer.slice(item.prefix.length, buffer.length);
-              setNext((char, cb, emit, setNext) =>
-                presetStates.default(rest + char, cb, emit, setNext),
-              );
-              cb();
-              return;
-            }
+      let availablePrefixes: TokenPrefix[] = group;
+      const candidates: TokenPrefix[] = [];
+      for (let i = 0; i < buffer.length; i++) {
+        const bufferSlice = buffer.slice(0, i + 1);
+
+        // 将 availablePrefixes 中完全匹配的项移出并且放入 candidates
+        const tmp: TokenPrefix[] = [];
+        for (const item of availablePrefixes) {
+          if (item.prefix === bufferSlice) {
+            candidates.push(item);
+          } else {
+            tmp.push(item);
           }
-          const rest = buffer.slice(1, buffer.length);
+        }
+        availablePrefixes = tmp;
+
+        // 过滤 availablePrefixies, 留下那些部分匹配的项
+        availablePrefixes = availablePrefixes.filter(
+          (item) => item.prefix.indexOf(bufferSlice) === 0,
+        );
+
+        // 假如过滤之后 availablePrefixies 为空，则查看 candidates 中有没有元素
+        if (availablePrefixes.length === 0) {
+          if (candidates.length !== 0) {
+            candidates.sort((a, b) => b.prefix.length - a.prefix.length);
+            const emitContent = candidates[0].prefix;
+            emit({
+              content: emitContent,
+              tokenClassName: candidates[0].tokenClassName,
+            });
+            const rest = buffer.slice(emitContent.length, buffer.length);
+            setNext((char, cb, emit, setNext) =>
+              presetStates.default(rest + char, cb, emit, setNext),
+            );
+          } else {
+            const rest = buffer.slice(1, buffer.length);
+            setNext((char, cb, emit, setNext) =>
+              presetStates.default(rest + char, cb, emit, setNext),
+            );
+          }
+          cb();
+          return;
+        }
+      }
+
+      // 执行到这个地方，buffer 被完全 consume, 并且 availablePrefixies 非空
+      const matchRest: MatchFunction = (buffer, cb, emit, setNext) => {
+        // 将 availablePrefixes 中完全匹配的项移出并且放入 candidates
+        const tmp: TokenPrefix[] = [];
+        for (const item of availablePrefixes) {
+          if (item.prefix === buffer) {
+            candidates.push(item);
+          } else {
+            tmp.push(item);
+          }
+        }
+        availablePrefixes = tmp;
+
+        // 过滤 availablePrefixies, 留下那些部分匹配的项
+        availablePrefixes = availablePrefixes.filter(
+          (item) => item.prefix.indexOf(buffer) === 0,
+        );
+
+        if (availablePrefixes.length === 0) {
+          if (candidates.length === 0) {
+            const rest = buffer.slice(1, buffer.length);
+            setNext((char, cb, emit, setNext) =>
+              presetStates.default(rest + char, cb, emit, setNext),
+            );
+          } else {
+            candidates.sort((a, b) => b.prefix.length - a.prefix.length);
+            const emitContent = candidates[0].prefix;
+            emit({
+              content: emitContent,
+              tokenClassName: candidates[0].tokenClassName,
+            });
+            const rest = buffer.slice(emitContent.length, buffer.length);
+            setNext((char, cb, emit, setNext) =>
+              presetStates.default(rest + char, cb, emit, setNext),
+            );
+          }
+        } else {
           setNext((char, cb, emit, setNext) =>
-            presetStates.default(rest + char, cb, emit, setNext),
+            matchRest(buffer + char, cb, emit, setNext),
           );
         }
         cb();
       };
-      prefixMatchFunction(buffer, cb, emit, setNext);
+      matchRest(buffer, cb, emit, setNext);
     },
   };
 }

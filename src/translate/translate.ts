@@ -104,14 +104,14 @@ export class ExpressionTranslate extends Transform {
       const lhs = this.popNode();
       this.evaluate(n.children[1]);
       const rhs = this.popNode();
-      this.pushNode(AssignExpr([lhs, rhs]));
+      this.pushNode(RuleExpr([lhs, rhs]));
     },
 
     'rule -> :-> b2l': (n) => {
       const lhs = this.popNode();
       this.evaluate(n.children[1]);
       const rhs = this.popNode();
-      this.pushNode(AssignDelayedExpr([lhs, rhs]));
+      this.pushNode(RuleDelayedExpr([lhs, rhs]));
     },
 
     'rule -> eps': doNothing,
