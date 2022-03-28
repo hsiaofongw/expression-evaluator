@@ -14,6 +14,9 @@ import { StringHelper } from './helpers/string-helper';
 import { ParserFactoryService } from './parser/parser-factory/parser-factory.service';
 import { Node } from './parser/interfaces';
 import { Writable } from 'stream';
+import { Command } from 'commander';
+
+const program = new Command();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,10 +28,16 @@ async function bootstrap() {
   logger.log(`In Debug Mode: ${inDebug}`);
   await app.listen(3000);
 
-  if (inDebug) {
-    console.clear();
-    startTestREPL(app);
-  }
+  console.clear();
+  program.name('node dist/main').description('表达式求值器').version('2.0.0');
+
+  program
+    .option('--evaluate <exprString>', '对表达式字符串求值，求值结果表达式序列化之后打印到标准输出')
+    .option('--run-script <fileName>', '运行脚本文件，最后一条表达式的求值结果序列化之后打印到标准输出')
+    .option('--repl', '启动一个 REPL 你问一句我答一句交互环境',)
+    .option('--server', '以服务器模式启动');
+
+  program.parse();
 }
 bootstrap();
 
