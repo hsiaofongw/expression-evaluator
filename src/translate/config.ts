@@ -294,6 +294,9 @@ export const allSymbolsMap = {
 
   // 随机符号
   RandomSymbol: NodeFactory.makeSymbol('Random', true),
+
+  // Rest 符合
+  RestSymbol: NodeFactory.makeSymbol('Rest', true),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -543,6 +546,10 @@ export function ScientificNotationExpr(children: Expr[]): Expr {
 
 export function RandomExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.RandomSymbol, children);
+}
+
+export function RestExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.RestSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -955,18 +962,14 @@ export const builtInDefinitions: Definition[] = [
 
   // 立即赋值 Assign[lhs, rhs], 走特殊求值流程，避免再对 lhs 求值
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.AssignSymbol,
-      children: [BlankExpr([]), BlankExpr([])],
-    },
+    pattern: AssignExpr([BlankExpr([]), BlankExpr([])]),
     action: (node, evaluator, context) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
         const key = node.children[0];
         const value = node.children[1];
         return evaluator.evaluate(value, context).pipe(
           map((evaluatedRhs) => {
-            evaluator.assign({ pattern: key, value: of(value) });
+            evaluator.assign({ pattern: key, value: of(evaluatedRhs) });
             return evaluatedRhs;
           }),
         );
@@ -980,11 +983,7 @@ export const builtInDefinitions: Definition[] = [
   // 延迟赋值 AssignDelayed[lhs, rhs], 走特殊求值流程，
   // 这是因为在 AssignDelayed 下面，lhs 和 rhs 都不宜被求值，毕竟 AssignDelayed 的含义是「延迟赋值」。
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.AssignDelayedSymbol,
-      children: [BlankExpr([]), BlankExpr([])],
-    },
+    pattern: AssignDelayedExpr([BlankExpr([]), BlankExpr([])]),
     action: (node, evaluator, _) => {
       if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
         return evaluator.assignDelayed({
