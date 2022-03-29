@@ -751,33 +751,35 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'First[_] -> ?',
   },
 
-  // RestPart
+  // Rest[List[]]
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.RestPartSymbol,
-      children: [BlankExpr([])],
-    },
-    action: (expr, evaluator, context) => {
-      if (expr.nodeType === 'nonTerminal') {
-        if (expr.children.length === 1) {
-          const x = expr.children[0];
-          return evaluator.evaluate(x, context).pipe(
-            map((x) => {
-              if (x.nodeType === 'nonTerminal') {
-                if (x.children.length >= 1) {
-                  return ListExpr(x.children.slice(1, x.children.length));
-                }
-              }
-              return expr;
-            }),
-          );
-        }
-      }
+    pattern: RestExpr([ListExpr([])]),
+    action: (_, __, ___) => of(ListExpr([])),
+    displayName: 'RestPart[{}] -> {}',
+  },
 
-      return of(expr);
+  // Rest[List[__]]
+  {
+    pattern: RestExpr([ListExpr([BlankSequenceExpr([])])]),
+    action: (expr, evaluator, context) => {
+      const restPartExpr = expr as NonTerminalExpr;
+      const listExpr = restPartExpr.children[0] as NonTerminalExpr;
+      const rest = listExpr.children.slice(1, listExpr.children.length);
+      return of(ListExpr([...rest]));
     },
-    displayName: 'RestPart[_] -> ?',
+    displayName: 'RestPart[List[__]] -> ?',
+  },
+
+  // Rest[_]
+  {
+    pattern: RestExpr([BlankExpr([])]),
+    action: (expr, evaluator, context) => {
+      const restExpr = expr as NonTerminalExpr;
+      return evaluator
+        .evaluate(restExpr.children[0], context)
+        .pipe(map((expr) => ReduceExpr([expr])));
+    },
+    displayName: 'Rest[_] -> ?',
   },
 
   // MatchQ
@@ -1362,37 +1364,31 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'Seq[_, _, _] -> ?',
   },
 
+  // ListJoin[_List, _List]
+  {
+    pattern: ListExpr([
+      BlankExpr([allSymbolsMap.ListSymbol]),
+      BlankExpr([allSymbolsMap.ListSymbol]),
+    ]),
+    action: (expr, __, ___) => {
+      const listJoinExpr = expr as NonTerminalExpr;
+      const lhsListExpr = listJoinExpr.children[0] as NonTerminalExpr;
+      const rhsListExpr = listJoinExpr.children[1] as NonTerminalExpr;
+      return of(ListExpr([...lhsListExpr.children, ...rhsListExpr.children]));
+    },
+    displayName: 'ListJoin[_List, _List] -> ?',
+  },
+
   // ListJoin[_, _]
   {
     pattern: ListJoinExpr([BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const listJoinExpr = expr as NonTerminalExpr;
-      return zip(
-        listJoinExpr.children.map((ele) => evaluator.evaluate(ele, context)),
-      ).pipe(
-        map((children) => {
-          const v1 = children[0];
-          const v2 = children[1];
-          if (
-            v1.nodeType === 'nonTerminal' &&
-            v1.head.nodeType === 'terminal' &&
-            v1.head.expressionType === 'symbol' &&
-            v1.head.value === 'List'
-          ) {
-            if (
-              v2.nodeType === 'nonTerminal' &&
-              v2.head.nodeType === 'terminal' &&
-              v2.head.expressionType === 'symbol' &&
-              v2.head.value === 'List'
-            ) {
-              return MakeNonTerminalExpr(allSymbolsMap.ListSymbol, [
-                ...v1.children,
-                ...v2.children,
-              ]);
-            }
-          }
-
-          return MakeNonTerminalExpr(listJoinExpr.head, children);
+      const lhs$ = evaluator.evaluate(listJoinExpr.children[0], context);
+      const rhs$ = evaluator.evaluate(listJoinExpr.children[1], context);
+      return zip([lhs$, rhs$]).pipe(
+        map(([lhs, rhs]) => {
+          return ListJoinExpr([lhs, rhs]);
         }),
       );
     },
@@ -1534,5 +1530,33 @@ export const builtInDefinitions: Definition[] = [
     pattern: RandomExpr([]),
     action: (_, __, ___) => of(NumberExpr(Math.random())),
     displayName: 'Random[] -> ?',
+  },
+
+  // Not[True]
+  {
+    pattern: NotExpr([True]),
+    action: (_, __, ___) => of(False),
+    displayName: 'Not[True] -> False',
+  },
+
+  // Not[False]
+  {
+    pattern: NotExpr([False]),
+    action: (_, __, ___) => of(True),
+    displayName: 'Not[False] -> True',
+  },
+
+  // Not[_]
+  {
+    pattern: NotExpr([BlankExpr([])]),
+    action: (expr, evaluator, context) => {
+      const notExpr = expr as NonTerminalExpr;
+      return evaluator.evaluate(notExpr.children[0], context).pipe(
+        map((expr) => {
+          return NotExpr([expr]);
+        }),
+      );
+    },
+    displayName: 'Not[_] -> ?',
   },
 ];

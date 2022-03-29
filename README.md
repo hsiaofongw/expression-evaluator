@@ -8,37 +8,70 @@ This is a expression evaluator, it provides commandline interface, it is capable
 
 This project is based on [Nest.js Framework](https://nestjs.com/), and our own implementation of Lexer, LL(1) Parser, Translator and Evaluator.
 
-## 项目展示
+## 演示
 
 体验地址：https://fe-evaluator.vercel.app/
 
-![斐波那契数列求值1](screenshots/fib1.png)
+求前 10 个正整数的代数和：
 
-上图为斐波那契数列求值程序的树型递归写法。
+```
+node dist/main evaluate 'Reduce[Seq[10], Plus, 0];';
+```
 
-![斐波那契数列求值2](screenshots/fib2.png)
+求前 10 个正整数的平方和：
 
-上图为斐波那契数列求值程序的模式匹配写法。
+```
+node dist/main evaluate 'Reduce[Seq[10], Function[x_, y_, x + y * y], 0];'
+```
 
-![质性判定](screenshots/primeQ.png)
+筛选前 10 个正整数中的奇数：
 
-上图为质性判定程序，能够判断一个整数是否是质数。
+```
+node dist/main evaluate 'Filter[Seq[10], Function[x_, x % 2 !== 0]];'
+```
 
-![求算术平方根](screenshots/sqrt.png)
+筛选前 10 个正整数中的偶数：
 
-上图求出给定实数的正的平方根。
+```
+node dist/main evaluate 'Filter[Seq[10], Function[x_, x % 2 == 0]];'
+```
 
-## 自部署
+定义一个递归函数并计算：
+
+```
+node \
+dist/main \
+evaluate \
+'Let[fib[1]=1, Let[fib[2]=1, Let[fib[n_] := fib[n-1] + fib[n-2], fib[8]]]];'
+```
+
+进入 REPL 环境：
+
+```
+node dist/main repl
+```
+
+运行求值程序脚本：
+
+```
+node dist/main run selfTest/selfTest.wl
+```
+
+启动 SaaS 服务后端：
+
+```
+node dist/main server
+```
+
+## 部署
 
 1. 测试表明此系统可在 node v16.13.0 LTS 及更高版本上正常运行，确保环境已经安装有合适版本的 node, npm 版本建议为 8.1.0 及以上；
 
 2. `git clone`, 然后进入目录，然后 `npm install`, 成功安装项目所需依赖后，此步骤完成；
 
-3. `npm run start:dev` 或者 `npm run start:inspect` 是启动开发测试环境，后者允许开发者通过 Chrome 或者 VS Code 的 "Attach to Node Process" 功能进行断点调试；`npm run build` 能够生成编译好的 JavaScript 文件（位于 dist 目录下），而后 `npm run start:prod` 可以正式启动系统；
+3. 运行 `npm run build` 构建项目；
 
-4. 第 3 步完成后，本机的 3000 端口应该处于被某个 node 进程监听的状态，此时我们可以访问[项目的前端地址](https://fe-evaluator.vercel.app/), 并且切换到「本地会话」来使用本地部署的实例，在 Web 页面上的终端虚拟器中，执行 examples 目录下的例程可看到效果。
-
-注：系统默认以生产环境模式启动，要想让系统启动到本地命令行解释器模式，在项目目录下建一个 `.env.development` 文件, 并且在里面加上一行 
+4. 运行 `node dist/main evaluate '1+1;'` 对表达式求值，运行 `node dist/main server` 启动服务器，运行 `node dist/main repl` 启动交互环境，运行 `node dist/main run script.wl` 执行脚本上的求值程序。
 
 ```
 NODE_ENV=debug
