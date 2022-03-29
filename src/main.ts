@@ -20,22 +20,47 @@ const program = new Command();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
 
   const config = app.get(ConfigService);
   const inDebug = config.get('NODE_ENV') === 'debug';
   const logger = new Logger(bootstrap.name);
   logger.log(`In Debug Mode: ${inDebug}`);
-  await app.listen(3000);
 
-  console.clear();
   program.name('node dist/main').description('表达式求值器').version('2.0.0');
 
   program
-    .option('--evaluate <exprString>', '对表达式字符串求值，求值结果表达式序列化之后打印到标准输出')
-    .option('--run-script <fileName>', '运行脚本文件，最后一条表达式的求值结果序列化之后打印到标准输出')
-    .option('--repl', '启动一个 REPL 你问一句我答一句交互环境',)
-    .option('--server', '以服务器模式启动');
+    .command('evaluate <expr>')
+    .description('对一个表达式求值，并且将求值结果序列化之后打印到标准输出。')
+    .action((exprString: string) => {
+      logger.log(JSON.stringify({ exprString }));
+    });
+
+  program
+    .command('run <scriptFileName>')
+    .description(
+      '执行一个脚本文件，并且将最后一条表达式的求值结果（如果有）打印到标准输出。',
+    )
+    .action((scriptFileName: string) => {
+      console.log({ scriptFileName });
+    });
+
+  program
+    .command('repl')
+    .description('启动一个 REPL 你问一句我答一句交互环境')
+    .action(() => {
+      logger.log('Starting REPL environment...');
+      console.clear();
+    });
+
+  program
+    .command('server')
+    .description('启动一个 Server 实例')
+    .option('-p, --port <portNumber>', '指定端口号', '3000')
+    .action(async (str: { port: string }) => {
+      const portNum = parseInt(str.port, 10);
+      app.enableCors();
+      await app.listen(portNum);
+    });
 
   program.parse();
 }
