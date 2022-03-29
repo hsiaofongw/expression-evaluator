@@ -552,6 +552,10 @@ export function RestExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.RestSymbol, children);
 }
 
+export function LengthExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.LengthSymbol, children);
+}
+
 // 返回一个数值型一元运算 Pattern
 class UnaryOperationPatternFactory {
   public static makePattern(
@@ -716,24 +720,34 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'List[___] -> ?',
   },
 
-  // Length
+  // Length[{}]
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.LengthSymbol,
-      children: [BlankExpr([])],
-    },
-    action: (expr, evaluator, context) => {
-      if (expr.nodeType === 'nonTerminal') {
-        if (expr.children.length === 1) {
-          const x = expr.children[0];
-          if (x.nodeType === 'nonTerminal') {
-            return of(NumberExpr(x.children.length));
-          }
-        }
-      }
+    pattern: LengthExpr([ListExpr([])]),
+    action: (_, __, ___) => of(NumberExpr(0)),
+    displayName: 'Length[{}] -> 0',
+  },
 
-      return of(expr);
+  // Length[{__}]
+  {
+    pattern: LengthExpr([ListExpr([BlankSequenceExpr([])])]),
+    action: (expr, _, __) => {
+      const lengthExpr = expr as NonTerminalExpr;
+      return of(NumberExpr(lengthExpr.children.length));
+    },
+    displayName: 'Length[{__}] -> ?',
+  },
+
+  // Length[_]
+  {
+    pattern: LengthExpr([BlankExpr([])]),
+    action: (expr, evaluator, context) => {
+      const lengthExpr = expr as NonTerminalExpr;
+      return evaluator.evaluate(lengthExpr.children[0], context).pipe(
+        map((expr) => {
+          lengthExpr.children[0] = expr;
+          return lengthExpr;
+        }),
+      );
     },
     displayName: 'Length[_] -> ?',
   },
