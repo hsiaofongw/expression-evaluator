@@ -21,11 +21,8 @@ export class StringHelper {
   public static makeCharSplitTransform(): Transform {
     return new Transform({
       objectMode: true,
-      transform(chunk: Buffer, encoding, callback) {
-        chunk
-          .toString(encoding)
-          .split('')
-          .forEach((char) => this.push(char as string));
+      transform(chunk: string, encoding, callback) {
+        chunk.split('').forEach((char) => this.push(char as string));
 
         callback();
       },

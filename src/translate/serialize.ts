@@ -19,3 +19,18 @@ export class ExpressionNodeSerialize extends Transform {
     callback();
   }
 }
+
+export class MinimalNodeSerialize extends Transform {
+  constructor() {
+    super({ objectMode: true });
+  }
+
+  _transform(
+    chunk: EvaluateResultObject,
+    encoding: BufferEncoding,
+    callback: TransformCallback,
+  ): void {
+    this.push(ExprHelper.nodeToString(chunk.result));
+    callback();
+  }
+}
