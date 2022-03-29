@@ -556,6 +556,10 @@ export function LengthExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.LengthSymbol, children);
 }
 
+export function FirstExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.FirstSymbol, children);
+}
+
 // 返回一个数值型一元运算 Pattern
 class UnaryOperationPatternFactory {
   public static makePattern(
@@ -752,15 +756,28 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'Length[_] -> ?',
   },
 
-  // First
+  // First[nonEmpty_List]
   {
-    pattern: MakeNonTerminalExpr(allSymbolsMap.FirstSymbol, [
-      MakeNonTerminalExpr(BlankExpr([]), [BlankSequenceExpr([])]),
-    ]),
+    pattern: FirstExpr([ListExpr([BlankSequenceExpr([])])]),
     action: (expr, evaluator, context) => {
       const firstExpr = expr as NonTerminalExpr;
       const listLike = firstExpr.children[0] as NonTerminalExpr;
       return of(listLike.children[0]);
+    },
+    displayName: 'First[_] -> ?',
+  },
+
+  // First[_]
+  {
+    pattern: FirstExpr([BlankExpr([])]),
+    action: (expr, evaluator, context) => {
+      const firstExpr = expr as NonTerminalExpr;
+      return evaluator.evaluate(firstExpr.children[0], context).pipe(
+        map((expr) => {
+          firstExpr.children[0] = expr;
+          return firstExpr;
+        }),
+      );
     },
     displayName: 'First[_] -> ?',
   },
