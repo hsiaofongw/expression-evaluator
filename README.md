@@ -73,12 +73,6 @@ SaaS 体验地址：https://fe-evaluator.vercel.app/ , 在 Web Pseudo-Terminal �
 
 4. 运行 `node dist/main evaluate '1+1;'` 对表达式求值，运行 `node dist/main server` 启动服务器，运行 `node dist/main repl` 启动交互环境，运行 `node dist/main run script.wl` 执行脚本上的求值程序。
 
-```
-NODE_ENV=debug
-```
-
-即可。
-
 ## 致敬 Respects
 
 作者非常喜欢 Wolfram 语言，于是现在是处于上手实现一个简化再简化版本的这么样的一个状态。
