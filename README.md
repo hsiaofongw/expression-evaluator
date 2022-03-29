@@ -10,8 +10,6 @@ This project is based on [Nest.js Framework](https://nestjs.com/), and our own i
 
 ## 演示
 
-体验地址：https://fe-evaluator.vercel.app/
-
 求前 10 个正整数的代数和：
 
 ```
@@ -62,6 +60,8 @@ node dist/main run selfTest/selfTest.wl
 ```
 node dist/main server
 ```
+
+SaaS 体验地址：https://fe-evaluator.vercel.app/ , 在 Web Pseudo-Terminal 环境下，暂不支持复制或粘贴，无需输入 `node dist/main` 前缀，直接输入以分号 `;` 结尾的表达式后按回车键即可计算。
 
 ## 部署
 
