@@ -34,13 +34,10 @@ node dist/main evaluate 'Filter[Seq[10], Function[x_, x % 2 !== 0]];'
 node dist/main evaluate 'Filter[Seq[10], Function[x_, x % 2 == 0]];'
 ```
 
-定义一个递归函数并计算：
+在临时作用域内定义一个递归函数并计算：
 
 ```
-node \
-dist/main \
-evaluate \
-'Let[fib[1]=1, Let[fib[2]=1, Let[fib[n_] := fib[n-1] + fib[n-2], fib[8]]]];'
+node dist/main evaluate 'Let[fib[1]=1, fib[2]=1, fib[n_]:=fib[n-1]+fib[n-2], fib[7]];'
 ```
 
 进入 REPL 环境：
