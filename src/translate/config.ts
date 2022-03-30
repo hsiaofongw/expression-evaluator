@@ -218,7 +218,7 @@ export const allSymbolsMap = {
   RuleDelayedSymbol: NodeFactory.makeSymbol('RuleDelayed', true),
 
   // Not 符号
-  NotSymbol: NodeFactory.makeSymbol('Not', true),
+  NotSymbol: NodeFactory.makeSymbol('Not'),
 
   // CurrentInputFlushSentinel 符号
   currentInputFlushSentinelSymbol: NodeFactory.makeSymbol(
@@ -239,10 +239,10 @@ export const allSymbolsMap = {
   ReduceSymbol: NodeFactory.makeSymbol('Reduce', true),
 
   // Seq 符号
-  SeqSymbol: NodeFactory.makeSymbol('Seq', true),
+  SeqSymbol: NodeFactory.makeSymbol('Seq'),
 
   // ListJoin 符号
-  ListJoinSymbol: NodeFactory.makeSymbol('ListJoin', true),
+  ListJoinSymbol: NodeFactory.makeSymbol('ListJoin'),
 
   // ListTake 符号
   ListTakeSymbol: NodeFactory.makeSymbol('ListTake', true),
@@ -1285,105 +1285,68 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'Reduce[_, _, _] -> ?',
   },
 
-  // Seq[_]
+  // Seq[_Number]
   {
-    pattern: SeqExpr([BlankExpr([])]),
-    action: (expr, evaluator, context) => {
+    pattern: SeqExpr([BlankExpr([allSymbolsMap.NumberSymbol])]),
+    action: (expr, _, __) => {
       const seqExpr = expr as NonTerminalExpr;
-      return evaluator.evaluate(seqExpr.children[0], context).pipe(
-        map((numberLike) => {
-          if (
-            numberLike.nodeType === 'terminal' &&
-            numberLike.expressionType === 'number'
-          ) {
-            const sequence: number[] = [];
-            for (let i = 1; i <= numberLike.value; i++) {
-              sequence.push(i);
-            }
-            return ListExpr(sequence.map((ele) => NumberExpr(ele)));
-          } else {
-            return SeqExpr([numberLike]);
-          }
-        }),
-      );
+      const numberLikeExpr = seqExpr.children[0] as TerminalNumberExpr;
+      const sequence: number[] = [];
+      for (let i = 1; i <= numberLikeExpr.value; i++) {
+        sequence.push(i);
+      }
+      return of(ListExpr(sequence.map((ele) => NumberExpr(ele))));
     },
-    displayName: 'Seq[_] -> ?',
+    displayName: 'Seq[_Number] -> ?',
   },
 
-  // Seq[_, _]
+  // Seq[_Number, _Number]
   {
-    pattern: SeqExpr([BlankExpr([]), BlankExpr([])]),
-    action: (expr, evaluator, context) => {
+    pattern: SeqExpr([
+      BlankExpr([allSymbolsMap.NumberSymbol]),
+      BlankExpr([allSymbolsMap.NumberSymbol]),
+    ]),
+    action: (expr, _, __) => {
       const seqExpr = expr as NonTerminalExpr;
-      return zip(
-        seqExpr.children.map((numberLike) =>
-          evaluator.evaluate(numberLike, context),
-        ),
-      ).pipe(
-        map((numberLikes) => {
-          if (
-            numberLikes[0].nodeType === 'terminal' &&
-            numberLikes[0].expressionType === 'number' &&
-            numberLikes[1].nodeType === 'terminal' &&
-            numberLikes[1].expressionType === 'number'
-          ) {
-            const sequence: number[] = [];
-            for (let i = numberLikes[0].value; i <= numberLikes[1].value; i++) {
-              sequence.push(i);
-            }
+      const numberLikeExpr1 = seqExpr.children[0] as TerminalNumberExpr;
+      const numberLikeExpr2 = seqExpr.children[1] as TerminalNumberExpr;
 
-            return ListExpr(sequence.map((ele) => NumberExpr(ele)));
-          } else {
-            return SeqExpr(numberLikes);
-          }
-        }),
-      );
+      const sequence: number[] = [];
+      for (let i = numberLikeExpr1.value; i <= numberLikeExpr2.value; i++) {
+        sequence.push(i);
+      }
+
+      return of(ListExpr(sequence.map((ele) => NumberExpr(ele))));
     },
-    displayName: 'Seq[_, _] -> ?',
+    displayName: 'Seq[_Number, _Number] -> ?',
   },
 
-  // Seq[_, _, _]
+  // Seq[_Number, _Number, _Number]
   {
     pattern: SeqExpr([BlankExpr([]), BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const seqExpr = expr as NonTerminalExpr;
-      return zip(
-        seqExpr.children.map((num) => evaluator.evaluate(num, context)),
-      ).pipe(
-        map((nums) => {
-          if (
-            nums[0].nodeType === 'terminal' &&
-            nums[1].nodeType === 'terminal' &&
-            nums[2].nodeType === 'terminal'
-          ) {
-            if (
-              nums[0].expressionType === 'number' &&
-              nums[1].expressionType === 'number' &&
-              nums[2].expressionType === 'number'
-            ) {
-              const sequence: number[] = [];
-              const start = nums[0].value;
-              const end = nums[1].value;
-              const step = nums[2].value;
-              let x = start;
-              while (x <= end) {
-                sequence.push(x);
-                x = x + step;
-              }
-              return ListExpr(sequence.map((ele) => NumberExpr(ele)));
-            }
-          }
+      const num1Expr = seqExpr.children[0] as TerminalNumberExpr;
+      const num2Expr = seqExpr.children[1] as TerminalNumberExpr;
+      const num3Expr = seqExpr.children[2] as TerminalNumberExpr;
 
-          return SeqExpr(nums);
-        }),
-      );
+      const sequence: number[] = [];
+      const start = num1Expr.value;
+      const end = num2Expr.value;
+      const step = num3Expr.value;
+      let x = start;
+      while (x <= end) {
+        sequence.push(x);
+        x = x + step;
+      }
+      return of(ListExpr(sequence.map((ele) => NumberExpr(ele))));
     },
-    displayName: 'Seq[_, _, _] -> ?',
+    displayName: 'Seq[_Number, _Number, _Number] -> ?',
   },
 
   // ListJoin[_List, _List]
   {
-    pattern: ListExpr([
+    pattern: ListJoinExpr([
       BlankExpr([allSymbolsMap.ListSymbol]),
       BlankExpr([allSymbolsMap.ListSymbol]),
     ]),
@@ -1394,22 +1357,6 @@ export const builtInDefinitions: Definition[] = [
       return of(ListExpr([...lhsListExpr.children, ...rhsListExpr.children]));
     },
     displayName: 'ListJoin[_List, _List] -> ?',
-  },
-
-  // ListJoin[_, _]
-  {
-    pattern: ListJoinExpr([BlankExpr([]), BlankExpr([])]),
-    action: (expr, evaluator, context) => {
-      const listJoinExpr = expr as NonTerminalExpr;
-      const lhs$ = evaluator.evaluate(listJoinExpr.children[0], context);
-      const rhs$ = evaluator.evaluate(listJoinExpr.children[1], context);
-      return zip([lhs$, rhs$]).pipe(
-        map(([lhs, rhs]) => {
-          return ListJoinExpr([lhs, rhs]);
-        }),
-      );
-    },
-    displayName: 'ListJoin[_, _] -> ?',
   },
 
   // Let[_, _]
@@ -1561,19 +1508,5 @@ export const builtInDefinitions: Definition[] = [
     pattern: NotExpr([False]),
     action: (_, __, ___) => of(True),
     displayName: 'Not[False] -> True',
-  },
-
-  // Not[_]
-  {
-    pattern: NotExpr([BlankExpr([])]),
-    action: (expr, evaluator, context) => {
-      const notExpr = expr as NonTerminalExpr;
-      return evaluator.evaluate(notExpr.children[0], context).pipe(
-        map((expr) => {
-          return NotExpr([expr]);
-        }),
-      );
-    },
-    displayName: 'Not[_] -> ?',
   },
 ];
