@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { concatAll, first, map, Observable, of, zip } from 'rxjs';
+import { concatAll, filter, first, map, Observable, of, zip } from 'rxjs';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
 import {
   Definition,
@@ -254,7 +254,7 @@ export const allSymbolsMap = {
   LetSymbol: NodeFactory.makeSymbol('Let', true),
 
   // Filter 符号
-  FilterSymbol: NodeFactory.makeSymbol('Filter', true),
+  FilterSymbol: NodeFactory.makeSymbol('Filter'),
 
   // ReplaceAll 符号
   ReplaceAllSymbol: NodeFactory.makeSymbol('ReplaceAll', true),
@@ -1115,14 +1115,10 @@ export const builtInDefinitions: Definition[] = [
       const key = LambdaExpr(
         functionDefinitionExpr.children.slice(0, argc - 1),
       );
-      const value$ = evaluator.evaluate(functionBodyExpr, context);
       temporaryCtx.definitions.arguments.push({
         pattern: key,
         action: (_expr, _evaluator, _context) => {
-          return value$.pipe(
-            map((expr) => _evaluator.evaluate(expr, _context)),
-            concatAll(),
-          );
+          return _evaluator.evaluate(functionBodyExpr, _context);
         },
         displayName: ExprHelper.nodeToString(key) + ' -> ?',
       });
