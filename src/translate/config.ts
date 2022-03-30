@@ -295,8 +295,11 @@ export const allSymbolsMap = {
   // 随机符号
   RandomSymbol: NodeFactory.makeSymbol('Random', true),
 
-  // Rest 符合
+  // Rest 符号
   RestSymbol: NodeFactory.makeSymbol('Rest'),
+
+  // Lambda 符号
+  LambdaSymbol: NodeFactory.makeSymbol('Lambda'),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -558,6 +561,10 @@ export function LengthExpr(children: Expr[]): Expr {
 
 export function FirstExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.FirstSymbol, children);
+}
+
+export function LambdaExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.LambdaSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -1089,70 +1096,39 @@ export const builtInDefinitions: Definition[] = [
   // 匿名函数
   // 用法举例：Function[a_, b_, a+b][1, 2]
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: FunctionExpr([BlankSequenceExpr([])]),
-      children: [BlankNullSequenceExpr([])],
-    },
+    pattern: BlankExpr([FunctionExpr([BlankExpr([]), BlankSequenceExpr([])])]),
     action: (expr, evaluator, context) => {
-      const lambaCallExpr = expr as NonTerminalExpr;
-
-      const functionExpr = lambaCallExpr.head as any as NonTerminalExpr;
-      const functionPatternPart = functionExpr.children.slice(
-        0,
-        functionExpr.children.length - 1,
+      const functionApplicationExpr = expr as NonTerminalExpr;
+      const functionDefinitionExpr =
+        functionApplicationExpr.head as NonTerminalExpr;
+      const argc = functionDefinitionExpr.children.length;
+      const functionBodyExpr = functionDefinitionExpr.children[argc - 1];
+      const temporaryCtx: IContext = {
+        parent: context,
+        definitions: {
+          ...context.definitions,
+          arguments: [],
+        },
+      };
+      const key = LambdaExpr(
+        functionDefinitionExpr.children.slice(0, argc - 1),
       );
-      const functionBodyPart =
-        functionExpr.children[functionExpr.children.length - 1];
-      const argumentsPart = lambaCallExpr.children;
+      const value$ = evaluator.evaluate(functionBodyExpr, context);
+      temporaryCtx.definitions.arguments.push({
+        pattern: key,
+        action: (_expr, _evaluator, _context) => {
+          return value$.pipe(
+            map((expr) => _evaluator.evaluate(expr, _context)),
+            concatAll(),
+          );
+        },
+        displayName: ExprHelper.nodeToString(key) + ' -> ?',
+      });
 
-      if (argumentsPart.length === 0) {
-        if (functionPatternPart.length === 0) {
-          return of(functionBodyPart);
-        }
-
-        const match = Neo.patternMatch(argumentsPart, functionPatternPart);
-        if (match.pass) {
-          return of(functionBodyPart);
-        } else {
-          return of(expr);
-        }
-      } else {
-        return zip(
-          argumentsPart.map((ele) => evaluator.evaluate(ele, context)),
-        ).pipe(
-          map((argumentsPart) => {
-            const match = Neo.patternMatch(argumentsPart, functionPatternPart);
-            if (match.pass) {
-              const temporaryDefinitions: Definition[] = [];
-              for (const key in match.namedResult) {
-                const keyExpr = NodeFactory.makeSymbol(key);
-                temporaryDefinitions.push({
-                  pattern: keyExpr,
-                  action: (_, _evaluator, _context) =>
-                    _evaluator.evaluate(
-                      SequenceExpr(match.namedResult[key]),
-                      context,
-                    ),
-                  displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
-                });
-              }
-              const temporaryCtx: IContext = {
-                parent: context,
-                definitions: {
-                  ...context.definitions,
-                  arguments: temporaryDefinitions,
-                },
-              };
-
-              return evaluator.evaluate(functionBodyPart, temporaryCtx);
-            } else {
-              return of(MakeNonTerminalExpr(functionExpr, argumentsPart));
-            }
-          }),
-          concatAll(),
-        );
-      }
+      return evaluator.evaluate(
+        LambdaExpr(functionApplicationExpr.children),
+        temporaryCtx,
+      );
     },
     displayName: 'Function[__][___] -> ?',
   },
