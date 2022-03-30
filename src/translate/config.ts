@@ -856,44 +856,29 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'And[_, _] -> ?',
   },
 
-  // If[cond, trueClause, falseClause], 走特殊求值流程
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.IfSymbol,
-      children: [BlankExpr([]), BlankExpr([]), BlankExpr([])],
-    },
+    pattern: IfExpr([True, BlankExpr([]), BlankExpr([])]),
+    action: (expr, _, __) => of((expr as NonTerminalExpr).children[1]),
+    displayName: 'If[True, t_, f_] -> t',
+  },
+
+  {
+    pattern: IfExpr([False, BlankExpr([]), BlankExpr([])]),
+    action: (expr, _, __) => of((expr as NonTerminalExpr).children[2]),
+    displayName: 'If[False, t_, f_] -> f',
+  },
+
+  {
+    pattern: IfExpr([BlankExpr([]), BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
-      return of(expr).pipe(
-        map((expr) => {
-          if (
-            expr.head.nodeType === 'terminal' &&
-            expr.head.expressionType === 'symbol' &&
-            expr.head.value === 'If' &&
-            expr.nodeType === 'nonTerminal' &&
-            expr.children.length === 3
-          ) {
-            return evaluator.evaluate(expr.children[0], context).pipe(
-              map((cond) => {
-                if (
-                  cond.nodeType === 'terminal' &&
-                  cond.expressionType === 'boolean' &&
-                  cond.value === true
-                ) {
-                  return expr.children[1];
-                } else {
-                  return expr.children[2];
-                }
-              }),
-            );
-          } else {
-            return of(expr);
-          }
-        }),
-        concatAll(),
-      );
+      const ifExpr = expr as NonTerminalExpr;
+      const trueC = ifExpr.children[1];
+      const falseC = ifExpr.children[2];
+      return evaluator
+        .evaluate(ifExpr.children[0], context)
+        .pipe(map((cond) => IfExpr([cond, trueC, falseC])));
     },
-    displayName: 'IF[x, y, z] -> ?',
+    displayName: 'If[_, _, _] -> ?',
   },
 
   // Head[x:_] := x 的 头部, 走特殊求值流程
