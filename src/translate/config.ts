@@ -946,49 +946,35 @@ export const builtInDefinitions: Definition[] = [
       children: [BlankExpr([])],
     },
     action: (node, _, __) => {
-      if (
-        node.nodeType === 'nonTerminal' &&
-        node.head.nodeType === 'terminal' &&
-        node.head.expressionType === 'symbol' &&
-        node.head.value === 'Head' &&
-        node.children.length === 1
-      ) {
-        return of(node.children[0]);
-      }
-      return of(node);
+      return of(node.head);
     },
     displayName: 'Head[x] -> ?',
   },
 
   // 定义相等判断
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.EqualQSymbol,
-      children: [BlankExpr([]), BlankExpr([])],
-    },
+    pattern: EqualQExpr([BlankExpr([]), BlankExpr([])]),
     action: (node, evaluator, context) => {
-      if (
-        node.head.nodeType === 'terminal' &&
-        node.head.expressionType === 'symbol' &&
-        node.head.value === 'EqualQ' &&
-        node.nodeType === 'nonTerminal' &&
-        node.children.length === 2
-      ) {
-        const lhs$ = evaluator.evaluate(node.children[0], context);
-        const rhs$ = evaluator.evaluate(node.children[1], context);
-        return zip([lhs$, rhs$]).pipe(
-          map(([lhs, rhs]) => {
-            if (ExprHelper.rawEqualQ([lhs], [rhs])) {
-              return True as Expr;
-            } else {
-              return False as Expr;
-            }
-          }),
-        );
+      const equExpr = node as NonTerminalExpr;
+      const lhs = equExpr.children[0];
+      const rhs = equExpr.children[1];
+
+      const directEqual = ExprHelper.rawEqualQ([lhs], [rhs]);
+      if (directEqual) {
+        return of(True);
       }
 
-      logErrorAndExit('EqualQ[_, _]');
+      const lhs$ = evaluator.evaluate(lhs, context);
+      const rhs$ = evaluator.evaluate(rhs, context);
+      return zip([lhs$, rhs$]).pipe(
+        map(([lhs, rhs]) => {
+          if (ExprHelper.rawEqualQ([lhs], [rhs])) {
+            return True;
+          } else {
+            return False;
+          }
+        }),
+      );
     },
     displayName: 'EqualQ[x, y] -> ?',
   },
