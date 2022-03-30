@@ -68,7 +68,7 @@ export const allSymbolsMap = {
   SymbolSymbol: SymbolSymbol,
 
   // 函数符号
-  FunctionSymbol: NodeFactory.makeSymbol('Function', true),
+  FunctionSymbol: NodeFactory.makeSymbol('Function'),
 
   // 模式匹配判定符号
   MatchQSymbol: NodeFactory.makeSymbol('MatchQ', true),
