@@ -74,7 +74,7 @@ export const allSymbolsMap = {
   MatchQSymbol: NodeFactory.makeSymbol('MatchQ', true),
 
   // 长度符号
-  LengthSymbol: NodeFactory.makeSymbol('Length', true),
+  LengthSymbol: NodeFactory.makeSymbol('Length'),
 
   // 剩余部分负号
   RestPartSymbol: NodeFactory.makeSymbol('RestPart', true),
@@ -227,7 +227,7 @@ export const allSymbolsMap = {
   ),
 
   // First 符号
-  FirstSymbol: NodeFactory.makeSymbol('First', true),
+  FirstSymbol: NodeFactory.makeSymbol('First'),
 
   // Table 符号
   TableSymbol: NodeFactory.makeSymbol('Table', true),
@@ -296,7 +296,7 @@ export const allSymbolsMap = {
   RandomSymbol: NodeFactory.makeSymbol('Random', true),
 
   // Rest 符合
-  RestSymbol: NodeFactory.makeSymbol('Rest', true),
+  RestSymbol: NodeFactory.makeSymbol('Rest'),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -661,6 +661,23 @@ class BinaryOperationPatternFactory {
 
 // builtInDefinition 是按非标准程序求值的
 export const builtInDefinitions: Definition[] = [
+  // Sequence[_]
+  {
+    pattern: {
+      nodeType: 'nonTerminal',
+      head: allSymbolsMap.SequenceSymbol,
+      children: [BlankExpr([])],
+    },
+    action: (node, _, __) => {
+      if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
+        return of(node.children[0]);
+      } else {
+        return of(node);
+      }
+    },
+    displayName: 'Sequence[x] -> x',
+  },
+
   // _[___, _Sequence, ___]
   {
     pattern: {
@@ -741,21 +758,6 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'Length[{__}] -> ?',
   },
 
-  // Length[_]
-  {
-    pattern: LengthExpr([BlankExpr([])]),
-    action: (expr, evaluator, context) => {
-      const lengthExpr = expr as NonTerminalExpr;
-      return evaluator.evaluate(lengthExpr.children[0], context).pipe(
-        map((expr) => {
-          lengthExpr.children[0] = expr;
-          return lengthExpr;
-        }),
-      );
-    },
-    displayName: 'Length[_] -> ?',
-  },
-
   // First[nonEmpty_List]
   {
     pattern: FirstExpr([ListExpr([BlankSequenceExpr([])])]),
@@ -763,21 +765,6 @@ export const builtInDefinitions: Definition[] = [
       const firstExpr = expr as NonTerminalExpr;
       const listLike = firstExpr.children[0] as NonTerminalExpr;
       return of(listLike.children[0]);
-    },
-    displayName: 'First[_] -> ?',
-  },
-
-  // First[_]
-  {
-    pattern: FirstExpr([BlankExpr([])]),
-    action: (expr, evaluator, context) => {
-      const firstExpr = expr as NonTerminalExpr;
-      return evaluator.evaluate(firstExpr.children[0], context).pipe(
-        map((expr) => {
-          firstExpr.children[0] = expr;
-          return firstExpr;
-        }),
-      );
     },
     displayName: 'First[_] -> ?',
   },
@@ -801,18 +788,6 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'RestPart[List[__]] -> ?',
   },
 
-  // Rest[_]
-  {
-    pattern: RestExpr([BlankExpr([])]),
-    action: (expr, evaluator, context) => {
-      const restExpr = expr as NonTerminalExpr;
-      return evaluator
-        .evaluate(restExpr.children[0], context)
-        .pipe(map((expr) => ReduceExpr([expr])));
-    },
-    displayName: 'Rest[_] -> ?',
-  },
-
   // MatchQ
   {
     pattern: {
@@ -831,23 +806,6 @@ export const builtInDefinitions: Definition[] = [
       return of(expr);
     },
     displayName: 'MatchQ[_, _] -> ?',
-  },
-
-  // Sequence[_]
-  {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.SequenceSymbol,
-      children: [BlankExpr([])],
-    },
-    action: (node, _, __) => {
-      if (node.nodeType === 'nonTerminal' && node.children.length === 1) {
-        return of(node.children[0]);
-      } else {
-        return of(node);
-      }
-    },
-    displayName: 'Sequence[x] -> x',
   },
 
   // 把 True 符号替换为 True, False 符号替换为 False
