@@ -8,6 +8,8 @@ This is a expression evaluator, it provides commandline interface, it is capable
 
 This project is based on [Nest.js Framework](https://nestjs.com/), and our own implementation of Lexer, LL(1) Parser, Translator and Evaluator.
 
+[使用教程点击这里进入](https://github.com/hsiaofongw/expression-evaluator/wiki/%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B1%82%E5%80%BC%E5%99%A8%E4%BD%BF%E7%94%A8%E6%95%99%E7%A8%8B)
+
 ## 演示
 
 求前 10 个正整数的代数和：
