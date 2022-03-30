@@ -1106,8 +1106,10 @@ export const builtInDefinitions: Definition[] = [
       const temporaryCtx: IContext = {
         parent: context,
         definitions: {
-          ...context.definitions,
           arguments: [],
+          fixedAssign: [],
+          delayedAssign: [],
+          builtin: [],
         },
       };
       const key = LambdaExpr(
@@ -1278,56 +1280,103 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'ListJoin[_List, _List] -> ?',
   },
 
+  // Let[Assign[_, _], _]
+  {
+    pattern: LetExpr([
+      AssignExpr([BlankExpr([]), BlankExpr([])]),
+      BlankExpr([]),
+    ]),
+    action: (expr, evaluator, context) => {
+      const letExpr = expr as NonTerminalExpr;
+      const assignExpr = letExpr.children[0] as NonTerminalExpr;
+      const keyExpr = assignExpr.children[0];
+      const valueExpr = assignExpr.children[1];
+      const bodyExpr = letExpr.children[1];
+
+      const tmpCtx: IContext = {
+        parent: context,
+        definitions: {
+          arguments: [],
+          fixedAssign: [],
+          delayedAssign: [],
+          builtin: [],
+        },
+      };
+
+      const value$ = evaluator.evaluate(valueExpr, context);
+
+      tmpCtx.definitions.fixedAssign.push({
+        pattern: keyExpr,
+        action: (_expr, _evaluator, _context) => value$,
+        displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
+        isStrong: true,
+      });
+
+      return evaluator.evaluate(bodyExpr, tmpCtx);
+    },
+    displayName: 'Let[Assign[_, _], _]',
+  },
+
+  // Let[AssignDelayed[_, _], _]
+  {
+    pattern: LetExpr([
+      AssignDelayedExpr([BlankExpr([]), BlankExpr([])]),
+      BlankExpr([]),
+    ]),
+    action: (expr, evaluator, context) => {
+      const letExpr = expr as NonTerminalExpr;
+      const assignDelayedExpr = letExpr.children[0] as NonTerminalExpr;
+      const keyExpr = assignDelayedExpr.children[0];
+      const valueExpr = assignDelayedExpr.children[1];
+      const bodyExpr = letExpr.children[1];
+
+      const tmpCtx: IContext = {
+        parent: context,
+        definitions: {
+          arguments: [],
+          fixedAssign: [],
+          delayedAssign: [],
+          builtin: [],
+        },
+      };
+
+      tmpCtx.definitions.delayedAssign.push({
+        pattern: keyExpr,
+        action: (_expr, _evaluator, _context) =>
+          _evaluator.evaluate(valueExpr, _context),
+        displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
+      });
+
+      return evaluator.evaluate(bodyExpr, tmpCtx);
+    },
+    displayName: 'Let[AssignDelayed[_, _], _]',
+  },
+
   // Let[_, _]
   {
     pattern: LetExpr([BlankExpr([]), BlankExpr([])]),
     action: (expr, evaluator, context) => {
       const letExpr = expr as NonTerminalExpr;
-      const v1 = letExpr.children[0];
-      const v2 = letExpr.children[1];
-      if (
-        v1.nodeType === 'nonTerminal' &&
-        v1.children.length === 2 &&
-        v1.head.nodeType === 'terminal' &&
-        (v1.head.value === 'Assign' || v1.head.value === 'AssignDelayed')
-      ) {
-        const headValue = v1.head.value;
-        const lhs = v1.children[0];
-        const rhs = v1.children[1];
-        const definitions: IContext['definitions'] = {
-          ...context.definitions,
-        };
-        definitions.arguments = [];
-        definitions.builtin = [];
-        definitions.delayedAssign = [];
-        definitions.fixedAssign = [];
-        const newContext: IContext = {
-          parent: context,
-          definitions,
-        };
-
-        if (headValue === 'Assign') {
-          newContext.definitions.fixedAssign.push({
-            pattern: lhs,
-            action: (_, __, ___) => of(rhs),
-            displayName: ExprHelper.nodeToString(lhs) + ' -> ?',
-            isStrong: true,
-          });
-        } else {
-          newContext.definitions.delayedAssign.push({
-            pattern: lhs,
-            action: (_, _evaluator, _context) =>
-              _evaluator.evaluate(rhs, _context),
-            displayName: ExprHelper.nodeToString(lhs) + ' -> ?',
-          });
-        }
-
-        return evaluator.evaluate(v2, newContext);
-      }
-
-      return of(expr);
+      const lhsExpr = letExpr.children[0];
+      const rhsExpr = letExpr.children[1];
+      return evaluator
+        .evaluate(lhsExpr, context)
+        .pipe(map((lhs) => LetExpr([lhs, rhsExpr])));
     },
     displayName: 'Let[_, _] -> ?',
+  },
+
+  // Let[__]
+  {
+    pattern: LetExpr([BlankExpr([]), BlankExpr([]), BlankSequenceExpr([])]),
+    action: (expr, _, __) => {
+      const letExpr = expr as NonTerminalExpr;
+      const arg1 = letExpr.children[0];
+      const arg2 = letExpr.children[1];
+      const restArgs = letExpr.children.slice(2, letExpr.children.length);
+      return of(LetExpr([arg1, LetExpr([arg2, ...restArgs])]));
+    },
+    displayName: 'Let[__] -> ?',
   },
 
   // Filter[_, _]
