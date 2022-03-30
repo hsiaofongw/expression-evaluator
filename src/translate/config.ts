@@ -107,7 +107,7 @@ export const allSymbolsMap = {
   SquareSymbol: NodeFactory.makeSymbol('Square', true),
 
   // 相等判断符号
-  EqualQSymbol: NodeFactory.makeSymbol('EqualQ', true),
+  EqualQSymbol: NodeFactory.makeSymbol('EqualQ'),
 
   // 严格大于判定符号
   GreaterThanSymbol: NodeFactory.makeSymbol('GreaterThan', true),
@@ -254,7 +254,7 @@ export const allSymbolsMap = {
   LetSymbol: NodeFactory.makeSymbol('Let', true),
 
   // Filter 符号
-  FilterSymbol: NodeFactory.makeSymbol('Filter'),
+  FilterSymbol: NodeFactory.makeSymbol('Filter', true),
 
   // ReplaceAll 符号
   ReplaceAllSymbol: NodeFactory.makeSymbol('ReplaceAll', true),
@@ -912,19 +912,9 @@ export const builtInDefinitions: Definition[] = [
       const directEqual = ExprHelper.rawEqualQ([lhs], [rhs]);
       if (directEqual) {
         return of(True);
+      } else {
+        return of(False);
       }
-
-      const lhs$ = evaluator.evaluate(lhs, context);
-      const rhs$ = evaluator.evaluate(rhs, context);
-      return zip([lhs$, rhs$]).pipe(
-        map(([lhs, rhs]) => {
-          if (ExprHelper.rawEqualQ([lhs], [rhs])) {
-            return True;
-          } else {
-            return False;
-          }
-        }),
-      );
     },
     displayName: 'EqualQ[x, y] -> ?',
   },
