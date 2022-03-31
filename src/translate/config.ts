@@ -1255,8 +1255,6 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: ListJoinExpr([BlankSequenceExpr([allSymbolsMap.ListSymbol])]),
     action: (expr, __, ___) => {
-      console.log(`1 Evaluate: ${ExprHelper.nodeToString(expr)}`);
-
       const listJoinExpr = expr as NonTerminalExpr;
       const listExprs = listJoinExpr.children as NonTerminalExpr[];
       const elements: Expr[] = [];
