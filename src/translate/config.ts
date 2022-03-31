@@ -149,7 +149,7 @@ export const allSymbolsMap = {
   SequenceSymbol: NodeFactory.makeSymbol('Sequence', true),
 
   // List 符号
-  ListSymbol: NodeFactory.makeSymbol('List', true),
+  ListSymbol: NodeFactory.makeSymbol('List'),
 
   // Head 符号
   HeadSymbol: NodeFactory.makeSymbol('Head', true),
@@ -722,47 +722,12 @@ export const builtInDefinitions: Definition[] = [
     displayName: '_[___, _Sequence, ___] -> ?',
   },
 
-  // List[...]
+  // Length[_List]
   {
-    pattern: {
-      nodeType: 'nonTerminal',
-      head: allSymbolsMap.ListSymbol,
-      children: [BlankNullSequenceExpr([])],
-    },
-    action: (expr, evaluator, context) => {
-      if (expr.nodeType === 'nonTerminal') {
-        if (expr.children.length > 0) {
-          return zip(
-            expr.children.map((child) => evaluator.evaluate(child, context)),
-          ).pipe(
-            map((children) => {
-              expr.children = children;
-              return expr;
-            }),
-          );
-        }
-      }
-
-      return of(expr);
-    },
-    displayName: 'List[___] -> ?',
-  },
-
-  // Length[{}]
-  {
-    pattern: LengthExpr([ListExpr([])]),
-    action: (_, __, ___) => of(NumberExpr(0)),
+    pattern: LengthExpr([allSymbolsMap.ListSymbol]),
+    action: (expr, __, ___) =>
+      of(NumberExpr((expr as NonTerminalExpr).children.length)),
     displayName: 'Length[{}] -> 0',
-  },
-
-  // Length[{__}]
-  {
-    pattern: LengthExpr([ListExpr([BlankSequenceExpr([])])]),
-    action: (expr, _, __) => {
-      const lengthExpr = expr as NonTerminalExpr;
-      return of(NumberExpr(lengthExpr.children.length));
-    },
-    displayName: 'Length[{__}] -> ?',
   },
 
   // First[nonEmpty_List]
@@ -780,7 +745,7 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: RestExpr([ListExpr([])]),
     action: (_, __, ___) => of(ListExpr([])),
-    displayName: 'RestPart[{}] -> {}',
+    displayName: 'Rest[{}] -> {}',
   },
 
   // Rest[List[__]]
@@ -792,7 +757,7 @@ export const builtInDefinitions: Definition[] = [
       const rest = listExpr.children.slice(1, listExpr.children.length);
       return of(ListExpr([...rest]));
     },
-    displayName: 'RestPart[List[__]] -> ?',
+    displayName: 'Rest[List[__]] -> ?',
   },
 
   // MatchQ
@@ -1281,26 +1246,34 @@ export const builtInDefinitions: Definition[] = [
       const valueExpr = assignExpr.children[1];
       const bodyExpr = letExpr.children[1];
 
-      const tmpCtx: IContext = {
-        parent: context,
-        definitions: {
-          arguments: [],
-          fixedAssign: [],
-          delayedAssign: [],
-          builtin: [],
-        },
-      };
-
       const value$ = evaluator.evaluate(valueExpr, context);
 
-      tmpCtx.definitions.fixedAssign.push({
-        pattern: keyExpr,
-        action: (_expr, _evaluator, _context) => value$,
-        displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
-        isStrong: true,
-      });
+      return value$.pipe(
+        map((value) => {
+          const tmpCtx: IContext = {
+            parent: context,
+            definitions: {
+              arguments: [],
+              fixedAssign: [],
+              delayedAssign: [],
+              builtin: [],
+            },
+          };
 
-      return evaluator.evaluate(bodyExpr, tmpCtx);
+          tmpCtx.definitions.fixedAssign.push({
+            pattern: keyExpr,
+            action: (_expr, _evaluator, _context) => of(value),
+            displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
+            isStrong: true,
+          });
+
+          return evaluator.evaluate(bodyExpr, tmpCtx).pipe(
+            map((expr) => evaluator.evaluate(expr, context)),
+            concatAll(),
+          );
+        }),
+        concatAll(),
+      );
     },
     displayName: 'Let[Assign[_, _], _]',
   },
@@ -1335,23 +1308,12 @@ export const builtInDefinitions: Definition[] = [
         displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
       });
 
-      return evaluator.evaluate(bodyExpr, tmpCtx);
+      return evaluator.evaluate(bodyExpr, tmpCtx).pipe(
+        map((bodyExpr) => evaluator.evaluate(bodyExpr, context)),
+        concatAll(),
+      );
     },
     displayName: 'Let[AssignDelayed[_, _], _]',
-  },
-
-  // Let[_, _]
-  {
-    pattern: LetExpr([BlankExpr([]), BlankExpr([])]),
-    action: (expr, evaluator, context) => {
-      const letExpr = expr as NonTerminalExpr;
-      const lhsExpr = letExpr.children[0];
-      const rhsExpr = letExpr.children[1];
-      return evaluator
-        .evaluate(lhsExpr, context)
-        .pipe(map((lhs) => LetExpr([lhs, rhsExpr])));
-    },
-    displayName: 'Let[_, _] -> ?',
   },
 
   // Let[__]

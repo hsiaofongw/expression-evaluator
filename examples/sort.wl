@@ -3,7 +3,7 @@ sort[lst_] := If[
   {},
   Let[
     first = First[lst],
-    rest=Rest[lst],
+    rest = Rest[lst],
     ListJoin[
       sort[Filter[rest, Function[x_, x <= first]]],
       { first },
