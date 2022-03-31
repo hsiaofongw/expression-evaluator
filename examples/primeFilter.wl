@@ -16,4 +16,5 @@ primeFilter[lst_] := If[
   ]
 ];
 
-primeFilter[Seq[2, 20]];
+primes[n_] := If[n < 2, {}, primeFilter[Seq[2, n]]];
+primes[100];
