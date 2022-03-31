@@ -12,8 +12,8 @@ coinChange[amount_, kindsOfCoins_] := If[
   ]
 ];
 firstDenomination[1]=1;
-firstDenomination[1]=5;
-firstDenomination[1]=10;
-firstDenomination[1]=25;
-firstDenomination[1]=50;
+firstDenomination[2]=5;
+firstDenomination[3]=10;
+firstDenomination[4]=25;
+firstDenomination[5]=50;
 coinChange[100, 5];
