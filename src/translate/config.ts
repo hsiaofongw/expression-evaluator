@@ -1253,15 +1253,19 @@ export const builtInDefinitions: Definition[] = [
 
   // ListJoin[_List, _List]
   {
-    pattern: ListJoinExpr([
-      BlankExpr([allSymbolsMap.ListSymbol]),
-      BlankExpr([allSymbolsMap.ListSymbol]),
-    ]),
+    pattern: ListJoinExpr([BlankSequenceExpr([allSymbolsMap.ListSymbol])]),
     action: (expr, __, ___) => {
+      console.log(`1 Evaluate: ${ExprHelper.nodeToString(expr)}`);
+
       const listJoinExpr = expr as NonTerminalExpr;
-      const lhsListExpr = listJoinExpr.children[0] as NonTerminalExpr;
-      const rhsListExpr = listJoinExpr.children[1] as NonTerminalExpr;
-      return of(ListExpr([...lhsListExpr.children, ...rhsListExpr.children]));
+      const listExprs = listJoinExpr.children as NonTerminalExpr[];
+      const elements: Expr[] = [];
+      for (const item of listExprs) {
+        for (const subItem of item.children) {
+          elements.push(subItem);
+        }
+      }
+      return of(ListExpr(elements));
     },
     displayName: 'ListJoin[_List, _List] -> ?',
   },
