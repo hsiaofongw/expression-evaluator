@@ -1,6 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { concatAll, filter, first, map, Observable, of, zip } from 'rxjs';
+import {
+  asapScheduler,
+  catchError,
+  concatAll,
+  filter,
+  first,
+  map,
+  Observable,
+  observeOn,
+  of,
+  timeout,
+  zip,
+} from 'rxjs';
 import { EvaluateHelper } from 'src/helpers/evalaute-helper';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
 import {
@@ -1233,49 +1245,74 @@ export const builtInDefinitions: Definition[] = [
     action: (expr, evaluator, context) => {
       const letExpr = expr as NonTerminalExpr;
       const argCount = letExpr.children.length;
-      const restLetExpr = LetExpr(letExpr.children.slice(1, argCount));
 
-      // console.log('ArgCount: ' + argCount.toString());
+      const makeContext: (
+        assignment: Expr,
+        parent$: Observable<IContext>,
+      ) => Observable<IContext> = (assignment, parent$) => {
+        return parent$.pipe(
+          map((parent) => {
+            if (assignment.head === allSymbolsMap.AssignSymbol) {
+              const assignExpr = assignment as NonTerminalExpr;
+              const lhs = assignExpr.children[0];
+              const rhs = assignExpr.children[1];
+              const rhs$ = evaluator.evaluate(rhs, parent);
+              const ctx = EvaluateHelper.makeEmptyContext();
+              ctx.parent = parent;
+              ctx.definitions.fixedAssign.push({
+                pattern: lhs,
+                action: (_, __, ___) => rhs$,
+                displayName: ExprHelper.nodeToString(lhs) + ' -> ?',
+                isStrong: true,
+              });
+              return ctx;
+            } else if (assignment.head === allSymbolsMap.AssignDelayedSymbol) {
+              const assignDelayedExpr = assignment as NonTerminalExpr;
+              const lhs = assignDelayedExpr.children[0];
+              const rhs = assignDelayedExpr.children[1];
+              const ctx = EvaluateHelper.makeEmptyContext();
+              ctx.parent = parent;
+              ctx.definitions.delayedAssign.push({
+                pattern: lhs,
+                action: (_, _evaluator, _context) =>
+                  _evaluator.evaluate(rhs, _context),
+                displayName: ExprHelper.nodeToString(lhs) + ' -> ?',
+              });
+              return ctx;
+            } else {
+              return parent;
+            }
+          }),
+        );
+      };
 
       if (argCount === 0) {
         return of(expr);
       }
 
-      const firstArg = letExpr.children[0];
-      if (firstArg.head === allSymbolsMap.AssignSymbol) {
-        const assignExpr = firstArg as NonTerminalExpr;
-        const lhs = assignExpr.children[0];
-        const rhs$ = evaluator.evaluate(assignExpr.children[1], context);
-        return rhs$.pipe(
-          map((rhs) => {
-            const ctx = EvaluateHelper.makeEmptyContext();
-            ctx.parent = context;
-            ctx.definitions.fixedAssign.push({
-              pattern: lhs,
-              action: (_, _evaluator, _context) => of(rhs),
-              displayName: ExprHelper.nodeToString(lhs) + ' -> ?',
-              isStrong: true,
-            });
-            return evaluator.evaluate(restLetExpr, ctx);
-          }),
-          concatAll(),
+      const assignments: Expr[] = letExpr.children.slice(0, argCount - 1);
+
+      if (assignments.length === 0) {
+        return evaluator.evaluate(
+          letExpr.children[letExpr.children.length - 1],
+          context,
         );
-      } else if (firstArg.head === allSymbolsMap.AssignDelayedSymbol) {
-        const assignDelayedExpr = firstArg as NonTerminalExpr;
-        const lhs = assignDelayedExpr.children[0];
-        const rhs = assignDelayedExpr.children[1];
-        const ctx = EvaluateHelper.makeEmptyContext();
-        ctx.parent = context;
-        ctx.definitions.delayedAssign.push({
-          pattern: lhs,
-          action: (_, _evaluator, _context) =>
-            _evaluator.evaluate(rhs, _context),
-          displayName: ExprHelper.nodeToString(lhs) + ' -> ?',
-        });
-        return evaluator.evaluate(restLetExpr, ctx);
-      } else {
-        return evaluator.evaluate(firstArg, context);
       }
+
+      const context$s: Observable<IContext>[] = [of(context)];
+      for (let i = 0; i < assignments.length; i++) {
+        const lastCtx = context$s[context$s.length - 1];
+        const assignment = assignments[i];
+        context$s.push(makeContext(assignment, lastCtx));
+      }
+
+      return context$s[context$s.length - 1].pipe(
+        observeOn(asapScheduler),
+        map((ctx) => {
+          return evaluator.evaluate(letExpr.children[argCount - 1], ctx);
+        }),
+        concatAll(),
+      );
     },
     displayName: 'Let[__] -> ?',
   },

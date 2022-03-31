@@ -21,7 +21,17 @@ import {
 } from './interfaces';
 import { allSymbols } from './config';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
-import { concat, concatAll, from, map, Observable, of, zip } from 'rxjs';
+import {
+  asapScheduler,
+  concat,
+  concatAll,
+  from,
+  map,
+  Observable,
+  observeOn,
+  of,
+  zip,
+} from 'rxjs';
 
 type DefinitionQueryResult =
   | NoMatchResult
@@ -181,8 +191,6 @@ export class Evaluator extends Transform implements IEvaluator {
 
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
   public evaluate(expr: Expr, context: IContext): Observable<Expr> {
-    // console.log('e: Evaluate: ' + ExprHelper.nodeToString(expr));
-
     const root = this.getRoot(expr);
     const copy = ExprHelper.shallowCopy(expr);
     let result$: Observable<Expr>;
@@ -193,12 +201,17 @@ export class Evaluator extends Transform implements IEvaluator {
       root.expressionType === 'symbol' &&
       allNonStandardSymbolsSet.has(root.value)
     ) {
-      result$ = this.nonStandardEvaluate(copy, context);
+      result$ = this.nonStandardEvaluate(copy, context).pipe(
+        observeOn(asapScheduler),
+      );
     } else {
-      result$ = this.standardEvaluate(copy, context);
+      result$ = this.standardEvaluate(copy, context).pipe(
+        observeOn(asapScheduler),
+      );
     }
 
     return result$.pipe(
+      observeOn(asapScheduler),
       map((result) => {
         if (ExprHelper.rawEqualQ([expr], [result])) {
           return of(result);

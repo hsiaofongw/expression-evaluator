@@ -48,7 +48,7 @@ async function bootstrap() {
     });
 
   program
-    .command('repl')
+    .command('repl', { isDefault: true })
     .description('启动一个 REPL 你问一句我答一句交互环境')
     .action(async () => {
       const app = await NestFactory.create(AppModule);
