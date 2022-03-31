@@ -14,4 +14,4 @@ sort[lst_] := If[
   ]
 ];
 
-sort[{3,2,1}];
+sort[Seq[20]];
