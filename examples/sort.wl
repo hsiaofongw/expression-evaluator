@@ -4,10 +4,12 @@ sort[lst_] := If[
   Let[
     first = First[lst],
     rest = Rest[lst],
+    lhs = sort[Filter[rest, Function[x_, x <= first]]],
+    rhs = sort[Filter[rest, Function[x_, x > first]]],
     ListJoin[
-      sort[Filter[rest, Function[x_, x <= first]]],
+      lhs,
       { first },
-      sort[Filter[rest, Function[x_, x > first]]]
+      rhs
     ]
   ]
 ];

@@ -76,9 +76,6 @@ export const allSymbolsMap = {
   // 长度符号
   LengthSymbol: NodeFactory.makeSymbol('Length'),
 
-  // 剩余部分负号
-  RestPartSymbol: NodeFactory.makeSymbol('RestPart', true),
-
   // Or 符号
   OrSymbol: NodeFactory.makeSymbol('Or', true),
 
@@ -724,9 +721,12 @@ export const builtInDefinitions: Definition[] = [
 
   // Length[_List]
   {
-    pattern: LengthExpr([allSymbolsMap.ListSymbol]),
-    action: (expr, __, ___) =>
-      of(NumberExpr((expr as NonTerminalExpr).children.length)),
+    pattern: LengthExpr([BlankExpr([allSymbolsMap.ListSymbol])]),
+    action: (expr, __, ___) => {
+      const lengthExpr = expr as NonTerminalExpr;
+      const listExpr = lengthExpr.children[0] as NonTerminalExpr;
+      return of(NumberExpr(listExpr.children.length));
+    },
     displayName: 'Length[{}] -> 0',
   },
 
@@ -888,18 +888,15 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: AssignExpr([BlankExpr([]), BlankExpr([])]),
     action: (node, evaluator, context) => {
-      if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-        const key = node.children[0];
-        const value = node.children[1];
-        return evaluator.evaluate(value, context).pipe(
-          map((evaluatedRhs) => {
-            evaluator.assign({ pattern: key, value: of(evaluatedRhs) });
-            return evaluatedRhs;
-          }),
-        );
-      }
-
-      return of(node);
+      const assignExpr = node as NonTerminalExpr;
+      const lhs = assignExpr.children[0];
+      const rhs = assignExpr.children[1];
+      return evaluator.evaluate(rhs, context).pipe(
+        map((rhs) => {
+          evaluator.assign({ pattern: lhs, value: of(rhs) });
+          return rhs;
+        }),
+      );
     },
     displayName: 'Assign[lhs, rhs] -> rhs',
   },
@@ -909,13 +906,10 @@ export const builtInDefinitions: Definition[] = [
   {
     pattern: AssignDelayedExpr([BlankExpr([]), BlankExpr([])]),
     action: (node, evaluator, _) => {
-      if (node.nodeType === 'nonTerminal' && node.children.length === 2) {
-        return evaluator.assignDelayed({
-          pattern: node.children[0],
-          value: of(node.children[1]),
-        });
-      }
-      return of(node);
+      const assignDelayedExpr = node as NonTerminalExpr;
+      const lhs = assignDelayedExpr.children[0];
+      const rhs = assignDelayedExpr.children[1];
+      return evaluator.assignDelayed({ pattern: lhs, value: of(rhs) });
     },
     displayName: 'AssignDelayed[lhs, rhs] -> Nothing',
   },
@@ -1216,7 +1210,6 @@ export const builtInDefinitions: Definition[] = [
     displayName: 'Seq[_Number, _Number, _Number] -> ?',
   },
 
-  // ListJoin[_List, _List]
   {
     pattern: ListJoinExpr([BlankSequenceExpr([allSymbolsMap.ListSymbol])]),
     action: (expr, __, ___) => {
@@ -1248,32 +1241,24 @@ export const builtInDefinitions: Definition[] = [
 
       const value$ = evaluator.evaluate(valueExpr, context);
 
-      return value$.pipe(
-        map((value) => {
-          const tmpCtx: IContext = {
-            parent: context,
-            definitions: {
-              arguments: [],
-              fixedAssign: [],
-              delayedAssign: [],
-              builtin: [],
-            },
-          };
+      const tmpCtx: IContext = {
+        parent: context,
+        definitions: {
+          arguments: [],
+          fixedAssign: [],
+          delayedAssign: [],
+          builtin: [],
+        },
+      };
 
-          tmpCtx.definitions.fixedAssign.push({
-            pattern: keyExpr,
-            action: (_expr, _evaluator, _context) => of(value),
-            displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
-            isStrong: true,
-          });
+      tmpCtx.definitions.fixedAssign.push({
+        pattern: keyExpr,
+        action: (_expr, _evaluator, _context) => value$,
+        displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
+        isStrong: true,
+      });
 
-          return evaluator.evaluate(bodyExpr, tmpCtx).pipe(
-            map((expr) => evaluator.evaluate(expr, context)),
-            concatAll(),
-          );
-        }),
-        concatAll(),
-      );
+      return evaluator.evaluate(bodyExpr, tmpCtx);
     },
     displayName: 'Let[Assign[_, _], _]',
   },
@@ -1308,17 +1293,35 @@ export const builtInDefinitions: Definition[] = [
         displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
       });
 
-      return evaluator.evaluate(bodyExpr, tmpCtx).pipe(
-        map((bodyExpr) => evaluator.evaluate(bodyExpr, context)),
-        concatAll(),
-      );
+      return evaluator.evaluate(bodyExpr, tmpCtx);
     },
     displayName: 'Let[AssignDelayed[_, _], _]',
   },
 
   // Let[__]
   {
-    pattern: LetExpr([BlankExpr([]), BlankExpr([]), BlankSequenceExpr([])]),
+    pattern: LetExpr([
+      BlankExpr([allSymbolsMap.AssignSymbol]),
+      BlankExpr([]),
+      BlankSequenceExpr([]),
+    ]),
+    action: (expr, _, __) => {
+      const letExpr = expr as NonTerminalExpr;
+      const arg1 = letExpr.children[0];
+      const arg2 = letExpr.children[1];
+      const restArgs = letExpr.children.slice(2, letExpr.children.length);
+      return of(LetExpr([arg1, LetExpr([arg2, ...restArgs])]));
+    },
+    displayName: 'Let[__] -> ?',
+  },
+
+  // Let[__]
+  {
+    pattern: LetExpr([
+      BlankExpr([allSymbolsMap.AssignDelayedSymbol]),
+      BlankExpr([]),
+      BlankSequenceExpr([]),
+    ]),
     action: (expr, _, __) => {
       const letExpr = expr as NonTerminalExpr;
       const arg1 = letExpr.children[0];

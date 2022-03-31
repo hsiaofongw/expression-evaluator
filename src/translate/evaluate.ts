@@ -134,25 +134,40 @@ export class Evaluator extends Transform implements IEvaluator {
       return of(expr);
     }
 
-    // 导入结果
-    const newContext: IContext = this.makeEmptyContext();
-    const namedResult = definitionQueryResult.namedResult;
-    for (const key in namedResult) {
-      const keyExpr = NodeFactory.makeSymbol(key);
-      const valueExpr = SequenceExpr(namedResult[key]);
-      newContext.definitions.arguments.push({
-        pattern: keyExpr,
-        // 务必要在现在这个父上下文进行求值，而不是在将来那个现场的上下文
-        action: (_, evaluator, ___) => evaluator.evaluate(valueExpr, context),
-        displayName: ExprHelper.keyValuePairToString(keyExpr, valueExpr),
-      });
+    const keys: string[] = [];
+    const arg$s: Observable<Expr>[] = [];
+    for (const key in definitionQueryResult.namedResult) {
+      keys.push(key);
+      arg$s.push(
+        this.evaluate(
+          SequenceExpr(definitionQueryResult.namedResult[key]),
+          context,
+        ),
+      );
     }
 
-    // 新建上下文
-    newContext.parent = context;
+    if (keys.length === 0) {
+      return definitionQueryResult.definition.action(expr, this, context);
+    }
 
-    // 求值
-    return definitionQueryResult.definition.action(expr, this, newContext);
+    return zip(arg$s).pipe(
+      map((args) => {
+        const newContext: IContext = this.makeEmptyContext();
+        for (let i = 0; i < keys.length; i++) {
+          const keyExpr = NodeFactory.makeSymbol(keys[i]);
+          const valueExpr = args[i];
+          newContext.definitions.arguments.push({
+            pattern: keyExpr,
+            action: (_, __, ___) => of(valueExpr),
+            displayName: ExprHelper.nodeToString(keyExpr) + ' -> ?',
+          });
+        }
+
+        newContext.parent = context;
+        return definitionQueryResult.definition.action(expr, this, newContext);
+      }),
+      concatAll(),
+    );
   }
 
   private getRoot(expr: Expr): Expr {
@@ -166,7 +181,7 @@ export class Evaluator extends Transform implements IEvaluator {
 
   /** 根据 expr 的 head 的符号（符号原型）的 nonStandard 字段决定是否采用非标准求值流程对 expr 进行求值 */
   public evaluate(expr: Expr, context: IContext): Observable<Expr> {
-    // console.log('e: Evaluate: ' + ExprHelper.nodeToString(expr));
+    console.log('e: Evaluate: ' + ExprHelper.nodeToString(expr));
 
     const root = this.getRoot(expr);
     const copy = ExprHelper.shallowCopy(expr);
@@ -323,6 +338,25 @@ export class Evaluator extends Transform implements IEvaluator {
   }
 
   /**
+   * 延迟赋值，每次读取时将重新求值
+   *
+   * 主要是由 AssignDelayed 函数调用, Evaluator 内部尽量不要依赖这个函数，换言之这是对外的
+   */
+  public assignDelayed(keyValuePair: KeyValuePair): Observable<Expr> {
+    this._userDelayedDefinition.push({
+      pattern: keyValuePair.pattern,
+      action: (_, evaluator, context) =>
+        keyValuePair.value.pipe(
+          map((rhs) => evaluator.evaluate(rhs, context)),
+          concatAll(),
+        ),
+      displayName: ExprHelper.nodeToString(keyValuePair.pattern) + ' -> ?',
+    });
+
+    return of(allSymbolsMap.NothingSymbol);
+  }
+
+  /**
    * 清除赋值
    */
   public clearAssign(pattern: Expr): Observable<Expr> {
@@ -374,26 +408,5 @@ export class Evaluator extends Transform implements IEvaluator {
       head: NodeFactory.makeSymbol('Integer'),
       value: beforeCounts - afterCounts,
     });
-  }
-
-  /**
-   * 延迟赋值，每次读取时将重新求值
-   *
-   * 主要是由 AssignDelayed 函数调用, Evaluator 内部尽量不要依赖这个函数，换言之这是对外的
-   */
-  public assignDelayed(keyValuePair: KeyValuePair): Observable<Expr> {
-    return zip([of(keyValuePair.pattern), keyValuePair.value]).pipe(
-      map(([key, value]) => {
-        this._userDelayedDefinition.push({
-          pattern: key,
-          action: (_, evaluator, context) => {
-            return evaluator.evaluate(value, context);
-          },
-          displayName: `${ExprHelper.nodeToString(keyValuePair.pattern)} -> ?`,
-        });
-
-        return allSymbolsMap.NothingSymbol;
-      }),
-    );
   }
 }
