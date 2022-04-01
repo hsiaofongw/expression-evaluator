@@ -15,6 +15,7 @@ import {
 } from 'rxjs';
 import { EvaluateHelper } from 'src/helpers/evalaute-helper';
 import { ExprHelper, Neo } from 'src/helpers/expr-helpers';
+import { RandomHelper } from 'src/helpers/random-helper';
 import {
   Definition,
   Expr,
@@ -310,6 +311,9 @@ export const allSymbolsMap = {
 
   // Lambda 符号
   LambdaSymbol: NodeFactory.makeSymbol('Lambda'),
+
+  // RandomInteger 符号
+  RandomIntegerSymbol: NodeFactory.makeSymbol('RandomInteger'),
 };
 
 function makeAllSymbolsList(): Expr[] {
@@ -575,6 +579,10 @@ export function FirstExpr(children: Expr[]): Expr {
 
 export function LambdaExpr(children: Expr[]): Expr {
   return MakeNonTerminalExpr(allSymbolsMap.LambdaSymbol, children);
+}
+
+export function RandomIntegerExpr(children: Expr[]): Expr {
+  return MakeNonTerminalExpr(allSymbolsMap.RandomIntegerSymbol, children);
 }
 
 // 返回一个数值型一元运算 Pattern
@@ -1414,5 +1422,65 @@ export const builtInDefinitions: Definition[] = [
     pattern: NotExpr([False]),
     action: (_, __, ___) => of(True),
     displayName: 'Not[False] -> True',
+  },
+
+  // RandomInteger[{_Number, _Number}]
+  {
+    pattern: RandomIntegerExpr([
+      ListExpr([
+        BlankExpr([allSymbolsMap.NumberSymbol]),
+        BlankExpr([allSymbolsMap.NumberSymbol]),
+      ]),
+    ]),
+    action: (expr, _, __) => {
+      const randomIntegerExpr = expr as NonTerminalExpr;
+      const listExpr = randomIntegerExpr.children[0] as NonTerminalExpr;
+      const lowerBoundExpr = listExpr.children[0] as TerminalNumberExpr;
+      const upperBoundExpr = listExpr.children[1] as TerminalNumberExpr;
+      const lowerBound = Math.min(lowerBoundExpr.value, upperBoundExpr.value);
+      const upperBound = Math.max(upperBoundExpr.value, lowerBoundExpr.value);
+
+      return of(
+        NumberExpr(
+          RandomHelper.getRandomIntegerInclusively(lowerBound, upperBound),
+        ),
+      );
+    },
+    displayName: 'RandomInteger[{_Number, _Number}] -> ?',
+  },
+
+  // RandomInteger[{_Number, _Number}, _Number]
+  {
+    pattern: RandomIntegerExpr([
+      ListExpr([
+        BlankExpr([allSymbolsMap.NumberSymbol]),
+        BlankExpr([allSymbolsMap.NumberSymbol]),
+      ]),
+      BlankExpr([allSymbolsMap.NumberSymbol]),
+    ]),
+    action: (expr, _, __) => {
+      const randomIntegerExpr = expr as NonTerminalExpr;
+      const repeatExpr = randomIntegerExpr.children[1] as TerminalNumberExpr;
+      const repeat = Math.floor(repeatExpr.value);
+      if (repeat < 0 || repeat === 0) {
+        return of(ListExpr([]));
+      }
+
+      const listExpr = randomIntegerExpr.children[0] as NonTerminalExpr;
+      const lowerBoundExpr = listExpr.children[0] as TerminalNumberExpr;
+      const upperBoundExpr = listExpr.children[1] as TerminalNumberExpr;
+      const lowerBound = Math.min(lowerBoundExpr.value, upperBoundExpr.value);
+      const upperBound = Math.max(upperBoundExpr.value, lowerBoundExpr.value);
+
+      const randomInts: number[] = [];
+      for (let i = 0; i < repeat; i++) {
+        randomInts.push(
+          RandomHelper.getRandomIntegerInclusively(lowerBound, upperBound),
+        );
+      }
+
+      return of(ListExpr(randomInts.map((randInt) => NumberExpr(randInt))));
+    },
+    displayName: 'RandomInteger[{_Number, _Number}, _Number] -> ?',
   },
 ];
