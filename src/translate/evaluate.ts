@@ -277,18 +277,7 @@ export class Evaluator extends Transform implements IEvaluator {
   /** 标准求值程序 */
   private standardEvaluate(expr: Expr, context: IContext): Observable<Expr> {
     const head = expr.head;
-    return of([expr, ExprHelper.shallowCopy(head)]).pipe(
-      // 对 head 求值
-      map(([expr, headExpr]) =>
-        this.substitute(headExpr, context).pipe(
-          map((evaluatedHead) => {
-            expr.head = evaluatedHead;
-            return expr;
-          }),
-        ),
-      ),
-      concatAll(),
-
+    return of(expr).pipe(
       // 为对 children 求值做准备，提前把每一个 child 做浅复制
       map((expr) => {
         if (expr.nodeType === 'nonTerminal') {
@@ -320,6 +309,19 @@ export class Evaluator extends Transform implements IEvaluator {
         );
         return exprWithChildrenEvaluated$;
       }),
+      concatAll(),
+
+      map((expr) => [expr, ExprHelper.shallowCopy(head)]),
+
+      // 对 head 求值
+      map(([expr, headExpr]) =>
+        this.substitute(headExpr, context).pipe(
+          map((evaluatedHead) => {
+            expr.head = evaluatedHead;
+            return expr;
+          }),
+        ),
+      ),
       concatAll(),
 
       // 对自己求值
